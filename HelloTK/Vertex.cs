@@ -17,7 +17,7 @@ namespace HelloTK
         public static int SizeInBytes { get { return Vector2.SizeInBytes * 2 + Vector4.SizeInBytes; } }
         public Color Color 
         {
-            get { return Color.FromArgb(((int)color.W*255), ((int)color.X*255), ((int)color.Y*255), ((int)color.Z*255) ); }
+            get { return Color.FromArgb((int)(color.W*255), (int)(color.X*255), (int)(color.Y*255), (int)(color.Z*255) ); }
             set { this.color = new Vector4(value.R/255.0f, value.G/255.0f, value.B/255.0f, value.A/255.0f); }
         }
 
@@ -32,17 +32,6 @@ namespace HelloTK
             this.position = position;
             this.texCoords = texCoords;
             this.color = new Vector4(color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f); 
-        }
-
-        public static void SetOffsets()
-        {
-            GL.EnableClientState(ArrayCap.VertexArray);
-            GL.EnableClientState(ArrayCap.TextureCoordArray);
-            GL.EnableClientState(ArrayCap.ColorArray);
-
-            GL.VertexPointer(2, VertexPointerType.Float, SizeInBytes, 0);
-            GL.TexCoordPointer(2, TexCoordPointerType.Float, SizeInBytes, Vector2.SizeInBytes);
-            GL.ColorPointer(4, ColorPointerType.Float, SizeInBytes, Vector2.SizeInBytes*2);
         }
     }
 }

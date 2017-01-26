@@ -1,0 +1,5 @@
+*.exe
+HelloTK/bin
+HelloTK/obj
+.vs/
+packages/

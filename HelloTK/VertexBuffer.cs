@@ -8,14 +8,15 @@ using OpenTK;
 
 namespace HelloTK
 {
-    class VBO
+    class VertexBuffer// <TVertex> where TVertex : struct
     {
         int vboId;
         int numVertices;
         Vertex[] vertices;
+        VertexArray vertexArray; // TODO Move to a new container parent
         bool uploaded = false;
 
-        public VBO( Vertex[] vertices )
+        public VertexBuffer( Vertex[] vertices )
         {
             numVertices = vertices.Length;
             this.vertices = vertices;
@@ -33,12 +34,27 @@ namespace HelloTK
                                       vertices, BufferUsageHint.StaticDraw);
 
             }
-            Vertex.SetOffsets();
+            
+        }
+
+        public void AddVertexArray(VertexArray vertexArray)
+        {
+            this.vertexArray = vertexArray;
+        }
+
+        public void EnableAttributes(ref Shader shader)
+        {
+            vertexArray.Bind();
         }
 
         public int Size()
         {
             return numVertices;
+        }
+
+        public int Stride()
+        {
+            return Vertex.SizeInBytes;
         }
     }
 }

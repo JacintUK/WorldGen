@@ -4,20 +4,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OpenTK.Graphics.OpenGL;
+using OpenTK;
 
 namespace HelloTK
 {
     class Renderer
     {
-        public List<VBO> vbos = new List<VBO>();
+        public List<VertexBuffer> vbos = new List<VertexBuffer>();
         public IBO ibo;
+        public Shader shader;
+        private Matrix4 modelView=Matrix4.Identity;
+        public Matrix4 ModelView { set { modelView = value;} get { return modelView; } }
 
         public Renderer()
         {
-            //vbos = new List<VBO>();
         }
 
-        public void AddVBO(VBO vbo)
+        public void AddVBO(VertexBuffer vbo)
         {
             if (vbos != null)
             {
@@ -34,12 +37,27 @@ namespace HelloTK
         //{
         //}
 
-        public void Draw()
+        public void AddShader(Shader shader)
         {
-            foreach (VBO vbo in vbos)
+            this.shader = shader;
+        }
+
+        public void Draw(Matrix4 modelView, Matrix4 projection)
+        {
+            if (shader != null)
+            {
+                shader.Use();
+
+                // Set up uniforms:
+                shader.SetUniformMatrix4("modelView", this.modelView);
+                shader.SetUniformMatrix4("projection", projection);
+            }
+            foreach (VertexBuffer vbo in vbos)
             {
                 vbo.Bind();
+                vbo.EnableAttributes(ref shader);
             }
+
             if (ibo != null)
             {
                 ibo.Bind();
@@ -49,7 +67,9 @@ namespace HelloTK
             {
                 GL.DrawArrays(PrimitiveType.Triangles, 0, vbos[0].Size());
             }
-        }
 
+            GL.BindVertexArray(0);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+        }
     }
 }
