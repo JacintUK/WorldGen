@@ -36,6 +36,16 @@ namespace HelloTK
             handle = GL.GenBuffer();
         }
 
+        public VertexBuffer( Mesh<TVertex> mesh, Shader shader )
+        {
+            this.numVertices = mesh.Length;
+            this.vertices = mesh.Vertices;
+            this.vertexSize = mesh.VertexFormat.size;
+            handle = GL.GenBuffer();
+
+            vertexArray = new VertexArray<TVertex>(this, shader, mesh.VertexFormat );
+        }
+
         public void Bind()
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, handle);

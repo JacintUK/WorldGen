@@ -9,9 +9,28 @@ namespace HelloTK
 {
     class VertexArray<TVertex> where TVertex : struct
     {
-        private readonly int handle;
+        private int handle;
+
+        public VertexArray(VertexBuffer<TVertex> vertexBuffer, Shader shader, VertexFormat vertexFormat)
+        {
+            // Construct array of VertexAttribute from vertex format:
+            List < VertexAttribute > attrs = new List<VertexAttribute>();
+            foreach (var attr in vertexFormat.Attributes)
+            {
+                attrs.Add(new HelloTK.VertexAttribute(attr.Name, 
+                    VertexFormat.NumberOfFloatsInType(attr.Type),
+                    VertexAttribPointerType.Float, vertexFormat.size, attr.Offset));
+            }
+            Initialize(vertexBuffer, shader, attrs.ToArray());
+        }
 
         public VertexArray(VertexBuffer<TVertex> vertexBuffer, Shader shader,
+            params VertexAttribute[] attributes)
+        {
+            Initialize(vertexBuffer, shader, attributes);
+        }
+
+        private void Initialize(VertexBuffer<TVertex> vertexBuffer, Shader shader,
             params VertexAttribute[] attributes)
         {
             // create new vertex array object
