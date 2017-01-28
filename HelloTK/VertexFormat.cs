@@ -36,6 +36,16 @@ namespace HelloTK
             size = offset;
         }
 
+        public int FindOffset(string name)
+        {
+            for (int i = 0; i < this.attributes.Count; ++i)
+            {
+                if (attributes[i].Name == name)
+                    return attributes[i].Offset;
+            }
+            return -1;
+        }
+
         public int TypeSizeInBytes(Attribute.AType type)
         {
             int size = 0;

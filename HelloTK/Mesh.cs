@@ -13,6 +13,7 @@ namespace HelloTK
         public TVertex[] Vertices { get { return vertices; } }
         public int Length { get { return vertices.Length; } }
         public VertexFormat VertexFormat { get { return vertexFormat; } }
+
         public Mesh(TVertex[] vertices, VertexFormat vertexFormat )
         {
             this.vertexFormat = vertexFormat;

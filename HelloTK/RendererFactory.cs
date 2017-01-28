@@ -114,6 +114,8 @@ namespace HelloTK
             AddIndices(ref indices, 3, 9, 4);
 
             var geometry = new Geometry<Vertex3DColor>(mesh, indices.ToArray());
+            geometry.ConvertToVertexPerIndex();
+            geometry.AddNormals("position", "normal"); // C# attr name in struct, not GL.
             Renderer r = new Renderer(geometry, shader);
             return r;
         }
