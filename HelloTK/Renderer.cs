@@ -10,23 +10,20 @@ namespace HelloTK
 {
     class Renderer
     {
-        public List<IVertexBuffer> vertexBuffers = new List<IVertexBuffer>();
-        public IndexBuffer indexBuffer;
+        private IVertexBuffer vertexBuffer;
+        private IndexBuffer indexBuffer;
+        private IGeometry geometry;
         public Shader shader;
 
         private Matrix4 model = Matrix4.Identity;
         public Matrix4 Model { set { model = value; } get { return model; } }
 
-        public Renderer()
+        public Renderer(IGeometry geometry, Shader shader)
         {
-        }
-
-        public void AddVertexBuffer(IVertexBuffer vertexBuffer)
-        {
-            if (vertexBuffers != null)
-            {
-                vertexBuffers.Add(vertexBuffer);
-            }
+            this.shader = shader;
+            this.geometry = geometry;
+            this.vertexBuffer = geometry.CreateVertexBuffer();
+            this.indexBuffer = geometry.CreateIndexBuffer(); // returns null if there are no indices
         }
 
         public void AddIndexBuffer(IndexBuffer indexBuffer)
@@ -53,10 +50,7 @@ namespace HelloTK
                 shader.SetUniformMatrix4("modelView", this.model*view);
                 shader.SetUniformMatrix4("projection", projection);
             }
-            foreach (IVertexBuffer vertexBuffer in vertexBuffers)
-            {
-                vertexBuffer.Bind(shader);
-            }
+            vertexBuffer.Bind(shader);
 
             if (indexBuffer != null)
             {
@@ -65,7 +59,7 @@ namespace HelloTK
             }
             else
             {
-                GL.DrawArrays(PrimitiveType.Triangles, 0, vertexBuffers[0].Size);
+                GL.DrawArrays(PrimitiveType.Triangles, 0, vertexBuffer.Size);
             }
 
             GL.BindVertexArray(0);

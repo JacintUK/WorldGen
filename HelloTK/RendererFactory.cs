@@ -21,11 +21,7 @@ namespace HelloTK
                 new Vertex(new Vector3( 0.0f, -1.0f, 0.0f), new Vector2(1,1), Color.Purple),
             };
             var mesh = new Mesh<Vertex>(verts, format);
-
-            var vertexBuffer = new VertexBuffer<Vertex>(mesh);
-            Renderer renderer = new Renderer();
-            renderer.AddShader(shader);
-            renderer.AddVertexBuffer(vertexBuffer);
+            Renderer renderer = new Renderer(new Geometry<Vertex>(mesh), shader);
             return renderer;
         }
 
@@ -47,13 +43,8 @@ namespace HelloTK
             {
                 0, 1, 2, 1, 2, 3
             };
-            
-            VertexBuffer<Vertex> quadVertexBuffer = new VertexBuffer<Vertex>(new Mesh<Vertex>(quad, format));
-            IndexBuffer indexBuffer = new IndexBuffer(indices);
-            Renderer quadRenderer = new Renderer();
-            quadRenderer.AddVertexBuffer(quadVertexBuffer);
-            quadRenderer.AddIndexBuffer(indexBuffer);
-            quadRenderer.AddShader(shader);
+
+            Renderer quadRenderer = new Renderer(new Geometry<Vertex>(new Mesh<Vertex>(quad, format), indices), shader);
             quadRenderer.Model = Matrix4.CreateTranslation(0, 0, 0);
             return quadRenderer;
         }
@@ -62,10 +53,7 @@ namespace HelloTK
         {
             var vertexBuffer = new VertexBuffer<TVertex>(mesh);
             var indexBuffer = new IndexBuffer(indices);
-            var renderer = new Renderer();
-            renderer.AddVertexBuffer(vertexBuffer);
-            renderer.AddIndexBuffer(indexBuffer);
-            renderer.AddShader(shader);
+            var renderer = new Renderer(new Geometry<TVertex>(mesh, indices), shader);
             renderer.Model = Matrix4.CreateTranslation(0, 0, -1);
             return renderer;
         }
@@ -126,13 +114,7 @@ namespace HelloTK
             AddIndices(ref indices, 3, 9, 4);
 
             var geometry = new Geometry<Vertex3DColor>(mesh, indices.ToArray());
-            var vb = new VertexBuffer<Vertex3DColor>(mesh);
-            var ib = new IndexBuffer(indices.ToArray());
-
-            Renderer r = new Renderer();
-            r.AddVertexBuffer(vb);
-            r.AddIndexBuffer(ib);
-            r.AddShader(shader);
+            Renderer r = new Renderer(geometry, shader);
             return r;
         }
 

@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Game.cs" />
     <Compile Include="Geometry.cs" />
+    <Compile Include="IGeometry.cs" />
     <Compile Include="IndexBuffer.cs" />
     <Compile Include="IVertexBuffer.cs" />
     <Compile Include="Mesh.cs" />

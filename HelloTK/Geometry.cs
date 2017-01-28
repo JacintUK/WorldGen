@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HelloTK
 {
-    class Geometry<TVertex> where TVertex : struct
+    class Geometry<TVertex> : IGeometry where TVertex : struct
     {
         Mesh<TVertex> mesh;
         uint[] indices;
@@ -15,6 +15,11 @@ namespace HelloTK
         {
             this.mesh = mesh;
             this.indices = indices;
+        }
+        public Geometry(Mesh<TVertex> mesh)
+        {
+            this.mesh = mesh;
+            this.indices = null;
         }
 
         // Is it minimal # verts? 
@@ -27,6 +32,22 @@ namespace HelloTK
 
         public void AddNormals(string positionName, string normalName)
         {
+        }
+
+        public IVertexBuffer CreateVertexBuffer()
+        {
+            return new VertexBuffer<TVertex>(mesh);
+        }
+        public IndexBuffer CreateIndexBuffer()
+        {
+            if (indices != null)
+            {
+                return new IndexBuffer(indices);
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }
