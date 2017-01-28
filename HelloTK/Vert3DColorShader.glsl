@@ -1,6 +1,7 @@
 ﻿#version 130
 
 in vec3 aPosition;
+in vec3 aNormal;
 in vec4 aColor;
 out vec4 vColor;
 uniform mat4 modelView;

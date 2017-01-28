@@ -8,8 +8,7 @@ namespace HelloTK
 {
     interface IVertexBuffer
     {
-        void Bind();
-        void EnableAttributes(ref Shader shader);
+        void Bind(Shader shader);
         int Size { get; }
     }
 }

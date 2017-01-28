@@ -11,7 +11,7 @@ namespace HelloTK
     class IndexBuffer
     {
         uint[] indices;
-        int handle;
+        int bufferHandle;
         int numIndices;
         bool uploaded=false;
 
@@ -19,19 +19,20 @@ namespace HelloTK
         {
             numIndices = indices.Length;
             this.indices = indices;
-            handle = GL.GenBuffer();
+            bufferHandle = GL.GenBuffer();
         }
 
         public void Bind()
         {
             GL.EnableClientState(ArrayCap.IndexArray);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, handle);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, bufferHandle);
             if( !uploaded )
             {
                 uploaded = true;
                 GL.BufferData<uint>(BufferTarget.ElementArrayBuffer,
                        (IntPtr)(sizeof(uint) * indices.Length),
                        indices, BufferUsageHint.StaticDraw);
+
             }
         }
 

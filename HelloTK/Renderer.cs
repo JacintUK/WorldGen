@@ -55,8 +55,7 @@ namespace HelloTK
             }
             foreach (IVertexBuffer vertexBuffer in vertexBuffers)
             {
-                vertexBuffer.Bind();
-                vertexBuffer.EnableAttributes(ref shader);
+                vertexBuffer.Bind(shader);
             }
 
             if (indexBuffer != null)

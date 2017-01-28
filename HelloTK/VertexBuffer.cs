@@ -13,10 +13,12 @@ namespace HelloTK
     {
         private TVertex[] vertices;
         private VertexArray<TVertex> vertexArray; // TODO Move to a new container parent
-        private int vertexSize;
+        private VertexFormat vertexFormat;
         private int numVertices;
-        private int handle;
+        private int bufferHandle;
+        private int vertexArrayHandle;
         private bool uploaded = false;
+        private bool createdArrays = false;
 
         public int Size
         {
@@ -25,47 +27,54 @@ namespace HelloTK
 
         public int Stride
         {
-            get { return vertexSize; }
+            get { return vertexFormat.size; }
         }
 
-        public VertexBuffer( TVertex[] vertices, int vertexSize )
-        {
-            numVertices = vertices.Length;
-            this.vertices = vertices;
-            this.vertexSize = vertexSize;
-            handle = GL.GenBuffer();
-        }
-
-        public VertexBuffer( Mesh<TVertex> mesh, Shader shader )
+        public VertexBuffer( Mesh<TVertex> mesh )
         {
             this.numVertices = mesh.Length;
             this.vertices = mesh.Vertices;
-            this.vertexSize = mesh.VertexFormat.size;
-            handle = GL.GenBuffer();
-
-            vertexArray = new VertexArray<TVertex>(this, shader, mesh.VertexFormat );
+            this.vertexFormat = mesh.VertexFormat;
+            bufferHandle = GL.GenBuffer();
         }
 
-        public void Bind()
+        public void Bind(Shader shader)
         {
-            GL.BindBuffer(BufferTarget.ArrayBuffer, handle);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, bufferHandle);
             if ( !uploaded )
             {
                 uploaded = true;
                 GL.BufferData<TVertex>(BufferTarget.ArrayBuffer,
-                                      (IntPtr)(vertexSize * vertices.Length),
+                                      (IntPtr)(vertexFormat.size * vertices.Length),
                                       vertices, BufferUsageHint.StaticDraw);
+            }
+            if (!createdArrays)
+            {
+                // create new vertex array object
+                GL.GenVertexArrays(1, out vertexArrayHandle);
+                GL.BindVertexArray(vertexArrayHandle);
+                
+                // set all attributes
+                List<VertexAttribute> attrs = new List<VertexAttribute>();
+                foreach (var attribute in vertexFormat.Attributes)
+                {
+                    var attrib = new VertexAttribute(attribute.Name,
+                        VertexFormat.NumberOfFloatsInType(attribute.Type),
+                        VertexAttribPointerType.Float, vertexFormat.size, attribute.Offset);
+                    attrib.Set(shader);
+                }
+
+                createdArrays = true;
+            }
+            else
+            {
+                GL.BindVertexArray(vertexArrayHandle);
             }
         }
 
         public void AddVertexArray(VertexArray<TVertex> vertexArray)
         {
             this.vertexArray = vertexArray;
-        }
-
-        public void EnableAttributes(ref Shader shader)
-        {
-            vertexArray.Bind();
         }
     }
 }

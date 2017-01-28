@@ -22,7 +22,7 @@ namespace HelloTK
             };
             var mesh = new Mesh<Vertex>(verts, format);
 
-            var vertexBuffer = new VertexBuffer<Vertex>(mesh, shader);
+            var vertexBuffer = new VertexBuffer<Vertex>(mesh);
             Renderer renderer = new Renderer();
             renderer.AddShader(shader);
             renderer.AddVertexBuffer(vertexBuffer);
@@ -48,7 +48,7 @@ namespace HelloTK
                 0, 1, 2, 1, 2, 3
             };
             
-            VertexBuffer<Vertex> quadVertexBuffer = new VertexBuffer<Vertex>(new Mesh<Vertex>(quad, format), shader);
+            VertexBuffer<Vertex> quadVertexBuffer = new VertexBuffer<Vertex>(new Mesh<Vertex>(quad, format));
             IndexBuffer indexBuffer = new IndexBuffer(indices);
             Renderer quadRenderer = new Renderer();
             quadRenderer.AddVertexBuffer(quadVertexBuffer);
@@ -60,7 +60,7 @@ namespace HelloTK
 
         static public Renderer CreateRenderer<TVertex>(Shader shader, Mesh<TVertex> mesh, uint[] indices) where TVertex : struct
         {
-            var vertexBuffer = new VertexBuffer<TVertex>(mesh, shader);
+            var vertexBuffer = new VertexBuffer<TVertex>(mesh);
             var indexBuffer = new IndexBuffer(indices);
             var renderer = new Renderer();
             renderer.AddVertexBuffer(vertexBuffer);
@@ -74,6 +74,7 @@ namespace HelloTK
         {
             VertexFormat format = new VertexFormat(new List<Attribute> {
                 new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
+                new Attribute() { Name = "aNormal", Type = Attribute.AType.VECTOR3},
                 new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} });
 
             Vertex3DColor[] verts = new Vertex3DColor[12];
@@ -83,20 +84,20 @@ namespace HelloTK
 
             float t = 1.61803398875f;// (float)((1.0 + System.Math.Sqrt(5.0)) * 0.5); // approximation of golden ratio
             
-            verts[0] = new Vertex3DColor(new Vector3(-1,  t, 0), color3);
-            verts[1] = new Vertex3DColor(new Vector3( 1,  t, 0), color);
-            verts[2] = new Vertex3DColor(new Vector3(-1, -t, 0), color);
-            verts[3] = new Vertex3DColor(new Vector3( 1, -t, 0), color2);
+            verts[0] = new Vertex3DColor(new Vector3(-1,  t, 0), new Vector3(0,0,0), color3);
+            verts[1] = new Vertex3DColor(new Vector3( 1,  t, 0), new Vector3(0, 0, 0), color);
+            verts[2] = new Vertex3DColor(new Vector3(-1, -t, 0), new Vector3(0, 0, 0), color);
+            verts[3] = new Vertex3DColor(new Vector3( 1, -t, 0), new Vector3(0, 0, 0), color2);
 
-            verts[4] = new Vertex3DColor(new Vector3(0,-1,  t), color);
-            verts[5] = new Vertex3DColor(new Vector3(0, 1,  t), color);
-            verts[6] = new Vertex3DColor(new Vector3(0,-1, -t), color);
-            verts[7] = new Vertex3DColor(new Vector3(0, 1, -t), color);
+            verts[4] = new Vertex3DColor(new Vector3(0,-1,  t), new Vector3(0, 0, 0), color);
+            verts[5] = new Vertex3DColor(new Vector3(0, 1,  t), new Vector3(0, 0, 0), color);
+            verts[6] = new Vertex3DColor(new Vector3(0,-1, -t), new Vector3(0, 0, 0), color);
+            verts[7] = new Vertex3DColor(new Vector3(0, 1, -t), new Vector3(0, 0, 0), color);
 
-            verts[8]  = new Vertex3DColor(new Vector3(t, 0, -1), color);
-            verts[9]  = new Vertex3DColor(new Vector3(t, 0,  1), color);
-            verts[10] = new Vertex3DColor(new Vector3(-t, 0, -1), color);
-            verts[11] = new Vertex3DColor(new Vector3(-t, 0,  1), color);
+            verts[8]  = new Vertex3DColor(new Vector3(t, 0, -1), new Vector3(0, 0, 0), color);
+            verts[9]  = new Vertex3DColor(new Vector3(t, 0,  1), new Vector3(0, 0, 0), color);
+            verts[10] = new Vertex3DColor(new Vector3(-t, 0, -1), new Vector3(0, 0, 0), color);
+            verts[11] = new Vertex3DColor(new Vector3(-t, 0,  1), new Vector3(0, 0, 0), color);
             var mesh = new Mesh<Vertex3DColor>(verts, format);
             var indices = new List<uint>();
 
@@ -124,7 +125,8 @@ namespace HelloTK
             AddIndices(ref indices, 3, 8, 9);
             AddIndices(ref indices, 3, 9, 4);
 
-            var vb = new VertexBuffer<Vertex3DColor>(mesh, shader);
+            var geometry = new Geometry<Vertex3DColor>(mesh, indices.ToArray());
+            var vb = new VertexBuffer<Vertex3DColor>(mesh);
             var ib = new IndexBuffer(indices.ToArray());
 
             Renderer r = new Renderer();

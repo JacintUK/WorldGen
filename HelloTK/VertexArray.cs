@@ -40,7 +40,7 @@ namespace HelloTK
             this.Bind();
 
             // bind the vertex buffer object
-            vertexBuffer.Bind();
+            vertexBuffer.Bind(shader);
 
             // set all attributes
             foreach (var attribute in attributes)
