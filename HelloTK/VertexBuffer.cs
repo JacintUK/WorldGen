@@ -18,7 +18,7 @@ namespace HelloTK
         private int handle;
         private bool uploaded = false;
 
-        public override int Size
+        public int Size
         {
             get { return numVertices; }
         }
@@ -36,7 +36,7 @@ namespace HelloTK
             handle = GL.GenBuffer();
         }
 
-        public override void Bind()
+        public void Bind()
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, handle);
             if ( !uploaded )
@@ -53,7 +53,7 @@ namespace HelloTK
             this.vertexArray = vertexArray;
         }
 
-        public override void EnableAttributes(ref Shader shader)
+        public void EnableAttributes(ref Shader shader)
         {
             vertexArray.Bind();
         }

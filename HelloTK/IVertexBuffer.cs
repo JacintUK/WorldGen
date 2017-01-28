@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace HelloTK
 {
-    abstract class IVertexBuffer
+    interface IVertexBuffer
     {
-        public abstract void Bind();
-        public abstract void EnableAttributes(ref Shader shader);
-        public abstract int Size { get; }
+        void Bind();
+        void EnableAttributes(ref Shader shader);
+        int Size { get; }
     }
 }
