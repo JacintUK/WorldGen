@@ -33,9 +33,7 @@ namespace HelloTK
             GL.DetachShader(programId, vsId);
 
             // Could do with introspecting the attrs, uniforms and samplers
-            AddAttr("aPosition");
-            AddAttr("aTexCoords");
-            AddAttr("aColor");
+ 
             AddUniform("modelView");
             AddUniform("projection");
         }
@@ -90,7 +88,7 @@ namespace HelloTK
             GL.AttachShader(program, id);
         }
 
-        private void AddAttr( string name )
+        private int AddAttr( string name )
         {
             int loc = GL.GetAttribLocation(programId, name);
             if (loc == -1)
@@ -101,6 +99,7 @@ namespace HelloTK
             {
                 attrLocs.Add(new Tuple<string, int>(name, loc));
             }
+            return loc;
         }
         private void AddUniform(string name)
         {
@@ -127,7 +126,7 @@ namespace HelloTK
                     return tuple.Item2;
                 }
             }
-            return -1;
+            return AddAttr(name);
         }
 
         private void AddSampler(string name)

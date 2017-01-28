@@ -50,7 +50,7 @@ namespace HelloTK
                 shader.Use();
 
                 // Set up uniforms:
-                shader.SetUniformMatrix4("modelView", view * this.model);
+                shader.SetUniformMatrix4("modelView", this.model*view);
                 shader.SetUniformMatrix4("projection", projection);
             }
             foreach (IVertexBuffer vertexBuffer in vertexBuffers)

@@ -57,6 +57,7 @@
     <Compile Include="Renderer.cs" />
     <Compile Include="RendererFactory.cs" />
     <Compile Include="Shader.cs" />
+    <Compile Include="Vertex3DColor.cs" />
     <Compile Include="VertexArray.cs" />
     <Compile Include="VertexAttribute.cs" />
     <Compile Include="VertexBuffer.cs" />
@@ -67,6 +68,9 @@
     <None Include="App.config" />
     <None Include="OpenTK.dll.config" />
     <None Include="packages.config" />
+    <None Include="Vert3DColorShader.glsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="quadVertShader.glsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
