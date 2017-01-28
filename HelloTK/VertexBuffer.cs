@@ -3,58 +3,59 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
 using OpenTK;
 
 namespace HelloTK
 {
-    class VertexBuffer// <TVertex> where TVertex : struct
+    class VertexBuffer<TVertex> : IVertexBuffer where TVertex : struct 
     {
-        int vboId;
-        int numVertices;
-        Vertex[] vertices;
-        VertexArray vertexArray; // TODO Move to a new container parent
-        bool uploaded = false;
+        private TVertex[] vertices;
+        private VertexArray<TVertex> vertexArray; // TODO Move to a new container parent
+        private int vertexSize;
+        private int numVertices;
+        private int handle;
+        private bool uploaded = false;
 
-        public VertexBuffer( Vertex[] vertices )
+        public override int Size
+        {
+            get { return numVertices; }
+        }
+
+        public int Stride
+        {
+            get { return vertexSize; }
+        }
+
+        public VertexBuffer( TVertex[] vertices, int vertexSize )
         {
             numVertices = vertices.Length;
             this.vertices = vertices;
-            vboId = GL.GenBuffer();
+            this.vertexSize = vertexSize;
+            handle = GL.GenBuffer();
         }
 
-        public void Bind()
+        public override void Bind()
         {
-            GL.BindBuffer(BufferTarget.ArrayBuffer, vboId);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, handle);
             if ( !uploaded )
             {
                 uploaded = true;
-                GL.BufferData<Vertex>(BufferTarget.ArrayBuffer,
-                                      (IntPtr)(Vertex.SizeInBytes * vertices.Length),
+                GL.BufferData<TVertex>(BufferTarget.ArrayBuffer,
+                                      (IntPtr)(vertexSize * vertices.Length),
                                       vertices, BufferUsageHint.StaticDraw);
-
             }
-            
         }
 
-        public void AddVertexArray(VertexArray vertexArray)
+        public void AddVertexArray(VertexArray<TVertex> vertexArray)
         {
             this.vertexArray = vertexArray;
         }
 
-        public void EnableAttributes(ref Shader shader)
+        public override void EnableAttributes(ref Shader shader)
         {
             vertexArray.Bind();
-        }
-
-        public int Size()
-        {
-            return numVertices;
-        }
-
-        public int Stride()
-        {
-            return Vertex.SizeInBytes;
         }
     }
 }

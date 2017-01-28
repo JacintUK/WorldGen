@@ -36,16 +36,16 @@ namespace HelloTK
                 new Vertex(new Vector2( 0.0f, -1.0f), new Vector2(1,1), Color.Purple),
             };
 
-            VertexBuffer vbo = new VertexBuffer(verts);
-            VertexArray vertexArray = new VertexArray(vbo, shader,
+            VertexBuffer<Vertex> vertexBuffer = new VertexBuffer<Vertex>(verts, Vertex.SizeInBytes);
+            VertexArray<Vertex> vertexArray = new VertexArray<Vertex>(vertexBuffer, shader,
                 new VertexAttribute("aPosition", 2, VertexAttribPointerType.Float, Vertex.SizeInBytes, 0),
                 new VertexAttribute("aTexCoords", 2, VertexAttribPointerType.Float, Vertex.SizeInBytes, 8),
                 new VertexAttribute("aColor", 4, VertexAttribPointerType.Float, Vertex.SizeInBytes, 16)
             );
-            vbo.AddVertexArray(vertexArray);
+            vertexBuffer.AddVertexArray(vertexArray);
             Renderer renderer = new Renderer();
             renderer.AddShader(shader);
-            renderer.AddVBO(vbo);
+            renderer.AddVertexBuffer(vertexBuffer);
             return renderer;
         }
 
@@ -62,19 +62,19 @@ namespace HelloTK
             {
                 0, 1, 2, 1, 2, 3
             };
-            VertexBuffer quadVbo = new VertexBuffer(quad);
+            VertexBuffer<Vertex> quadVertexBuffer = new VertexBuffer<Vertex>(quad, Vertex.SizeInBytes);
             // TODO Define VertexFormat alongside Vertex, and autogen VertexArray from it.
-            VertexArray qvertexArray = new VertexArray(quadVbo, shader,
+            VertexArray<Vertex> qvertexArray = new VertexArray<Vertex>(quadVertexBuffer, shader,
                 new VertexAttribute("aPosition", 2, VertexAttribPointerType.Float, Vertex.SizeInBytes, 0),
                 new VertexAttribute("aTexCoords", 2, VertexAttribPointerType.Float, Vertex.SizeInBytes, Vector2.SizeInBytes),
                 new VertexAttribute("aColor", 4, VertexAttribPointerType.Float, Vertex.SizeInBytes, Vector2.SizeInBytes * 2)
             );
 
-            quadVbo.AddVertexArray(qvertexArray);
-            IBO ibo = new IBO(indices);
+            quadVertexBuffer.AddVertexArray(qvertexArray);
+            IndexBuffer indexBuffer = new IndexBuffer(indices);
             Renderer quadRenderer = new Renderer();
-            quadRenderer.AddVBO(quadVbo);
-            quadRenderer.AddIBO(ibo);
+            quadRenderer.AddVertexBuffer(quadVertexBuffer);
+            quadRenderer.AddIndexBuffer(indexBuffer);
             quadRenderer.AddShader(shader);
             quadRenderer.Model = Matrix4.CreateTranslation(0, 0, -1);
             return quadRenderer;

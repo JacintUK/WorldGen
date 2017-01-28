@@ -10,8 +10,8 @@ namespace HelloTK
 {
     class Renderer
     {
-        public List<VertexBuffer> vbos = new List<VertexBuffer>();
-        public IBO ibo;
+        public List<IVertexBuffer> vertexBuffers = new List<IVertexBuffer>();
+        public IndexBuffer indexBuffer;
         public Shader shader;
 
         private Matrix4 model = Matrix4.Identity;
@@ -21,17 +21,17 @@ namespace HelloTK
         {
         }
 
-        public void AddVBO(VertexBuffer vbo)
+        public void AddVertexBuffer(IVertexBuffer vertexBuffer)
         {
-            if (vbos != null)
+            if (vertexBuffers != null)
             {
-                vbos.Add(vbo);
+                vertexBuffers.Add(vertexBuffer);
             }
         }
 
-        public void AddIBO(IBO ibo)
+        public void AddIndexBuffer(IndexBuffer indexBuffer)
         {
-            this.ibo = ibo;
+            this.indexBuffer = indexBuffer;
         }
 
         //public void AddTexture(Texture texture)
@@ -53,20 +53,20 @@ namespace HelloTK
                 shader.SetUniformMatrix4("modelView", view * this.model);
                 shader.SetUniformMatrix4("projection", projection);
             }
-            foreach (VertexBuffer vbo in vbos)
+            foreach (IVertexBuffer vertexBuffer in vertexBuffers)
             {
-                vbo.Bind();
-                vbo.EnableAttributes(ref shader);
+                vertexBuffer.Bind();
+                vertexBuffer.EnableAttributes(ref shader);
             }
 
-            if (ibo != null)
+            if (indexBuffer != null)
             {
-                ibo.Bind();
-                GL.DrawElements(PrimitiveType.Triangles, ibo.Size(), DrawElementsType.UnsignedInt, 0);
+                indexBuffer.Bind();
+                GL.DrawElements(PrimitiveType.Triangles, indexBuffer.Size(), DrawElementsType.UnsignedInt, 0);
             }
             else
             {
-                GL.DrawArrays(PrimitiveType.Triangles, 0, vbos[0].Size());
+                GL.DrawArrays(PrimitiveType.Triangles, 0, vertexBuffers[0].Size);
             }
 
             GL.BindVertexArray(0);

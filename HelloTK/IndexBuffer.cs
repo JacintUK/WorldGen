@@ -8,24 +8,24 @@ using OpenTK;
 
 namespace HelloTK
 {
-    class IBO
+    class IndexBuffer
     {
         uint[] indices;
-        int iboId;
+        int handle;
         int numIndices;
         bool uploaded=false;
 
-        public IBO(uint[] indices)
+        public IndexBuffer(uint[] indices)
         {
             numIndices = indices.Length;
             this.indices = indices;
-            iboId = GL.GenBuffer();
+            handle = GL.GenBuffer();
         }
 
         public void Bind()
         {
             GL.EnableClientState(ArrayCap.IndexArray);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, iboId);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, handle);
             if( !uploaded )
             {
                 uploaded = true;

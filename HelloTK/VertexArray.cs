@@ -7,11 +7,11 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    class VertexArray //<TVertex> where TVertex : struct
+    class VertexArray<TVertex> where TVertex : struct
     {
         private readonly int handle;
 
-        public VertexArray(VertexBuffer vertexBuffer, Shader shader,
+        public VertexArray(VertexBuffer<TVertex> vertexBuffer, Shader shader,
             params VertexAttribute[] attributes)
         {
             // create new vertex array object
