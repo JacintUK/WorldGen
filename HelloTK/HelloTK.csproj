@@ -52,6 +52,7 @@
     <Compile Include="Geometry.cs" />
     <Compile Include="IGeometry.cs" />
     <Compile Include="IndexBuffer.cs" />
+    <Compile Include="INormalVertex.cs" />
     <Compile Include="IVertexBuffer.cs" />
     <Compile Include="Mesh.cs" />
     <Compile Include="Program.cs" />
@@ -70,6 +71,9 @@
     <None Include="App.config" />
     <None Include="OpenTK.dll.config" />
     <None Include="packages.config" />
+    <None Include="shadedFragShader.glsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Vert3DColorShader.glsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

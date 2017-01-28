@@ -1,4 +1,5 @@
 ﻿using OpenTK;
+using System;
 using System.Collections.Generic;
 
 namespace HelloTK
@@ -30,7 +31,7 @@ namespace HelloTK
             uint newIndex = 0;
             foreach (uint index in indices )
             {
-                newVertices.Add(mesh.Vertices[index]);
+                newVertices.Add(mesh.vertices[index]);
                 newIndices.Add(newIndex++);
             }
             mesh = new Mesh<TVertex>(newVertices.ToArray(), mesh.VertexFormat);
@@ -41,33 +42,48 @@ namespace HelloTK
         {
             // TODO Currently assuming that we are using triangles, and have
             // maximised the vertices.
-            int positionOffset = mesh.VertexFormat.FindOffset(positionName);
-            int normalOffset = mesh.VertexFormat.FindOffset(normalName);
-            if (positionOffset != -1 && normalOffset != -1)
+            if (mesh.vertices[0].GetType().GetInterface("INormalVertex") != null)
             {
+                var posField = mesh.vertices[0].GetType().GetField(normalName);
+
                 for (int i = 0; i < indices.Length; i += 3)
                 {
-                    Vector3 pos1 = GetPosition(mesh.Vertices[i], positionName);
-                    Vector3 pos2 = GetPosition(mesh.Vertices[i+1], positionName);
-                    Vector3 pos3 = GetPosition(mesh.Vertices[i+2], positionName);
+                    Vector3 pos1 = GetPosition(ref mesh.vertices[i], positionName);
+                    Vector3 pos2 = GetPosition(ref mesh.vertices[i + 1], positionName);
+                    Vector3 pos3 = GetPosition(ref mesh.vertices[i + 2], positionName);
                     Vector3 a = pos2 - pos1;
-                    Vector3 b = pos2 - pos3;
+                    Vector3 b = pos3 - pos1;
                     Vector3 normal = Vector3.Cross(a, b);
-                    SetNormal(mesh.Vertices[i], normalName, normal);
-                    SetNormal(mesh.Vertices[i+1], normalName, normal);
-                    SetNormal(mesh.Vertices[i+2], normalName, normal);
+                    normal.Normalize();
+                    INormalVertex inv = mesh.vertices[i] as INormalVertex;
+                    if( inv != null) { 
+                        inv.SetNormal(normal);
+                    }
+                    mesh.vertices[i] = (TVertex)inv;
+                    inv = mesh.vertices[i+1] as INormalVertex;
+                    if (inv != null)
+                    {
+                        inv.SetNormal(normal);
+                    }
+                    mesh.vertices[i+1] = (TVertex)inv;
+                    inv = mesh.vertices[i+2] as INormalVertex;
+                    if (inv != null)
+                    {
+                        inv.SetNormal(normal);
+                    }
+                    mesh.vertices[i+2] = (TVertex)inv;
                 }
             }
         }
 
-        private static Vector3 GetPosition(TVertex vertex, string positionName)
+        private static Vector3 GetPosition(ref TVertex vertex, string positionName)
         {
             var posField = vertex.GetType().GetField(positionName);
             object pos = posField.GetValue(vertex);
             return (Vector3)pos;
         }
 
-        private static void SetNormal(TVertex vertex, string normalName, Vector3 normal)
+        private static void SetNormal(ref TVertex vertex, string normalName, Vector3 normal)
         {
             var posField = vertex.GetType().GetField(normalName);
             posField.SetValue(vertex, normal);

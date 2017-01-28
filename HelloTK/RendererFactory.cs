@@ -66,9 +66,9 @@ namespace HelloTK
                 new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} });
 
             Vertex3DColor[] verts = new Vertex3DColor[12];
-            Vector4 color = new Vector4(0, 0, 1.0f, 1.0f);
-            Vector4 color2 = new Vector4(1.0f, 0, 1.0f, 1.0f);
-            Vector4 color3 = new Vector4(0.0f, 1.0f, 1.0f, 1.0f);
+            Vector4 color = new Vector4(0.2f, 0.2f, 1.0f, 1.0f);
+            Vector4 color2 = new Vector4(1.0f, 0.2f, 1.0f, 1.0f);
+            Vector4 color3 = new Vector4(0.2f, 1.0f, 1.0f, 1.0f);
 
             float t = 1.61803398875f;// (float)((1.0 + System.Math.Sqrt(5.0)) * 0.5); // approximation of golden ratio
             

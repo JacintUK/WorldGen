@@ -35,7 +35,12 @@ namespace HelloTK
             // Could do with introspecting the attrs, uniforms and samplers
  
             AddUniform("modelView");
+            AddUniform("model");
+            AddUniform("view");
             AddUniform("projection");
+            AddUniform("lightPosition");
+            AddUniform("mvIT");
+            AddUniform("ambientColor");
         }
 
         // Todo Remember how when we were younger, we did templating for this in our sleep?
@@ -45,6 +50,30 @@ namespace HelloTK
             if( loc != -1)
             {
                 GL.UniformMatrix4(loc, false, ref matrix);
+            }
+        }
+        public void SetUniformMatrix3(string uniform, Matrix3 matrix)
+        {
+            int loc = GetUniformLoc(uniform);
+            if (loc != -1)
+            {
+                GL.UniformMatrix3(loc, false, ref matrix);
+            }
+        }
+        public void SetUniformVector3(string uniform, Vector3 vector)
+        {
+            int loc = GetUniformLoc(uniform);
+            if (loc != -1)
+            {
+                GL.Uniform3(loc, ref vector);
+            }
+        }
+        public void SetUniformVector4(string uniform, Vector4 vector)
+        {
+            int loc = GetUniformLoc(uniform);
+            if (loc != -1)
+            {
+                GL.Uniform4(loc, ref vector);
             }
         }
         public void EnableAttr(string attr)

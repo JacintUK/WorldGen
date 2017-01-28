@@ -33,7 +33,7 @@ namespace HelloTK
         public VertexBuffer( Mesh<TVertex> mesh )
         {
             this.numVertices = mesh.Length;
-            this.vertices = mesh.Vertices;
+            this.vertices = mesh.vertices;
             this.vertexFormat = mesh.VertexFormat;
             bufferHandle = GL.GenBuffer();
         }

@@ -19,6 +19,9 @@ namespace HelloTK
         Renderer ico;
         Renderer quad;
         Vector3 icoPos;
+        Vector3 lightPosition = new Vector3(-2, 2, 2);
+        Vector3 ambientColor;
+
         float longitude, latitude;
 
         public Game(int w, int h)
@@ -28,6 +31,7 @@ namespace HelloTK
                   // ask for an OpenGL 3.0 forward compatible context
                    3, 0, GraphicsContextFlags.ForwardCompatible)
         {
+            ambientColor = ToVec3(backgroundColor)*0.25f;
             Console.WriteLine("gl version: " + GL.GetString(StringName.Version));
         }
 
@@ -45,7 +49,7 @@ namespace HelloTK
             SetCameraProjection();
 
             Shader texShader = new Shader("quadVertShader.glsl", "texFragShader.glsl");
-            Shader shader = new Shader("Vert3DColorShader.glsl", "texFragShader.glsl");
+            Shader shader = new Shader("Vert3DColorShader.glsl", "shadedFragShader.glsl");
             //renderers.Add(RendererFactory.CreateTriangle(texShader));
             quad = RendererFactory.CreateQuad(texShader);
             //renderers.Add(quad);
@@ -71,9 +75,10 @@ namespace HelloTK
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             Matrix4 view = Matrix4.LookAt(Vector3.UnitZ*2, Vector3.Zero, Vector3.UnitY);
             GL.CullFace(CullFaceMode.Back);
+
             foreach (var renderer in renderers)
             {
-                renderer.Draw(view, projection);
+                renderer.Draw(view, projection, lightPosition, ambientColor);
             }
 
             SwapBuffers();
@@ -155,6 +160,10 @@ namespace HelloTK
             xyz.Y = s1 * c2 * c3 + c1 * s2 * s3;
             xyz.Z = c1 * s2 * c3 - s1 * c2 * s3;
             return new Quaternion(xyz, w);
+        }
+        public Vector3 ToVec3(Color value)
+        {
+            return new Vector3(value.R / 255.0f, value.G / 255.0f, value.B / 255.0f);
         }
     }
 }

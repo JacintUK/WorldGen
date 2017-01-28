@@ -8,9 +8,9 @@ namespace HelloTK
 {
     class Mesh<TVertex> where TVertex : struct
     {
-        TVertex[] vertices;
+        public TVertex[] vertices;
         VertexFormat vertexFormat;
-        public TVertex[] Vertices { get { return vertices; } }
+        //public TVertex[] Vertices { get { return vertices; } }
         public int Length { get { return vertices.Length; } }
         public VertexFormat VertexFormat { get { return vertexFormat; } }
 

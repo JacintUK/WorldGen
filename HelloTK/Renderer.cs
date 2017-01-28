@@ -40,15 +40,24 @@ namespace HelloTK
             this.shader = shader;
         }
 
-        public void Draw(Matrix4 view, Matrix4 projection)
+        public void Draw(Matrix4 view, Matrix4 projection, Vector3 lightPosition, Vector3 ambientColor)
         {
             if (shader != null)
             {
                 shader.Use();
 
                 // Set up uniforms:
-                shader.SetUniformMatrix4("modelView", this.model*view);
+                Matrix4 mv = this.model * view;
+                Matrix3 mvIT = new Matrix3(mv);
+                mvIT.Invert();
+                mvIT.Transpose();
+                shader.SetUniformMatrix3("mvIT", mvIT);
+                shader.SetUniformMatrix4("modelView", mv);
                 shader.SetUniformMatrix4("projection", projection);
+                shader.SetUniformMatrix4("model", this.model);
+                shader.SetUniformMatrix4("view", view);
+                shader.SetUniformVector3("lightPosition", lightPosition);
+                shader.SetUniformVector3("ambientColor", ambientColor);
             }
             vertexBuffer.Bind(shader);
 
