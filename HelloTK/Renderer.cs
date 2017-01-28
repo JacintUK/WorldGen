@@ -13,8 +13,9 @@ namespace HelloTK
         public List<VertexBuffer> vbos = new List<VertexBuffer>();
         public IBO ibo;
         public Shader shader;
-        private Matrix4 modelView=Matrix4.Identity;
-        public Matrix4 ModelView { set { modelView = value;} get { return modelView; } }
+
+        private Matrix4 model = Matrix4.Identity;
+        public Matrix4 Model { set { model = value; } get { return model; } }
 
         public Renderer()
         {
@@ -42,14 +43,14 @@ namespace HelloTK
             this.shader = shader;
         }
 
-        public void Draw(Matrix4 modelView, Matrix4 projection)
+        public void Draw(Matrix4 view, Matrix4 projection)
         {
             if (shader != null)
             {
                 shader.Use();
 
                 // Set up uniforms:
-                shader.SetUniformMatrix4("modelView", this.modelView);
+                shader.SetUniformMatrix4("modelView", view * this.model);
                 shader.SetUniformMatrix4("projection", projection);
             }
             foreach (VertexBuffer vbo in vbos)

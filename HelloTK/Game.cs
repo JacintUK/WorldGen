@@ -76,7 +76,7 @@ namespace HelloTK
             quadRenderer.AddVBO(quadVbo);
             quadRenderer.AddIBO(ibo);
             quadRenderer.AddShader(shader);
-            quadRenderer.ModelView = Matrix4.CreateScale(0.7f, 0.7f, 0.7f);//CreateTranslation(0, 0, 5);
+            quadRenderer.Model = Matrix4.CreateTranslation(0, 0, -1);
             return quadRenderer;
         }
 
@@ -102,10 +102,7 @@ namespace HelloTK
         {
             GL.Viewport(ClientRectangle.X, ClientRectangle.Y, ClientRectangle.Width, ClientRectangle.Height);
             projection =
-                //Matrix4.CreateOrthographicOffCenter(0, ClientSize.Width, ClientSize.Height, 0, 0, 1);
-                //Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 4, Width / (float)Height, 1.0f, 64.0f);
-                //Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 2, Width / (float)Height, 0.1f, 100.0f);
-                Matrix4.Identity;
+                Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 2, Width / (float)Height, 0.1f, 100.0f);
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
@@ -114,10 +111,11 @@ namespace HelloTK
             GL.ClearColor(backgroundColor);
             GL.ClearDepth(1);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            Matrix4 modelView = Matrix4.Identity;
+            Matrix4 view = Matrix4.LookAt(Vector3.UnitZ, Vector3.Zero, Vector3.UnitY);
+
             foreach (var renderer in renderers)
             {
-                renderer.Draw(modelView, projection);
+                renderer.Draw(view, projection);
             }
 
             SwapBuffers();
