@@ -22,7 +22,9 @@ namespace HelloTK
         Vector3 lightPosition = new Vector3(-2, 2, 2);
         Vector3 ambientColor;
 
-        float longitude, latitude;
+        float longitude, attitude;
+
+        const string SHADER_PATH = "Resources/Shaders/";
 
         public Game(int w, int h)
            : base(w, h, new OpenTK.Graphics.GraphicsMode(32, 8, 0, 0), 
@@ -48,8 +50,8 @@ namespace HelloTK
 
             SetCameraProjection();
 
-            Shader texShader = new Shader("quadVertShader.glsl", "texFragShader.glsl");
-            Shader shader = new Shader("Vert3DColorShader.glsl", "shadedFragShader.glsl");
+            Shader texShader = new Shader(SHADER_PATH+"quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
+            Shader shader = new Shader(SHADER_PATH + "Vert3DColorShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
             //renderers.Add(RendererFactory.CreateTriangle(texShader));
             quad = RendererFactory.CreateQuad(texShader);
             //renderers.Add(quad);
@@ -100,45 +102,72 @@ namespace HelloTK
             }
         }
 
-        Vector2 mousePos;
-        protected override void OnMouseMove(MouseMoveEventArgs e)
+        bool mouseButton1Down = false;
+        bool mouseButton1DownTrigger = false;
+        protected override void OnMouseDown(MouseButtonEventArgs e)
         {
-            base.OnMouseMove(e);
-            // Coords relative to top left corner of screen.
-            mousePos = new Vector2(e.X, e.Y);
-            UpdateIco(new Point(e.X, e.Y));
+            if (e.Button == MouseButton.Left)
+            {
+                if (!mouseButton1Down)
+                    mouseButton1DownTrigger = true;
+                mouseButton1Down = true;
+            }
+        }
+ 
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            if (e.Button == MouseButton.Left)
+            {
+                mouseButton1Down = false;
+            }
         }
 
-        Point oldPoint;
+        protected override void OnMouseMove(MouseMoveEventArgs e)
+        {
+            if (mouseButton1Down)
+            {
+                // Coords relative to top left corner of screen.
+                UpdateIco(new Point(e.X, e.Y));
+            }
+        }
+
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
             // Coords relative to drawing frame
             var mousePos = base.PointToClient(new Point(Mouse.X, Mouse.Y));
-            //UpdateIco(mousePos);
         }
+
+        Point oldPoint;
         void UpdateIco(Point mousePos)
         {
+            if(mouseButton1DownTrigger)
+            {
+                oldPoint = mousePos;
+                mouseButton1DownTrigger = false;
+            }
             int xDelta = mousePos.X - oldPoint.X;
             int yDelta = mousePos.Y - oldPoint.Y;
+            oldPoint = mousePos;
+
             if ( Math.Abs(xDelta) > Math.Abs(yDelta))
             {
                 // Rotate around Y axis
-                longitude += xDelta/100.0f;
+                longitude += xDelta/4.0f;
                 longitude %= 360;
             }
             else
             {
-                latitude += yDelta/100.0f;
-                latitude = Math.Max(Math.Min(180, latitude), -180);
+                attitude += yDelta/2.0f;
+                attitude = Math.Max(Math.Min(90, attitude), -90);
             }
-            Quaternion rot = 
-                Quaternion.FromAxisAngle(Vector3.UnitY, longitude) * Quaternion.FromAxisAngle(Vector3.UnitX, latitude);
-            Matrix4 rot2 = Matrix4.CreateFromQuaternion(rot);
+            Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
+            Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI*attitude/180.0f);
+            Quaternion rotation = equatorRot * polarAxisRot;
+            //rotation = FromEuler(attitude, longitude, 0);
+            Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
             Matrix4 tr = Matrix4.CreateTranslation(icoPos);
-            ico.Model = rot2 * tr;
-            //quad.Model = rot2;
-            oldPoint = mousePos;
+            ico.Model = rotationMatrix * tr;
         }
 
         Quaternion FromEuler(float pitch, float yaw, float roll)
