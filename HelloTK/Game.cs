@@ -53,17 +53,19 @@ namespace HelloTK
             SetCameraProjection();
 
             Shader texShader = new Shader(SHADER_PATH+"quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
-            Shader shader = new Shader(SHADER_PATH + "Vert3DColorShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
-            Texture edgeTexture = new Texture("edge.png");
+            Shader shader = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
+            //Texture edgeTexture = new Texture("edge.png");
+            Texture cellTexture = new Texture("CellCorner.png");
             //renderers.Add(RendererFactory.CreateTriangle(texShader));
             quad = RendererFactory.CreateQuad(texShader);
-            quad.AddTexture(edgeTexture);
-            renderers.Add(quad);
+            quad.AddTexture(cellTexture);
+            //renderers.Add(quad);
 
-            ico = RendererFactory.CreateIcosahedron(shader);
+            ico = RendererFactory.CreateIcosphere(shader);
             icoPos = new Vector3(0, 0, -3);
             ico.Model = Matrix4.CreateTranslation(icoPos);
-            //renderers.Add(ico);
+            ico.AddTexture(cellTexture);
+            renderers.Add(ico);
         }
 
         private void SetCameraProjection()

@@ -10,12 +10,12 @@ in float intensity;
 in float distanceSq;
 in float power;
 in float specular;
-
+in vec2 vTexCoords;
+uniform sampler2D sTexture;
 out vec4 outputColor;
 
 void main()
 {
-	// DO stuff with textures!
-	vec3 litColor =  vAmbientColor + vColor.xyz * ( intensity + specular ) *power/distanceSq;
+	vec3 litColor =  vAmbientColor + texture2D(sTexture,vTexCoords).xyz * vColor.xyz * ( intensity + specular ) *power/distanceSq;
 	outputColor = vec4( litColor, vColor.a );
 }

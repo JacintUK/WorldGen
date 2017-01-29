@@ -9,10 +9,11 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    struct Vertex3DColor : INormalVertex, IPositionVertex
+    struct Vertex3DColorUV : INormalVertex, IPositionVertex, ITextureCoordinateVertex
     {
         public Vector3 position;
         public Vector3 normal;
+        public Vector2 uv;
         public Vector4 color;
         public Color Color 
         {
@@ -20,16 +21,18 @@ namespace HelloTK
             set { this.color = new Vector4(value.R/255.0f, value.G/255.0f, value.B/255.0f, value.A/255.0f); }
         }
 
-        public Vertex3DColor(Vector3 position, Vector3 normal, Vector4 color)
+        public Vertex3DColorUV(Vector3 position, Vector3 normal, Vector2 uv, Vector4 color)
         {
             this.position = position;
             this.normal = normal;
+            this.uv = uv;
             this.color = color;
         }
-        public Vertex3DColor(Vector3 position, Vector3 normal, Color color)
+        public Vertex3DColorUV(Vector3 position, Vector3 normal, Vector2 uv, Color color)
         {
             this.position = position;
             this.normal = normal;
+            this.uv = uv;
             this.color = new Vector4(color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f); 
         }
         public Vector3 GetPosition()
@@ -43,6 +46,14 @@ namespace HelloTK
         public void SetNormal(Vector3 normal)
         {
             this.normal = normal;
+        }
+        public void SetTextureCoordinates(Vector2 texCoords)
+        {
+            this.uv = texCoords;
+        }
+        public Vector2 GetTextureCoordinates()
+        {
+            return this.uv;
         }
     }
 }
