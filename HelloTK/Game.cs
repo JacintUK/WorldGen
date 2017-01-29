@@ -8,11 +8,13 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
+using static OpenTK.MathHelper;
 
 namespace HelloTK
 {
     class Game : OpenTK.GameWindow
     {
+        List<MouseButton> pressedButtons = new List<MouseButton>();
         List<Renderer> renderers = new List<Renderer>();
         Color backgroundColor = Color.Aquamarine;
         Matrix4 projection;
@@ -20,6 +22,8 @@ namespace HelloTK
         Renderer quad;
         Vector3 icoPos;
         Vector3 lightPosition = new Vector3(-2, 2, 2);
+        Vector3 cameraPosition = Vector3.UnitZ * 2;
+        float fieldOfView = (float)Math.PI / 2.0f;
         Vector3 ambientColor;
 
         float longitude, attitude;
@@ -40,6 +44,9 @@ namespace HelloTK
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Left));
+            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Middle));
+            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Right));
 
             GL.ClearColor(System.Drawing.Color.Aquamarine);
 
@@ -81,7 +88,10 @@ namespace HelloTK
             GL.ClearColor(backgroundColor);
             GL.ClearDepth(1);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            Matrix4 view = Matrix4.LookAt(Vector3.UnitZ*2, Vector3.Zero, Vector3.UnitY);
+            Matrix4 view = Matrix4.LookAt(cameraPosition, Vector3.Zero, Vector3.UnitY);
+            projection =
+                Matrix4.CreatePerspectiveFieldOfView(fieldOfView, Width / (float)Height, 0.1f, 100.0f);
+
             GL.CullFace(CullFaceMode.Back);
 
             foreach (var renderer in renderers)
@@ -108,33 +118,32 @@ namespace HelloTK
             }
         }
 
-        bool mouseButton1Down = false;
-        bool mouseButton1DownTrigger = false;
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
-            if (e.Button == MouseButton.Left)
+            foreach(var button in pressedButtons)
             {
-                if (!mouseButton1Down)
-                    mouseButton1DownTrigger = true;
-                mouseButton1Down = true;
+                button.Down(e.Button);
             }
         }
  
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
-            if (e.Button == MouseButton.Left)
+            foreach (var button in pressedButtons)
             {
-                mouseButton1Down = false;
+                button.Up(e.Button);
             }
         }
 
         protected override void OnMouseMove(MouseMoveEventArgs e)
         {
-            if (mouseButton1Down)
+            foreach (var button in pressedButtons)
             {
-                // Coords relative to top left corner of screen.
-                UpdateIco(new Point(e.X, e.Y));
+                button.Update(new Point(e.X, e.Y));
             }
+
+            UpdateIco(pressedButtons[0]);
+            UpdateZoom(pressedButtons[1]);
+            UpdateCameraPos(pressedButtons[2]);
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -144,36 +153,43 @@ namespace HelloTK
             var mousePos = base.PointToClient(new Point(Mouse.X, Mouse.Y));
         }
 
-        Point oldPoint;
-        void UpdateIco(Point mousePos)
+        void UpdateZoom(MouseButton button)
         {
-            if(mouseButton1DownTrigger)
+            if (button.IsDown)
             {
-                oldPoint = mousePos;
-                mouseButton1DownTrigger = false;
+                // drag up and down to change zoom level.
+                fieldOfView += button.YDelta / 100.0f;
+                fieldOfView = Clamp(fieldOfView, 0.1f, (float)Math.PI);
             }
-            int xDelta = mousePos.X - oldPoint.X;
-            int yDelta = mousePos.Y - oldPoint.Y;
-            oldPoint = mousePos;
-
-            if ( Math.Abs(xDelta) > Math.Abs(yDelta))
+        }
+        void UpdateCameraPos(MouseButton button)
+        {
+            if (button.IsDown)
+            {
+                // drag up and down to change zoom level.
+                cameraPosition.Z += button.YDelta / 100.0f;
+                cameraPosition.Z = Clamp(cameraPosition.Z, -1, 2);
+            }
+        }
+        void UpdateIco(MouseButton button)
+        {
+            if (button.IsDown)
             {
                 // Rotate around Y axis
-                longitude += xDelta/4.0f;
+                longitude += button.XDelta / 4.0f;
                 longitude %= 360;
-            }
-            else
-            {
-                attitude += yDelta/2.0f;
+
+                attitude += button.YDelta / 2.0f;
                 attitude = Math.Max(Math.Min(90, attitude), -90);
+
+                Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
+                Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI * attitude / 180.0f);
+                Quaternion rotation = equatorRot * polarAxisRot;
+                //rotation = FromEuler(attitude, longitude, 0);
+                Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
+                Matrix4 tr = Matrix4.CreateTranslation(icoPos);
+                ico.Model = rotationMatrix * tr;
             }
-            Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
-            Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI*attitude/180.0f);
-            Quaternion rotation = equatorRot * polarAxisRot;
-            //rotation = FromEuler(attitude, longitude, 0);
-            Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
-            Matrix4 tr = Matrix4.CreateTranslation(icoPos);
-            ico.Model = rotationMatrix * tr;
         }
 
         Quaternion FromEuler(float pitch, float yaw, float roll)

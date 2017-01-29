@@ -163,9 +163,9 @@ namespace HelloTK
 
         public void AddUVs()
         {
-            Vector2 uv1 = new Vector2(0, 0);
-            Vector2 uv2 = new Vector2(0.5f, 1);
-            Vector2 uv3 = new Vector2(1, 0);
+            Vector2 uv1 = new Vector2(0, 1);
+            Vector2 uv2 = new Vector2(0.5f, 0);
+            Vector2 uv3 = new Vector2(1, 1);
             for (int i = 0; i < indices.Length; i += 3)
             {
                 mesh.vertices[i]   = SetUV(ref mesh.vertices[i],   uv1);

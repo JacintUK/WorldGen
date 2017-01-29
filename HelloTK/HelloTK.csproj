@@ -57,6 +57,7 @@
     <Compile Include="IPositionVertex.cs" />
     <Compile Include="IVertexBuffer.cs" />
     <Compile Include="Mesh.cs" />
+    <Compile Include="MouseButton.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Renderer.cs" />
