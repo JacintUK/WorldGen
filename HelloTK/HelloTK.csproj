@@ -53,6 +53,7 @@
     <Compile Include="IGeometry.cs" />
     <Compile Include="IndexBuffer.cs" />
     <Compile Include="INormalVertex.cs" />
+    <Compile Include="IPositionVertex.cs" />
     <Compile Include="IVertexBuffer.cs" />
     <Compile Include="Mesh.cs" />
     <Compile Include="Program.cs" />

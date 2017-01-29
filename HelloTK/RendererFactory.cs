@@ -70,22 +70,22 @@ namespace HelloTK
             Vector4 color2 = new Vector4(1.0f, 0.2f, 1.0f, 1.0f);
             Vector4 color3 = new Vector4(0.2f, 1.0f, 1.0f, 1.0f);
 
-            float t = 1.61803398875f;// (float)((1.0 + System.Math.Sqrt(5.0)) * 0.5); // approximation of golden ratio
+            float t = 1.61803398875f;// approximation of golden ratio
             
-            verts[0] = new Vertex3DColor(new Vector3(-1,  t, 0), new Vector3(0,0,0), color3);
-            verts[1] = new Vertex3DColor(new Vector3( 1,  t, 0), new Vector3(0, 0, 0), color);
-            verts[2] = new Vertex3DColor(new Vector3(-1, -t, 0), new Vector3(0, 0, 0), color);
-            verts[3] = new Vertex3DColor(new Vector3( 1, -t, 0), new Vector3(0, 0, 0), color2);
+            verts[0] = new Vertex3DColor(2.0f*Vector3.Normalize(new Vector3(-1,  t, 0)), new Vector3(0,0,0), color3);
+            verts[1] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3( 1,  t, 0)), new Vector3(0, 0, 0), color);
+            verts[2] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(-1, -t, 0)), new Vector3(0, 0, 0), color);
+            verts[3] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3( 1, -t, 0)), new Vector3(0, 0, 0), color2);
 
-            verts[4] = new Vertex3DColor(new Vector3(0,-1,  t), new Vector3(0, 0, 0), color);
-            verts[5] = new Vertex3DColor(new Vector3(0, 1,  t), new Vector3(0, 0, 0), color);
-            verts[6] = new Vertex3DColor(new Vector3(0,-1, -t), new Vector3(0, 0, 0), color);
-            verts[7] = new Vertex3DColor(new Vector3(0, 1, -t), new Vector3(0, 0, 0), color);
+            verts[4] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(0,-1,  t)), new Vector3(0, 0, 0), color);
+            verts[5] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(0, 1,  t)), new Vector3(0, 0, 0), color);
+            verts[6] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(0,-1, -t)), new Vector3(0, 0, 0), color);
+            verts[7] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(0, 1, -t)), new Vector3(0, 0, 0), color);
 
-            verts[8]  = new Vertex3DColor(new Vector3(t, 0, -1), new Vector3(0, 0, 0), color);
-            verts[9]  = new Vertex3DColor(new Vector3(t, 0,  1), new Vector3(0, 0, 0), color);
-            verts[10] = new Vertex3DColor(new Vector3(-t, 0, -1), new Vector3(0, 0, 0), color);
-            verts[11] = new Vertex3DColor(new Vector3(-t, 0,  1), new Vector3(0, 0, 0), color);
+            verts[8]  = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(t, 0, -1)), new Vector3(0, 0, 0), color);
+            verts[9]  = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(t, 0,  1)), new Vector3(0, 0, 0), color);
+            verts[10] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(-t, 0, -1)), new Vector3(0, 0, 0), color);
+            verts[11] = new Vertex3DColor(2.0f * Vector3.Normalize(new Vector3(-t, 0,  1)), new Vector3(0, 0, 0), color);
             var mesh = new Mesh<Vertex3DColor>(verts, format);
             var indices = new List<uint>();
 
@@ -114,7 +114,8 @@ namespace HelloTK
             AddIndices(ref indices, 3, 9, 4);
 
             var geometry = new Geometry<Vertex3DColor>(mesh, indices.ToArray());
-            geometry.ConvertToVertexPerIndex();
+            //geometry.ConvertToVertexPerIndex();
+            geometry.SubDivide(5);
             geometry.AddNormals("position", "normal"); // C# attr name in struct, not GL.
             Renderer r = new Renderer(geometry, shader);
             return r;

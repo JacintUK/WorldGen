@@ -9,7 +9,7 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    struct Vertex3DColor : INormalVertex
+    struct Vertex3DColor : INormalVertex, IPositionVertex
     {
         public Vector3 position;
         public Vector3 normal;
@@ -32,6 +32,14 @@ namespace HelloTK
             this.position = position;
             this.normal = normal;
             this.color = new Vector4(color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f); 
+        }
+        public Vector3 GetPosition()
+        {
+            return this.position;
+        }
+        public void SetPosition(Vector3 position)
+        {
+            this.position = position;
         }
         public void SetNormal(Vector3 normal)
         {
