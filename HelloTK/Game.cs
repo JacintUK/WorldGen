@@ -159,7 +159,7 @@ namespace HelloTK
             {
                 // drag up and down to change zoom level.
                 fieldOfView += button.YDelta / 100.0f;
-                fieldOfView = Clamp(fieldOfView, 0.1f, (float)Math.PI);
+                fieldOfView = Clamp(fieldOfView, 0.1f, (float)Math.PI-0.1f);
             }
         }
         void UpdateCameraPos(MouseButton button)
