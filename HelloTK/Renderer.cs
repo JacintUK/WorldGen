@@ -13,8 +13,10 @@ namespace HelloTK
         private IVertexBuffer vertexBuffer;
         private IndexBuffer indexBuffer;
         private IGeometry geometry;
-        public Shader shader;
-
+        private Shader shader;
+        private Texture texture;
+        
+        // TODO Move to a node equiv. 
         private Matrix4 model = Matrix4.Identity;
         public Matrix4 Model { set { model = value; } get { return model; } }
 
@@ -31,9 +33,10 @@ namespace HelloTK
             this.indexBuffer = indexBuffer;
         }
 
-        //public void AddTexture(Texture texture)
-        //{
-        //}
+        public void AddTexture(Texture texture)
+        {
+            this.texture = texture;
+        }
 
         public void AddShader(Shader shader)
         {
@@ -45,6 +48,12 @@ namespace HelloTK
             if (shader != null)
             {
                 shader.Use();
+
+                if (texture != null)
+                {
+                    texture.Bind();
+                    shader.SetSamplerUniform(0, 0);
+                }
 
                 // Set up uniforms:
                 Matrix4 mv = this.model * view;

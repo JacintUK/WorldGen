@@ -61,6 +61,7 @@
     <Compile Include="Renderer.cs" />
     <Compile Include="RendererFactory.cs" />
     <Compile Include="Shader.cs" />
+    <Compile Include="Texture.cs" />
     <Compile Include="Vertex3DColor.cs" />
     <Compile Include="VertexArray.cs" />
     <Compile Include="VertexAttribute.cs" />

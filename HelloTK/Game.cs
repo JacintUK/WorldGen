@@ -48,18 +48,22 @@ namespace HelloTK
             GL.Enable(EnableCap.DepthTest);
             GL.DepthFunc(DepthFunction.Lequal);
 
+            GL.Enable(EnableCap.Texture2D);
+
             SetCameraProjection();
 
             Shader texShader = new Shader(SHADER_PATH+"quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
             Shader shader = new Shader(SHADER_PATH + "Vert3DColorShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
+            Texture edgeTexture = new Texture("edge.png");
             //renderers.Add(RendererFactory.CreateTriangle(texShader));
             quad = RendererFactory.CreateQuad(texShader);
-            //renderers.Add(quad);
+            quad.AddTexture(edgeTexture);
+            renderers.Add(quad);
 
             ico = RendererFactory.CreateIcosahedron(shader);
             icoPos = new Vector3(0, 0, -3);
             ico.Model = Matrix4.CreateTranslation(icoPos);
-            renderers.Add(ico);
+            //renderers.Add(ico);
         }
 
         private void SetCameraProjection()
