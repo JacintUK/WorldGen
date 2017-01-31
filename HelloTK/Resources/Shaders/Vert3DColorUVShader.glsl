@@ -43,8 +43,9 @@ void main()
 
 	vec3 E = normalize(eyeDirC);
 	vec3 R = reflect(-lightDirection, normalC);
-	float specular = pow(clamp(dot(E,R),0,1),8);
-	power = 20;
+	float specSize = 8.0;
+	float specular = pow(clamp(dot(E,R),0.0,1.0),specSize);
+	power = 10; //20;
 
 	// For Debugging normals	
 	//intensity=1;

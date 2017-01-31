@@ -117,6 +117,7 @@ namespace HelloTK
             var geometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
             //geometry.ConvertToVertexPerIndex();
             int vertCount = geometry.SubDivide(5);
+            geometry.TweakTriangles(0.2f);
             geometry.ConvertToVertexPerIndex();
             geometry.AddNormals("position", "normal"); // C# attr name in struct, not GL.
             geometry.AddUVs();
