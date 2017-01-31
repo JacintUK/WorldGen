@@ -114,12 +114,20 @@ namespace HelloTK
             AddIndices(ref indices, 3, 8, 9);
             AddIndices(ref indices, 3, 9, 4);
 
+            // Todo: Don't give these verts anything other than position.
             var geometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
-            //geometry.ConvertToVertexPerIndex();
             int vertCount = geometry.SubDivide(5);
             geometry.TweakTriangles(0.2f);
+
+            // Relax the mesh!
+
+            // Todo: create new geometry from this representing the dual of the above poly; 
+            // can then texture it properly with edge.png.
+
             geometry.ConvertToVertexPerIndex();
-            geometry.AddNormals("position", "normal"); // C# attr name in struct, not GL.
+
+            // Todo: shove normals and UVs in a separate VBO ?
+            geometry.AddNormals();
             geometry.AddUVs();
             Renderer r = new Renderer(geometry, shader);
             return r;

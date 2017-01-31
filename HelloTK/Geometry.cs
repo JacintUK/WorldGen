@@ -224,14 +224,12 @@ namespace HelloTK
             indices = newIndices.ToArray();
         }
 
-        public void AddNormals(string positionName, string normalName)
+        public void AddNormals()
         {
             // TODO Currently assuming that we are using triangles, and have
             // maximised the vertices.
             if (mesh.vertices[0].GetType().GetInterface("INormalVertex") != null)
             {
-                var posField = mesh.vertices[0].GetType().GetField(normalName);
-
                 for (int i = 0; i < indices.Length; i += 3)
                 {
                     Vector3 pos1 = GetPosition(ref mesh.vertices[i]);
