@@ -74,15 +74,14 @@ namespace HelloTK
             uint middlePt;
             if (!edgeCache.TryGetValue(key1, out middlePt))
             {
-                TVertex v1 = mesh.vertices[indices[a]];
-                TVertex v2 = mesh.vertices[indices[b]];
-                Vector3 pos1 = GetPosition(ref v1);
-                Vector3 pos2 = GetPosition(ref v2);
+                Vector3 pos1 = GetPosition(ref mesh.vertices[indices[a]]);
+                Vector3 pos2 = GetPosition(ref mesh.vertices[indices[b]]);
                 Vector3 e1 = 2.0f * Vector3.Normalize(pos1 + (pos2 - pos1) * 0.5f);
-                TVertex e1v = SetPosition(ref v1, ref e1);
+                TVertex v1 = mesh.vertices[indices[a]];
+                SetPosition(ref v1, ref e1);
                 middlePt = (uint)verts.Count;
                 edgeCache.Add(key1, middlePt);
-                verts.Add(e1v);
+                verts.Add(v1);
             }
             return middlePt;
         }
@@ -178,7 +177,7 @@ namespace HelloTK
                             Vector3 newPos = v1Pos + e1 * factor;
                             newPos.Normalize();
                             newPos *= 2.0f;
-                            mesh.vertices[indices[i + j]] = SetPosition(ref v1, ref newPos);
+                            SetPosition(ref mesh.vertices[indices[i + j]], ref newPos);
                         }
                         else if( e1.Length < idealDistanceToCentroid * 0.8)
                         {
@@ -189,7 +188,7 @@ namespace HelloTK
                             Vector3 newPos = v1Pos - e1 * factor;
                             newPos.Normalize();
                             newPos *= 2.0f;
-                            mesh.vertices[indices[i + j]] = SetPosition(ref v1, ref newPos);
+                            SetPosition(ref mesh.vertices[indices[i + j]], ref newPos);
                         }
                     }
                 }
@@ -312,9 +311,9 @@ namespace HelloTK
                     Vector3 normal = Vector3.Cross(a, b);
                     normal.Normalize();
 
-                    mesh.vertices[i]   = SetNormal(ref mesh.vertices[i], normal);
-                    mesh.vertices[i+1] = SetNormal(ref mesh.vertices[i+1], normal);
-                    mesh.vertices[i+2] = SetNormal(ref mesh.vertices[i+2], normal);
+                    SetNormal(ref mesh.vertices[i], normal);
+                    SetNormal(ref mesh.vertices[i+1], normal);
+                    SetNormal(ref mesh.vertices[i+2], normal);
                 }
             }
         }
@@ -326,9 +325,9 @@ namespace HelloTK
             Vector2 uv3 = new Vector2(1, 1);
             for (int i = 0; i < indices.Length; i += 3)
             {
-                mesh.vertices[i]   = SetUV(ref mesh.vertices[i],   uv1);
-                mesh.vertices[i+1] = SetUV(ref mesh.vertices[i+1], uv2);
-                mesh.vertices[i+2] = SetUV(ref mesh.vertices[i+2], uv3);
+                SetUV(ref mesh.vertices[i],   uv1);
+                SetUV(ref mesh.vertices[i+1], uv2);
+                SetUV(ref mesh.vertices[i+2], uv3);
             }
         }
 
@@ -342,33 +341,33 @@ namespace HelloTK
             return Vector3.Zero;
         }
 
-        private static TVertex SetPosition(ref TVertex vert, ref Vector3 pos)
+        private static void SetPosition(ref TVertex vert, ref Vector3 pos)
         {
             IPositionVertex ipv = vert as IPositionVertex;
             if (ipv != null)
             {
                 ipv.SetPosition(pos);
             }
-            return (TVertex)ipv;
+            vert = (TVertex)ipv;
         }
 
-        private static TVertex SetNormal(ref TVertex vertex, Vector3 normal)
+        private static void SetNormal(ref TVertex vertex, Vector3 normal)
         {
             INormalVertex inv = vertex as INormalVertex;
             if (inv != null)
             {
                 inv.SetNormal(normal);
             }
-            return (TVertex)inv;
+            vertex = (TVertex)inv;
         }
-        private static TVertex SetUV(ref TVertex vertex, Vector2 uv)
+        private static void SetUV(ref TVertex vertex, Vector2 uv)
         {
             ITextureCoordinateVertex inv = vertex as ITextureCoordinateVertex;
             if (inv != null)
             {
                 inv.SetTextureCoordinates(uv);
             }
-            return (TVertex)inv;
+            vertex = (TVertex)inv;
         }
 
         public IVertexBuffer CreateVertexBuffer()
