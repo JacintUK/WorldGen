@@ -8,8 +8,10 @@ namespace HelloTK
     {
         Mesh<TVertex> mesh;
         uint[] indices;
-
+        float idealDistanceToCentroid=1;
+        float IdealDistanceToCentroid { get { return idealDistanceToCentroid; } }
         struct Edge { public int triangle1; public int triangle2; }
+        Mesh<TVertex> Mesh { get { return mesh; } }
 
         public Geometry(Mesh<TVertex> mesh, uint[] indices)
         {
@@ -21,7 +23,13 @@ namespace HelloTK
             this.mesh = mesh;
             this.indices = null;
         }
-
+        public IGeometry Clone()
+        {
+            Mesh<TVertex> newMesh = new Mesh<TVertex>(mesh.vertices, mesh.VertexFormat);
+            uint[] newIndices = (uint[])indices.Clone();
+            Geometry<TVertex> newGeom = new Geometry<TVertex>(newMesh, newIndices);
+            return newGeom;
+        }
 
         private Dictionary<Int64, uint> edgeCache = new Dictionary<long, uint>();
 
@@ -79,14 +87,13 @@ namespace HelloTK
             return middlePt;
         }
 
-        public void TweakTriangles(float ratio)
+        public void TweakTriangles(float ratio, ref Random rand)
         {
             // Assumptions: minimised mesh. Shared edges won't work without shared verts.
             FindEdges();
             // How many edges do we have? exchange some percentage of them...
             int numPeturbations = (int)((float)edgeCache2.Count * ratio);
             int numTriangles = mesh.vertices.Length;
-            Random rand = new Random();
             List<Int64> keys = new List<Int64>(edgeCache2.Keys);
 
             for (int i = 0; i < numPeturbations; ++i)
@@ -139,6 +146,63 @@ namespace HelloTK
                     indices[edge.triangle2+2] = b;
                 }
             }
+        }
+
+        // Determine if no verts moved, or if same verts moved? (Might spin)
+        // Work out why we get incredibly thin obtuse triangles, and fix it.
+
+        public void RelaxTriangles(ref Random rand, int levels)
+        {
+            int numIndices = indices.Length;
+            for (int l = 0; l < levels; ++l)
+            {
+                for (int i = 0; i < numIndices; i += 3)
+                {
+                    Vector3 centroid = GetCentroid(i);
+                    // Compare each corner to the centroid
+                    // if too far off some ideal length ( the centroid of an equilateral triangle ),
+                    // pull vertex closer to centroid, (without buggering up the other triangles using
+                    // this point.)
+                    for (int j = 0; j < 3; ++j)
+                    {
+                        TVertex v1 = mesh.vertices[indices[i + j]];
+                        Vector3 v1Pos = GetPosition(ref v1);
+                        Vector3 e1 = centroid - v1Pos;
+
+                        if (e1.Length > idealDistanceToCentroid * 1.2 )
+                        {
+                            // Move vertex closer to centroid
+                            float factor = 1 - idealDistanceToCentroid / e1.Length;
+                            int fraction = 5+rand.Next(50);
+                            factor = factor * (float)fraction / 100.0f;
+                            Vector3 newPos = v1Pos + e1 * factor;
+                            newPos.Normalize();
+                            newPos *= 2.0f;
+                            mesh.vertices[indices[i + j]] = SetPosition(ref v1, ref newPos);
+                        }
+                        else if( e1.Length < idealDistanceToCentroid * 0.8)
+                        {
+                            // Move vertex away from the centroid
+                            float factor = 1 - idealDistanceToCentroid / e1.Length;
+                            int fraction = 5 + rand.Next(50);
+                            factor = factor * (float)fraction / 100.0f;
+                            Vector3 newPos = v1Pos - e1 * factor;
+                            newPos.Normalize();
+                            newPos *= 2.0f;
+                            mesh.vertices[indices[i + j]] = SetPosition(ref v1, ref newPos);
+                        }
+                    }
+                }
+            }
+        }
+
+        public float CalculateIdealDistanceToCentroid()
+        {
+            Vector3 centroid = GetCentroid(0);
+            TVertex v1 = mesh.vertices[indices[0]];
+            Vector3 v1median = centroid - GetPosition(ref v1);
+            idealDistanceToCentroid = v1median.Length;
+            return v1median.Length;
         }
 
         private int GetTriOffset(int triangle, uint corner)
@@ -198,16 +262,24 @@ namespace HelloTK
             }
         }
 
-        // Do we need some adjacency graphs?
-
-
-
         static Int64 CreateKey(uint a, uint b)
         {
             Int64 min = a<b ? a : b;
             Int64 max = a>=b ? a : b;
             Int64 key = min << 32 | max;
             return key;
+        }
+
+        private Vector3 GetCentroid(int triangle)
+        {
+            TVertex v1 = mesh.vertices[indices[triangle]];
+            TVertex v2 = mesh.vertices[indices[triangle + 1]];
+            TVertex v3 = mesh.vertices[indices[triangle + 2]];
+            Vector3 v1Pos = GetPosition(ref v1);
+            Vector3 e1 = GetPosition(ref v2) - v1Pos;
+            Vector3 midPt = v1Pos + e1 * 0.5f;
+            Vector3 centroid = midPt + (GetPosition(ref v3) - midPt) / 3.0f;
+            return centroid;
         }
 
         public void ConvertToVertexPerIndex()
@@ -313,6 +385,11 @@ namespace HelloTK
             {
                 return null;
             }
+        }
+        public void Upload( IVertexBuffer vbo, IndexBuffer ibo)
+        {
+            vbo.Upload(mesh);
+            ibo.Upload(indices);
         }
     }
 }

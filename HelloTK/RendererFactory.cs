@@ -2,6 +2,7 @@
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using System.Collections.Generic;
+using System;
 
 namespace HelloTK
 {
@@ -58,7 +59,7 @@ namespace HelloTK
             return renderer;
         }
 
-        static public Renderer CreateIcosphere(Shader shader)
+        static public IGeometry CreateIcosphere(Shader shader, Random rand)
         {
             VertexFormat format = new VertexFormat(new List<Attribute> {
                 new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
@@ -72,21 +73,21 @@ namespace HelloTK
             Vector4 color3 = new Vector4(0.2f, 1.0f, 1.0f, 1.0f);
 
             float t = 1.61803398875f;// approximation of golden ratio
-            
-            verts[0] = new Vertex3DColorUV(2.0f*Vector3.Normalize(new Vector3(-1,  t, 0)), new Vector3(0,0,0), new Vector2(0, 0), color3);
-            verts[1] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3( 1,  t, 0)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
-            verts[2] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(-1, -t, 0)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
-            verts[3] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3( 1, -t, 0)), new Vector3(0, 0, 0), new Vector2(0, 0), color2);
 
-            verts[4] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(0,-1,  t)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
-            verts[5] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(0, 1,  t)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
-            verts[6] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(0,-1, -t)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[0] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(-1, t, 0)), new Vector3(0, 0, 0), new Vector2(0, 0), color3);
+            verts[1] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(1, t, 0)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[2] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(-1, -t, 0)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[3] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(1, -t, 0)), new Vector3(0, 0, 0), new Vector2(0, 0), color2);
+
+            verts[4] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(0, -1, t)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[5] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(0, 1, t)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[6] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(0, -1, -t)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
             verts[7] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(0, 1, -t)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
 
-            verts[8]  = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(t, 0, -1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
-            verts[9]  = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(t, 0,  1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[8] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(t, 0, -1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[9] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(t, 0, 1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
             verts[10] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(-t, 0, -1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
-            verts[11] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(-t, 0,  1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
+            verts[11] = new Vertex3DColorUV(2.0f * Vector3.Normalize(new Vector3(-t, 0, 1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
             var mesh = new Mesh<Vertex3DColorUV>(verts, format);
             var indices = new List<uint>();
 
@@ -116,13 +117,21 @@ namespace HelloTK
 
             // Todo: Don't give these verts anything other than position.
             var geometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
-            int vertCount = geometry.SubDivide(5);
-            geometry.TweakTriangles(0.2f);
+            int vertCount = geometry.SubDivide(3);
+            geometry.CalculateIdealDistanceToCentroid();
+
+            geometry.TweakTriangles(0.05f, ref rand);
 
             // Relax the mesh!
-
+            //geometry.RelaxTriangles(idealDistanceToCentroid, ref rand, 10);
             // Todo: create new geometry from this representing the dual of the above poly; 
             // can then texture it properly with edge.png.
+
+            return geometry;
+        }
+
+        public static Renderer GenerateNormals( IGeometry geometry, Shader shader )
+        { 
 
             geometry.ConvertToVertexPerIndex();
 

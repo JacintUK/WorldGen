@@ -22,6 +22,12 @@ namespace HelloTK
             bufferHandle = GL.GenBuffer();
         }
 
+        public void Upload( uint[] newIndices )
+        {
+            indices = newIndices;
+            numIndices = newIndices.Length;
+            uploaded = false;
+        }
         public void Bind()
         {
             GL.EnableClientState(ArrayCap.IndexArray);

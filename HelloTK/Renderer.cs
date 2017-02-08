@@ -28,6 +28,12 @@ namespace HelloTK
             this.indexBuffer = geometry.CreateIndexBuffer(); // returns null if there are no indices
         }
 
+        public void Update( IGeometry geometry )
+        {
+            this.geometry = geometry;
+            geometry.Upload(this.vertexBuffer, this.indexBuffer);
+        }
+
         public void AddIndexBuffer(IndexBuffer indexBuffer)
         {
             this.indexBuffer = indexBuffer;

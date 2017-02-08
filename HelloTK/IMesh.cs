@@ -6,10 +6,7 @@ using System.Threading.Tasks;
 
 namespace HelloTK
 {
-    interface IVertexBuffer
+    class IMesh
     {
-        void Bind(Shader shader);
-        int Size { get; }
-        void Upload(IMesh mesh);
     }
 }

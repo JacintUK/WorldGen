@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HelloTK
 {
-    class Mesh<TVertex> where TVertex : struct
+    class Mesh<TVertex> : IMesh where TVertex : struct
     {
         public TVertex[] vertices;
         VertexFormat vertexFormat;

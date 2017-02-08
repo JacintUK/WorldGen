@@ -17,7 +17,7 @@ namespace HelloTK
             List < VertexAttribute > attrs = new List<VertexAttribute>();
             foreach (var attr in vertexFormat.Attributes)
             {
-                attrs.Add(new HelloTK.VertexAttribute(attr.Name, 
+                attrs.Add(new VertexAttribute(attr.Name, 
                     VertexFormat.NumberOfFloatsInType(attr.Type),
                     VertexAttribPointerType.Float, vertexFormat.size, attr.Offset));
             }

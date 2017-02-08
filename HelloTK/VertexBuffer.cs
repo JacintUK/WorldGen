@@ -12,7 +12,7 @@ namespace HelloTK
     class VertexBuffer<TVertex> : IVertexBuffer where TVertex : struct 
     {
         private TVertex[] vertices;
-        private VertexArray<TVertex> vertexArray; // TODO Move to a new container parent
+        private VertexArray<TVertex> vertexArray; 
         private VertexFormat vertexFormat;
         private int numVertices;
         private int bufferHandle;
@@ -38,6 +38,18 @@ namespace HelloTK
             bufferHandle = GL.GenBuffer();
         }
 
+        public void Upload( IMesh newMesh)
+        {
+            if (newMesh is Mesh<TVertex>)
+            {
+                Mesh<TVertex> theMesh = newMesh as Mesh<TVertex>;
+                vertices = theMesh.vertices;
+                numVertices = theMesh.Length;
+                vertexFormat = theMesh.VertexFormat;
+                uploaded = false;
+                // Vertex format has to stay the same, no need to change attrib array
+            }
+        }
         public void Bind(Shader shader)
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, bufferHandle);

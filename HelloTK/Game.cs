@@ -18,6 +18,7 @@ namespace HelloTK
         List<Renderer> renderers = new List<Renderer>();
         Color backgroundColor = Color.Aquamarine;
         Matrix4 projection;
+        IGeometry icoGeom;
         Renderer ico;
         Renderer quad;
         Vector3 icoPos;
@@ -25,9 +26,8 @@ namespace HelloTK
         Vector3 cameraPosition = Vector3.UnitZ * 2;
         float fieldOfView = (float)Math.PI / 2.0f;
         Vector3 ambientColor;
-
         float longitude, attitude;
-
+        Random rand;
         const string SHADER_PATH = "Resources/Shaders/";
 
         public Game(int w, int h)
@@ -68,7 +68,9 @@ namespace HelloTK
             quad.AddTexture(cellTexture);
             //renderers.Add(quad);
 
-            ico = RendererFactory.CreateIcosphere(shader);
+            rand = new Random(0);
+            icoGeom = RendererFactory.CreateIcosphere(shader, rand);
+            ico = RendererFactory.GenerateNormals(icoGeom.Clone(), shader);
             icoPos = new Vector3(0, 0, -3);
             ico.Model = Matrix4.CreateTranslation(icoPos);
             ico.AddTexture(cellTexture);
@@ -108,6 +110,7 @@ namespace HelloTK
             SetCameraProjection();
         }
 
+        private bool keyDown = false;
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
         {
             base.OnKeyDown(e);
@@ -116,6 +119,24 @@ namespace HelloTK
                 Console.WriteLine("Escape Down");
                 base.Exit();
             }
+            if(e.Key == Key.Space && keyDown == false)
+            {
+                keyDown = true;
+
+                icoGeom.RelaxTriangles( ref rand, 1);
+
+                IGeometry newGeometry = icoGeom.Clone();
+                newGeometry.ConvertToVertexPerIndex();
+                newGeometry.AddNormals();
+                newGeometry.AddUVs();
+                ico.Update(newGeometry);
+            }
+        }
+
+        protected override void OnKeyUp(KeyboardKeyEventArgs e)
+        {
+            base.OnKeyUp(e);
+            keyDown = false;
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)

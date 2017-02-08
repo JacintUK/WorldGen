@@ -51,6 +51,7 @@
     <Compile Include="Game.cs" />
     <Compile Include="Geometry.cs" />
     <Compile Include="IGeometry.cs" />
+    <Compile Include="IMesh.cs" />
     <Compile Include="IndexBuffer.cs" />
     <Compile Include="INormalVertex.cs" />
     <Compile Include="ITextureCoordinateVertex.cs" />
