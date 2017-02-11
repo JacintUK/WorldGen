@@ -106,26 +106,53 @@ namespace HelloTK
 
                 if (IsObtuse(edge.triangle1) || IsObtuse(edge.triangle2))
                 {
-                    i--;
                     continue;
                 }
 
-                // TODO Don't tweak tris of a pentagon.
+                uint index1 = (uint)(key & 0xffffffff);
+                uint index2 = (uint)((key >> 32) & 0xffffffff);
 
-                // Need to keep tris in CCW order.
-                uint a = (uint)(key & 0xffffffff);
+                uint a = index1;
                 int cornerA = GetTriOffset(edge.triangle1, a);
                 // get the next coord in the triangle (in ccw order)
                 uint b = indices[edge.triangle1 + ((cornerA + 1) % 3)];
                 uint c = indices[edge.triangle1 + ((cornerA + 2) % 3)];
+                uint d = 0;
+                if (b == index2)
+                {
+                    d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 1) % 3)];
+                }
+                else
+                {
+                    d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 2) % 3)];
+                }
+                uint index3 = c;
+                uint index4 = d;
 
-                // if it's the other edge corner; 
-                if( b == (uint)((key>>32)& 0xffffffff ))
+                if (vertCounts[index1] <= 5 || vertCounts[index2] <= 5 ||
+                    vertCounts[index3] >= 7 || vertCounts[index4] >= 7)
+                {
+                    continue;
+                }
+                // Check edge lengths
+                Vector3 pos1 = GetPosition(ref mesh.vertices[index1]);
+                Vector3 pos2 = GetPosition(ref mesh.vertices[index2]);
+                Vector3 pos3 = GetPosition(ref mesh.vertices[index3]);
+                Vector3 pos4 = GetPosition(ref mesh.vertices[index4]);
+
+                float oldLength = new Vector3(pos2 - pos1).Length;
+                float newLength = new Vector3(pos4 - pos3).Length;
+                if( oldLength/newLength >= 2 || oldLength/newLength <= 0.5f)
+                {
+                    continue;
+                }
+
+                // Need to keep tris in CCW order.
+                if ( b == index2 )
                 {
                     // order is a b c; c is the non-shared vertex.
                     // new tris are: ADC, DBC
                     // tri2 order is a d b
-                    uint d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 1) % 3)];
                     indices[edge.triangle1]   = a;
                     indices[edge.triangle1+1] = d;
                     indices[edge.triangle1+2] = c;
@@ -138,7 +165,6 @@ namespace HelloTK
                     // order is a b c; b is the non-shared value
                     // new tris are ACD, CBD
                     // tri2 order is a b d 
-                    uint d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 2) % 3)];
                     indices[edge.triangle1]   = a;
                     indices[edge.triangle1+1] = b;
                     indices[edge.triangle1+2] = d;
@@ -410,9 +436,10 @@ namespace HelloTK
         }
 
         private Dictionary<Int64, Edge> edgeCache2 = new Dictionary<long, Edge>();
+        private int[] vertCounts;
         public void FindEdges()
         {
-            int numVerts = 0;
+            vertCounts = new int[mesh.vertices.Length];
             edgeCache2.Clear();
             int numIndices = indices.Length;
             for (int i = 0; i < numIndices; i += 3)
@@ -420,6 +447,9 @@ namespace HelloTK
                 RegisterEdge(i, i + 1);
                 RegisterEdge(i + 1, i + 2);
                 RegisterEdge(i, i + 2);
+                vertCounts[indices[i]]++;
+                vertCounts[indices[i+1]]++;
+                vertCounts[indices[i+2]]++;
             }
         }
 
