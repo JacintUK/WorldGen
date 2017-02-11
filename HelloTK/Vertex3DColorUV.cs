@@ -9,7 +9,7 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    struct Vertex3DColorUV : INormalVertex, IPositionVertex, ITextureCoordinateVertex
+    struct Vertex3DColorUV : INormalVertex, IPositionVertex, ITextureCoordinateVertex, IColorVertex
     {
         public Vector3 position;
         public Vector3 normal;
@@ -50,6 +50,10 @@ namespace HelloTK
         public void SetTextureCoordinates(Vector2 texCoords)
         {
             this.uv = texCoords;
+        }
+        public void SetColor(Vector4 color)
+        {
+            this.color = color;
         }
         public Vector2 GetTextureCoordinates()
         {

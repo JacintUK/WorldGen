@@ -10,7 +10,8 @@ namespace HelloTK
         void ConvertToVertexPerIndex();
         void AddNormals();
         void AddUVs();
-        void RelaxTriangles(ref Random rand, int level);
+        float RelaxTriangles( float multiplier );
         void Upload(IVertexBuffer vbo, IndexBuffer ibo);
+        void ClearColor();
     }
 }

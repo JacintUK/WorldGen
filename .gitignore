@@ -3,3 +3,5 @@ HelloTK/bin
 HelloTK/obj
 .vs/
 packages/
+/HelloTK.VC.db
+/HelloTK.VC.VC.opendb

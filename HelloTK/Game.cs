@@ -23,8 +23,8 @@ namespace HelloTK
         Renderer quad;
         Vector3 icoPos;
         Vector3 lightPosition = new Vector3(-2, 2, 2);
-        Vector3 cameraPosition = Vector3.UnitZ * 2;
-        float fieldOfView = (float)Math.PI / 2.0f;
+        Vector3 cameraPosition = Vector3.UnitZ *2.0f;
+        float fieldOfView = (float)Math.PI / 4.0f;
         Vector3 ambientColor;
         float longitude, attitude;
         Random rand;
@@ -122,8 +122,8 @@ namespace HelloTK
             if(e.Key == Key.Space && keyDown == false)
             {
                 keyDown = true;
-
-                icoGeom.RelaxTriangles( ref rand, 1);
+                //icoGeom.ClearColor();
+                icoGeom.RelaxTriangles( 0.5f );
 
                 IGeometry newGeometry = icoGeom.Clone();
                 newGeometry.ConvertToVertexPerIndex();
