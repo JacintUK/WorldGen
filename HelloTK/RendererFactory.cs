@@ -118,12 +118,10 @@ namespace HelloTK
             // Todo: Don't give these verts anything other than position.
             var geometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
             int vertCount = geometry.SubDivide(3);
-            geometry.CalculateIdealDistanceToCentroid();
 
             geometry.TweakTriangles(0.05f, ref rand);
+            geometry.RelaxTriangles(0.5f);
 
-            // Relax the mesh!
-            //geometry.RelaxTriangles(idealDistanceToCentroid, ref rand, 10);
             // Todo: create new geometry from this representing the dual of the above poly; 
             // can then texture it properly with edge.png.
 

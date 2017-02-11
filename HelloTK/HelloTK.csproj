@@ -58,6 +58,7 @@
     <Compile Include="ITextureCoordinateVertex.cs" />
     <Compile Include="IPositionVertex.cs" />
     <Compile Include="IVertexBuffer.cs" />
+    <Compile Include="KeyHandler.cs" />
     <Compile Include="Mesh.cs" />
     <Compile Include="MouseButton.cs" />
     <Compile Include="Plane.cs" />

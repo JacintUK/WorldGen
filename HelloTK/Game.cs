@@ -15,6 +15,7 @@ namespace HelloTK
     class Game : OpenTK.GameWindow
     {
         List<MouseButton> pressedButtons = new List<MouseButton>();
+        List<KeyHandler> keyHandlers = new List<KeyHandler>();
         List<Renderer> renderers = new List<Renderer>();
         Color backgroundColor = Color.Aquamarine;
         Matrix4 projection;
@@ -47,6 +48,8 @@ namespace HelloTK
             pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Left));
             pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Middle));
             pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Right));
+            keyHandlers.Add(new KeyHandler(Key.Space, RelaxTriangles));
+            keyHandlers.Add(new KeyHandler(Key.D, DistortTriangles));
 
             GL.ClearColor(System.Drawing.Color.Aquamarine);
 
@@ -84,6 +87,35 @@ namespace HelloTK
                 Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 2.0f, Width / (float)Height, 0.1f, 100.0f);
         }
 
+        private void RelaxTriangles(bool down)
+        {
+            if (down)
+            {
+                //icoGeom.ClearColor();
+                icoGeom.RelaxTriangles(0.5f);
+
+                IGeometry newGeometry = icoGeom.Clone();
+                newGeometry.ConvertToVertexPerIndex();
+                newGeometry.AddNormals();
+                newGeometry.AddUVs();
+                ico.Update(newGeometry);
+            }
+        }
+
+        private void DistortTriangles(bool down)
+        {
+            if (down)
+            {
+                icoGeom.TweakTriangles(0.2f, ref rand);
+
+                IGeometry newGeometry = icoGeom.Clone();
+                newGeometry.ConvertToVertexPerIndex();
+                newGeometry.AddNormals();
+                newGeometry.AddUVs();
+                ico.Update(newGeometry);
+            }
+        }
+
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
@@ -110,7 +142,7 @@ namespace HelloTK
             SetCameraProjection();
         }
 
-        private bool keyDown = false;
+
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
         {
             base.OnKeyDown(e);
@@ -119,24 +151,19 @@ namespace HelloTK
                 Console.WriteLine("Escape Down");
                 base.Exit();
             }
-            if(e.Key == Key.Space && keyDown == false)
+            foreach (var h in keyHandlers)
             {
-                keyDown = true;
-                //icoGeom.ClearColor();
-                icoGeom.RelaxTriangles( 0.5f );
-
-                IGeometry newGeometry = icoGeom.Clone();
-                newGeometry.ConvertToVertexPerIndex();
-                newGeometry.AddNormals();
-                newGeometry.AddUVs();
-                ico.Update(newGeometry);
+                h.OnKeyDown(e.Key);
             }
         }
 
         protected override void OnKeyUp(KeyboardKeyEventArgs e)
         {
             base.OnKeyUp(e);
-            keyDown = false;
+            foreach (var h in keyHandlers)
+            {
+                h.OnKeyUp(e.Key);
+            }
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)
