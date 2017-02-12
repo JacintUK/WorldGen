@@ -1,6 +1,7 @@
 ﻿using OpenTK;
 using System;
 using System.Collections.Generic;
+using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
@@ -8,10 +9,13 @@ namespace HelloTK
     {
         Mesh<TVertex> mesh;
         uint[] indices;
-        float idealDistanceToCentroid=1;
-        float IdealDistanceToCentroid { get { return idealDistanceToCentroid; } }
+        Mesh<TVertex> newMesh;
+        PrimitiveType primType = PrimitiveType.Triangles;
+        public PrimitiveType PrimitiveType { get { return primType; } set { primType = value; } }
+        public bool NeedsUpdate { set; get; }
+
         struct Edge { public int triangle1; public int triangle2; }
-        Mesh<TVertex> Mesh { get { return mesh; } }
+        
 
         public Geometry(Mesh<TVertex> mesh, uint[] indices)
         {
@@ -41,6 +45,7 @@ namespace HelloTK
         /// <returns></returns>
         public int SubDivide(int level)
         {
+            NeedsUpdate = true;
             // Assume initial mesh has minimised verts.
             int numVerts = 0;
             for (int j = 0; j < level; ++j)
@@ -88,6 +93,8 @@ namespace HelloTK
 
         public void TweakTriangles(float ratio, ref Random rand)
         {
+            NeedsUpdate = true;
+
             // Assumptions: minimised mesh. Shared edges won't work without shared verts.
             FindEdges();
             // How many edges do we have? exchange some percentage of them...
@@ -111,7 +118,8 @@ namespace HelloTK
 
                 uint index1 = (uint)(key & 0xffffffff);
                 uint index2 = (uint)((key >> 32) & 0xffffffff);
-
+                uint index3;
+                uint index4;
                 uint a = index1;
                 int cornerA = GetTriOffset(edge.triangle1, a);
                 // get the next coord in the triangle (in ccw order)
@@ -121,13 +129,15 @@ namespace HelloTK
                 if (b == index2)
                 {
                     d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 1) % 3)];
+                    index3 = c;
+                    index4 = d;
                 }
                 else
                 {
                     d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 2) % 3)];
+                    index3 = b;
+                    index4 = d;
                 }
-                uint index3 = c;
-                uint index4 = d;
 
                 if (vertCounts[index1] <= 5 || vertCounts[index2] <= 5 ||
                     vertCounts[index3] >= 7 || vertCounts[index4] >= 7)
@@ -146,6 +156,11 @@ namespace HelloTK
                 {
                     continue;
                 }
+
+                vertCounts[index1]--;
+                vertCounts[index2]--;
+                vertCounts[index3]++;
+                vertCounts[index4]++;
 
                 // Need to keep tris in CCW order.
                 if ( b == index2 )
@@ -190,6 +205,13 @@ namespace HelloTK
         // centroid tilts through random moves away from centroidal radius, and they become thin / start overlapping.
         public void RelaxTriangles1(ref Random rand, int levels)
         {
+            NeedsUpdate = true;
+
+            double totalSurfaceArea = 4.0 * Math.PI;
+            double idealFaceArea = totalSurfaceArea / (indices.Length / 3);
+            double idealEdgeLength = Math.Sqrt(idealFaceArea * 4.0 / Math.Sqrt(3.0));
+            double idealDistanceToCentroid = idealEdgeLength * Math.Sqrt(3) / 3.0 * 0.9;
+
             int numIndices = indices.Length;
             for (int l = 0; l < levels; ++l)
             {
@@ -220,20 +242,20 @@ namespace HelloTK
                             if (e1.Length > idealDistanceToCentroid * 1.1)
                             {
                                 // Move vertex closer to centroid
-                                float factor = 1 - idealDistanceToCentroid / e1.Length;
+                                float factor = 1.0f - (float)idealDistanceToCentroid / e1.Length;
                                 //int fraction = 1 + rand.Next((int)(90.0*(1.0-idealDistanceToCentroid/ e1.Length)));
                                 //factor = factor * (float)fraction / 100.0f;
-                                float fraction = (0.5f + 0.05f * rand.Next(5)) * (1.0f - idealDistanceToCentroid / e1.Length);
+                                float fraction = (0.5f + 0.05f * rand.Next(5)) * (1.0f - (float)idealDistanceToCentroid / e1.Length);
                                 factor = factor * fraction;
                                 v1Pos = Vector3.Normalize(v1Pos + e1 * factor);
                             }
                             else if (e1.Length < idealDistanceToCentroid * 0.9)
                             {
                                 // Move vertex away from the centroid
-                                float factor = 1 - e1.Length / idealDistanceToCentroid;
+                                float factor = 1 - e1.Length / (float)idealDistanceToCentroid;
                                 //int fraction = 1 + rand.Next((int)(90.0*(e1.Length/idealDistanceToCentroid)));
                                 //factor = factor * (float)fraction / 100.0f;
-                                float fraction = (0.5f + 0.05f * rand.Next(5)) * (e1.Length / idealDistanceToCentroid);
+                                float fraction = (0.5f + 0.05f * rand.Next(5)) * (e1.Length / (float)idealDistanceToCentroid);
                                 factor = factor * fraction;
                                 v1Pos = Vector3.Normalize(v1Pos - e1 * factor);
                             }
@@ -262,8 +284,8 @@ namespace HelloTK
                             }
                         }
 
-                        // If any surrounding triangles would be less parallax to the sphere than
-                        // this is more parallax, don't do it.
+                        // If any surrounding triangles would be less parallel to the sphere than
+                        // this is more parallel, don't do it.
                     }
                 }
             }
@@ -271,6 +293,8 @@ namespace HelloTK
 
         public float RelaxTriangles(float multiplier)
         {
+            NeedsUpdate = true;
+
             double totalSurfaceArea = 4.0 * Math.PI; 
             double idealFaceArea = totalSurfaceArea / (indices.Length / 3);
             double idealEdgeLength = Math.Sqrt(idealFaceArea * 4.0 / Math.Sqrt(3.0));
@@ -283,10 +307,14 @@ namespace HelloTK
             }
             int numIndices = indices.Length;
 
+            TVertex[] centroidVerts = new TVertex[numIndices / 3];
+            TVertex centroidVertex = new TVertex();
+           
             for (int i = 0; i < numIndices; i += 3)
             {
                 Vector3 centroid = GetCentroid(i);
                 centroid.Normalize();
+                SetPosition(ref centroidVertex, ref centroid);
 
                 Vector3[] oldPositions = new Vector3[3]
                 {
@@ -308,6 +336,7 @@ namespace HelloTK
                     shiftPositions[indices[i+j]] += midLine;
                 }
             }
+            
             var origin = Vector3.Zero;
             Plane p = new Plane(Vector3.UnitY, Vector3.Zero);
             for (int i = 0; i < mesh.vertices.Length; ++i)
@@ -317,11 +346,16 @@ namespace HelloTK
                 shiftPositions[i] = vertexPosition + p.ProjectPoint(shiftPositions[i]);
                 shiftPositions[i].Normalize();
             }
+
+
+            // Stop poylgons rotating about their centroid.
+            // Doesn't stop triangles flipping.
             float[] rotationSuppressions= new float[mesh.vertices.Length];
-            for (int i = 0; i < mesh.vertices.Length; ++i)
-            {
-                rotationSuppressions[i] = 0;
-            }
+            rotationSuppressions.Initialize();
+            //for (int i = 0; i < mesh.vertices.Length; ++i)
+            //{
+            //    rotationSuppressions[i] = 0;
+            //}
             FindEdges();
             foreach( var iter in edgeCache2)
             {
@@ -333,14 +367,17 @@ namespace HelloTK
                 Vector3 newPos1 = shiftPositions[index1];
                 Vector3 newPos2 = shiftPositions[index2];
                 Vector3 oldEdge = oldPos2 - oldPos1;
-                oldEdge.Normalize();
                 Vector3 newEdge = newPos2 - newPos1;
+
+                oldEdge.Normalize();
                 newEdge.Normalize();
                 float suppression = (1.0f - Vector3.Dot(oldEdge, newEdge)) * 0.5f;
                 rotationSuppressions[index1] = Math.Max(suppression, rotationSuppressions[index1]);
                 rotationSuppressions[index2] = Math.Max(suppression, rotationSuppressions[index2]);
             }
 
+            TVertex[] vertices = new TVertex[mesh.vertices.Length];
+            newMesh = new Mesh<TVertex>(vertices, mesh.VertexFormat);
             float totalShift = 0;
             for( int i=0; i<mesh.vertices.Length; ++i )
             {
@@ -348,10 +385,14 @@ namespace HelloTK
                 Vector3 delta = pos;
                 pos = Lerp(pos, shiftPositions[i], (float)(1.0f - Math.Sqrt(rotationSuppressions[i])));
                 pos.Normalize();
+                TVertex vertex = mesh.vertices[i];
                 SetPosition(ref mesh.vertices[i], ref pos);
+                newMesh.vertices[i] = vertex;
                 delta -= pos;
                 totalShift += delta.Length;
             }
+
+
             return totalShift;
         }
 
@@ -360,25 +401,35 @@ namespace HelloTK
             return (1.0f - t) * a + t * b;
         }
 
+        public Mesh<Vertex3D> GenerateCentroidMesh()
+        {
+            int numIndices = indices.Length;
+            Vertex3D[] centroidVerts = new Vertex3D[numIndices / 3];
+            Vertex3D centroidVertex = new Vertex3D();
+            VertexFormat format = new VertexFormat(new List<Attribute> {
+                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3} });
+            Mesh<Vertex3D> centroidMesh = new Mesh<Vertex3D>(centroidVerts, format);
+            int triangleIndex = 0;
+            for (int i = 0; i < numIndices; i += 3)
+            {
+                Vector3 centroid = GetCentroid(i);
+                //centroid.Normalize();
+                IPositionVertex ipv = centroidVertex as IPositionVertex;
+                if (ipv != null)
+                {
+                    ipv.SetPosition(centroid);
+                }
+                centroidMesh.vertices[triangleIndex++] = (Vertex3D)ipv;
+            }
+            return centroidMesh;
+        }
+
         public void ClearColor()
         {
             for(int i=0; i<mesh.vertices.Length; ++i)
             {
                 SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
             }
-        }
-        public float CalculateIdealDistanceToCentroid()
-        {
-            TVertex v1 = mesh.vertices[indices[0]];
-            TVertex v2 = mesh.vertices[indices[1]];
-            TVertex v3 = mesh.vertices[indices[2]];
-            Vector3 e1 = GetPosition(ref v2) - GetPosition(ref v1);
-            Vector3 e2 = GetPosition(ref v3) - GetPosition(ref v1);
-            Vector3 e3 = GetPosition(ref v3) - GetPosition(ref v2);
-            float averageLength = (e1.Length + e2.Length + e3.Length) / 3.0f;
-
-            idealDistanceToCentroid = averageLength * (float)Math.Sqrt(3) / 3.0f;
-            return idealDistanceToCentroid;
         }
 
         private int GetTriOffset(int triangle, uint corner)
@@ -607,7 +658,11 @@ namespace HelloTK
         public void Upload( IVertexBuffer vbo, IndexBuffer ibo)
         {
             vbo.Upload(mesh);
-            ibo.Upload(indices);
+            if (indices != null && ibo != null)
+            {
+                ibo.Upload(indices);
+            }
+            NeedsUpdate = false;
         }
     }
 }

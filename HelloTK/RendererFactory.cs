@@ -59,7 +59,7 @@ namespace HelloTK
             return renderer;
         }
 
-        static public IGeometry CreateIcosphere(Shader shader, Random rand)
+        static public IGeometry CreateIcosphere(Random rand)
         {
             VertexFormat format = new VertexFormat(new List<Attribute> {
                 new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
@@ -115,12 +115,8 @@ namespace HelloTK
             AddIndices(ref indices, 3, 8, 9);
             AddIndices(ref indices, 3, 9, 4);
 
-            // Todo: Don't give these verts anything other than position.
             var geometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
-            int vertCount = geometry.SubDivide(3);
-
-            geometry.TweakTriangles(0.05f, ref rand);
-            geometry.RelaxTriangles(0.5f);
+            int vertCount = geometry.SubDivide(1);
 
             // Todo: create new geometry from this representing the dual of the above poly; 
             // can then texture it properly with edge.png.

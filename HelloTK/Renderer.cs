@@ -16,16 +16,24 @@ namespace HelloTK
         private Shader shader;
         private Texture texture;
         
-        // TODO Move to a node equiv. 
         private Matrix4 model = Matrix4.Identity;
         public Matrix4 Model { set { model = value; } get { return model; } }
-
+        
+        public bool DepthTestFlag { set; get; }
+        public CullFaceMode CullFaceMode { set; get; }
+        public bool CullFaceFlag { set; get; }
+        private List<UniformProperty> uniforms;
+        
         public Renderer(IGeometry geometry, Shader shader)
         {
+            this.DepthTestFlag = true;
+            this.CullFaceMode = CullFaceMode.Back;
+            this.CullFaceFlag = true;
             this.shader = shader;
             this.geometry = geometry;
             this.vertexBuffer = geometry.CreateVertexBuffer();
             this.indexBuffer = geometry.CreateIndexBuffer(); // returns null if there are no indices
+            this.uniforms = new List<UniformProperty>();
         }
 
         public void Update( IGeometry geometry )
@@ -48,9 +56,35 @@ namespace HelloTK
         {
             this.shader = shader;
         }
-
-        public void Draw(Matrix4 view, Matrix4 projection, Vector3 lightPosition, Vector3 ambientColor)
+        public void AddUniform(UniformProperty uniform)
         {
+            uniforms.Add(uniform);
+        }
+        public void Draw(Matrix4 view, Matrix4 projection )
+        {
+            if(geometry.NeedsUpdate)
+            {
+                geometry.Upload(vertexBuffer, indexBuffer);
+            }
+
+            if( DepthTestFlag )
+            {
+                GL.Enable(EnableCap.DepthTest);
+            }
+            else
+            {
+                GL.Disable(EnableCap.DepthTest);
+            }
+            if (CullFaceFlag)
+            {
+                GL.Enable(EnableCap.CullFace);
+                GL.CullFace(CullFaceMode);
+            }
+            else
+            {
+                GL.Disable(EnableCap.CullFace);
+            }
+
             if (shader != null)
             {
                 shader.Use();
@@ -59,6 +93,10 @@ namespace HelloTK
                 {
                     texture.Bind();
                     shader.SetSamplerUniform(0, 0);
+                }
+                else
+                {
+                    GL.BindTexture(TextureTarget.Texture2D, 0);
                 }
 
                 // Set up uniforms:
@@ -71,19 +109,22 @@ namespace HelloTK
                 shader.SetUniformMatrix4("projection", projection);
                 shader.SetUniformMatrix4("model", this.model);
                 shader.SetUniformMatrix4("view", view);
-                shader.SetUniformVector3("lightPosition", lightPosition);
-                shader.SetUniformVector3("ambientColor", ambientColor);
+
+                foreach( var uniform in uniforms )
+                {
+                    uniform.SetUniform(shader);
+                }
             }
             vertexBuffer.Bind(shader);
 
             if (indexBuffer != null)
             {
                 indexBuffer.Bind();
-                GL.DrawElements(PrimitiveType.Triangles, indexBuffer.Size(), DrawElementsType.UnsignedInt, 0);
+                GL.DrawElements(geometry.PrimitiveType, indexBuffer.Size(), DrawElementsType.UnsignedInt, 0);
             }
             else
             {
-                GL.DrawArrays(PrimitiveType.Triangles, 0, vertexBuffer.Size);
+                GL.DrawArrays(geometry.PrimitiveType, 0, vertexBuffer.Size);
             }
 
             GL.BindVertexArray(0);

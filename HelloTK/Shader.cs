@@ -43,16 +43,6 @@ namespace HelloTK
             Console.WriteLine(GL.GetProgramInfoLog(programId));
             GL.DetachShader(programId, fsId);
             GL.DetachShader(programId, vsId);
-
-            // Could do with introspecting the attrs, uniforms and samplers
- 
-            AddUniform("modelView");
-            AddUniform("model");
-            AddUniform("view");
-            AddUniform("projection");
-            AddUniform("lightPosition");
-            AddUniform("mvIT");
-            AddUniform("ambientColor");
         }
 
         void GetActiveSamplerUniforms()
@@ -113,7 +103,7 @@ namespace HelloTK
                 GL.UniformMatrix3(loc, false, ref matrix);
             }
         }
-        public void SetUniform1(string uniform, int value)
+        public void SetUniform(string uniform, int value)
         {
             int loc = GetUniformLoc(uniform);
             if( loc != -1 )
@@ -121,7 +111,7 @@ namespace HelloTK
                 GL.Uniform1(loc, value);
             }
         }
-        public void SetUniform1(string uniform, float value)
+        public void SetUniform(string uniform, float value)
         {
             int loc = GetUniformLoc(uniform);
             if (loc != -1)
@@ -151,6 +141,14 @@ namespace HelloTK
             if (loc != -1)
             {
                 GL.Uniform4(loc, ref vector);
+            }
+        }
+        public void SetUniformVector4(string uniform, Color4 vector)
+        {
+            int loc = GetUniformLoc(uniform);
+            if (loc != -1)
+            {
+                GL.Uniform4(loc, vector);
             }
         }
         public void EnableAttr(string attr)
@@ -203,10 +201,6 @@ namespace HelloTK
             }
             return loc;
         }
-        private void AddUniform(string name)
-        {
-            uniformLocs.Add(new Tuple<string, int>(name, GL.GetUniformLocation(programId, name)));
-        }
 
         private int GetUniformLoc(string name)
         {
@@ -217,7 +211,9 @@ namespace HelloTK
                     return tuple.Item2;
                 }
             }
-            return -1;
+            int loc = GL.GetUniformLocation(programId, name);
+            uniformLocs.Add(new Tuple<string, int>(name, loc));
+            return loc;
         }
         public int GetAttrLoc(string name)
         {
