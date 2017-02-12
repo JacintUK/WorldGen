@@ -116,7 +116,7 @@ namespace HelloTK
             AddIndices(ref indices, 3, 9, 4);
 
             var geometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
-            int vertCount = geometry.SubDivide(1);
+            int vertCount = geometry.SubDivide(4);
 
             // Todo: create new geometry from this representing the dual of the above poly; 
             // can then texture it properly with edge.png.

@@ -102,14 +102,29 @@ namespace HelloTK
             int numTriangles = mesh.vertices.Length;
             List<Int64> keys = new List<Int64>(edgeCache2.Keys);
 
+            List<int> visitedTris = new List<int>();
             for (int i = 0; i < numPeturbations; ++i)
             {
                 // Choose a random edge:
                 int edgeIndex = rand.Next(edgeCache2.Count);
-
                 // Check out the tris around the edge.
                 Int64 key = keys[edgeIndex];
                 Edge edge = edgeCache2[key];
+
+                // TODO - add flag to triangle to avoid n2/2 lookup.
+                bool r = false;
+                foreach( var visited in visitedTris )
+                {
+                    if(edge.triangle1 == visited || edge.triangle2 == visited)
+                    {
+                        r = true;
+                        break;
+                    }
+                }
+                if (r) continue;
+
+                visitedTris.Add(edge.triangle1);
+                visitedTris.Add(edge.triangle2);
 
                 if (IsObtuse(edge.triangle1) || IsObtuse(edge.triangle2))
                 {
@@ -322,12 +337,7 @@ namespace HelloTK
                     new Vector3( GetPosition(ref mesh.vertices[indices[i+1]])),
                     new Vector3( GetPosition(ref mesh.vertices[indices[i+2]])),
                 };
-                float[] edgeLengths = new float[3]
-                {
-                    new Vector3(oldPositions[1] - oldPositions[0]).Length,
-                    new Vector3(oldPositions[2] - oldPositions[1]).Length,
-                    new Vector3(oldPositions[2] - oldPositions[0]).Length
-                };
+
                 for( int j=0; j<3; ++j)
                 {
                     Vector3 midLine = centroid - oldPositions[j];
@@ -368,7 +378,26 @@ namespace HelloTK
                 Vector3 newPos2 = shiftPositions[index2];
                 Vector3 oldEdge = oldPos2 - oldPos1;
                 Vector3 newEdge = newPos2 - newPos1;
-
+                if( newEdge.Length < idealEdgeLength * 0.5f)
+                {
+                    // Move shift positions back out to ensure that the edge is never minimal.
+                    Vector3 midPt = newPos1 + 0.5f * newEdge;
+                    newEdge.Normalize();
+                    newEdge *= ((float)idealEdgeLength * 0.25f);
+                    shiftPositions[index1] = midPt - newEdge;
+                    shiftPositions[index2] = midPt + newEdge;
+                    newEdge = shiftPositions[index2] - shiftPositions[index1];
+                }
+                if (newEdge.Length > idealEdgeLength * 1.4f)
+                {
+                    // Move shift positions back in to ensure that the edge is never minimal.
+                    Vector3 midPt = newPos1 + 0.5f * newEdge;
+                    newEdge.Normalize();
+                    newEdge *= ((float)idealEdgeLength * .7f);
+                    shiftPositions[index1] = midPt - newEdge;
+                    shiftPositions[index2] = midPt + newEdge;
+                    newEdge = shiftPositions[index2] - shiftPositions[index1];
+                }
                 oldEdge.Normalize();
                 newEdge.Normalize();
                 float suppression = (1.0f - Vector3.Dot(oldEdge, newEdge)) * 0.5f;
@@ -424,11 +453,11 @@ namespace HelloTK
             return centroidMesh;
         }
 
-        public void ClearColor()
+        public void ClearColor(Vector4 color)
         {
             for(int i=0; i<mesh.vertices.Length; ++i)
             {
-                SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
+                SetColor(ref mesh.vertices[i], color);
             }
         }
 
@@ -547,9 +576,19 @@ namespace HelloTK
             List<TVertex> newVertices = new List<TVertex>();
             List<uint> newIndices = new List<uint>();
             uint newIndex = 0;
-            foreach (uint index in indices )
+            for (int i = 0; i < indices.Length; ++i )
             {
-                newVertices.Add(mesh.vertices[(int)index]);
+                TVertex v = mesh.vertices[indices[i]];
+                if((i/3)%2 == 0)
+                {
+                    var icv = v as IColorVertex;
+                    if (icv != null)
+                    {
+                        icv.SetColor(new Vector4(0.5f, 0, 0, 1));
+                    }
+                    v = (TVertex)icv;
+                }
+                newVertices.Add(v);
                 newIndices.Add(newIndex++);
             }
             mesh = new Mesh<TVertex>(newVertices.ToArray(), mesh.VertexFormat);

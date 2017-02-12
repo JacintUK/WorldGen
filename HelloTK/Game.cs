@@ -52,6 +52,13 @@ namespace HelloTK
             keyHandlers.Add(new KeyHandler(Key.Space, RelaxTriangles));
             keyHandlers.Add(new KeyHandler(Key.D, DistortTriangles));
             keyHandlers.Add(new KeyHandler(Key.R, ResetSphere));
+            keyHandlers.Add(new KeyHandler(Key.Number1, DR1));
+            keyHandlers.Add(new KeyHandler(Key.Number2, DR2));
+            keyHandlers.Add(new KeyHandler(Key.Number3, DR3));
+            keyHandlers.Add(new KeyHandler(Key.Number4, DR4));
+            keyHandlers.Add(new KeyHandler(Key.Number5, DR5));
+            keyHandlers.Add(new KeyHandler(Key.Number6, DR6));
+
 
             GL.ClearColor(System.Drawing.Color.Aquamarine);
 
@@ -119,7 +126,7 @@ namespace HelloTK
             {
                 rand = new Random(0);
                 icoGeom = RendererFactory.CreateIcosphere(rand);
-                icoGeom.ClearColor();
+                icoGeom.ClearColor(new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
                 IGeometry newGeometry = icoGeom.Clone();
                 icoGeom.PrimitiveType = PrimitiveType.Points;
                 newGeometry.ConvertToVertexPerIndex();
@@ -171,6 +178,39 @@ namespace HelloTK
                 icoCentroidDebug.Update(centroidGeom);
             }
         }
+
+        private void DR1(bool down)
+        {
+            DistortTriangles(down);
+            RelaxTriangles(down);
+        }
+        private void DR2(bool down)
+        {
+            for (int i = 0; i < 5; ++i)
+                DR1(down);
+        }
+        private void DR3(bool down)
+        {
+            for (int i = 0; i < 5; ++i)
+                DR2(down);
+        }
+        private void DR4(bool down)
+        {
+            for (int i = 0; i < 5; ++i)
+                DR3(down);
+        }
+        private void DR5(bool down)
+        {
+            for (int i = 0; i < 5; ++i)
+                DR4(down);
+        }
+        private void DR6(bool down)
+        {
+            for (int i = 0; i < 5; ++i)
+                DR5(down);
+        }
+
+
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {

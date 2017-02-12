@@ -1,6 +1,6 @@
 ﻿using System;
 using OpenTK.Graphics.OpenGL;
-
+using OpenTK;
 namespace HelloTK
 {
     internal interface IGeometry
@@ -18,7 +18,7 @@ namespace HelloTK
         void AddUVs();
         void TweakTriangles(float ratio, ref Random rand);
         float RelaxTriangles( float multiplier );
-        void ClearColor();
+        void ClearColor(Vector4 color);
         Mesh<Vertex3D> GenerateCentroidMesh();
     }
 }
