@@ -218,7 +218,7 @@ namespace HelloTK
 
         // Algorithm is nearly there, but on some triangles, there is a potential that converging on
         // centroid tilts through random moves away from centroidal radius, and they become thin / start overlapping.
-        public void RelaxTriangles1(ref Random rand, int levels)
+        public float RelaxTriangles1(float multiplier)
         {
             NeedsUpdate = true;
 
@@ -228,82 +228,94 @@ namespace HelloTK
             double idealDistanceToCentroid = idealEdgeLength * Math.Sqrt(3) / 3.0 * 0.9;
 
             int numIndices = indices.Length;
-            for (int l = 0; l < levels; ++l)
-            {
-                for (int i = 0; i < numIndices; i += 3)
-                {
-                    if (1==1)//TooThin(i))
-                    {
-                        Vector3 centroid = GetCentroid(i);
-                        centroid.Normalize();
 
-                        // Compare each corner to the centroid
-                        // if too far off some ideal length ( the centroid of an equilateral triangle ),
-                        // pull vertex closer to centroid, (without buggering up the other triangles using
-                        // this point.)
-                        Vector3[] oldPositions = new Vector3[3]
+            Vector3[] shiftPositions = new Vector3[mesh.vertices.Length];
+            for (int i = 0; i < mesh.vertices.Length; ++i)
+            {
+                shiftPositions[i] = new Vector3(Vector3.Zero);
+            }
+
+            for (int i = 0; i < numIndices; i += 3)
+            {
+                if (1==1)//TooThin(i))
+                {
+                    Vector3 centroid = GetCentroid(i);
+                    centroid.Normalize();
+
+                    // Compare each corner to the centroid
+                    // if too far off some ideal length ( the centroid of an equilateral triangle ),
+                    // pull vertex closer to centroid, (without buggering up the other triangles using
+                    // this point.)
+                    Vector3[] oldPositions = new Vector3[3]
+                    {
+                        new Vector3( GetPosition(ref mesh.vertices[indices[i]])),
+                        new Vector3( GetPosition(ref mesh.vertices[indices[i+1]])),
+                        new Vector3( GetPosition(ref mesh.vertices[indices[i+2]])),
+                    };
+                    Vector3[] newPositions = new Vector3[3];
+                    for (int j = 0; j < 3; ++j)
+                    {
+                        TVertex v1 = mesh.vertices[indices[i + j]];
+                        Vector3 v1Pos = GetPosition(ref v1);
+                        Vector3 e1 = centroid - v1Pos;
+
+                        if (e1.Length > idealDistanceToCentroid * 1.1)
                         {
-                            new Vector3( GetPosition(ref mesh.vertices[indices[i]])),
-                            new Vector3( GetPosition(ref mesh.vertices[indices[i+1]])),
-                            new Vector3( GetPosition(ref mesh.vertices[indices[i+2]])),
-                        };
-                        Vector3[] newPositions = new Vector3[3];
+                            // Move vertex closer to centroid
+                            float factor = 1.0f - (float)idealDistanceToCentroid / e1.Length;
+                            float fraction = (multiplier * (1.0f - (float)idealDistanceToCentroid / e1.Length));
+                            factor = factor * fraction;
+                            v1Pos = Vector3.Normalize(v1Pos + e1 * factor);
+                        }
+                        else if (e1.Length < idealDistanceToCentroid * 0.9)
+                        {
+                            // Move vertex away from the centroid
+                            float factor = 1 - e1.Length / (float)idealDistanceToCentroid;
+                            float fraction = (multiplier * (e1.Length / (float)idealDistanceToCentroid));
+                            factor = factor * fraction;
+                            v1Pos = Vector3.Normalize(v1Pos - e1 * factor);
+                        }
+                        newPositions[j] = v1Pos;
+                    }
+
+                    // If this makes the triangle less parallel to the sphere, don't do it.
+                    Vector3 a = newPositions[1] - newPositions[0];
+                    Vector3 b = newPositions[2] - newPositions[1];
+                    Vector3 normal = Vector3.Cross(a, b);
+                    normal.Normalize();
+                    float dot = Vector3.Dot(centroid, normal);
+                    double phi = Math.Acos(dot);
+
+                    a = oldPositions[1] - oldPositions[0];
+                    b = oldPositions[2] - oldPositions[1];
+                    normal = Vector3.Cross(a, b);
+                    normal.Normalize();
+                    dot = Vector3.Dot(centroid, normal);
+                    double theta = Math.Acos(dot);
+                    if(phi < dot)
+                    {
                         for (int j = 0; j < 3; ++j)
                         {
-                            TVertex v1 = mesh.vertices[indices[i + j]];
-                            Vector3 v1Pos = GetPosition(ref v1);
-                            Vector3 e1 = centroid - v1Pos;
-
-                            if (e1.Length > idealDistanceToCentroid * 1.1)
-                            {
-                                // Move vertex closer to centroid
-                                float factor = 1.0f - (float)idealDistanceToCentroid / e1.Length;
-                                //int fraction = 1 + rand.Next((int)(90.0*(1.0-idealDistanceToCentroid/ e1.Length)));
-                                //factor = factor * (float)fraction / 100.0f;
-                                float fraction = (0.5f + 0.05f * rand.Next(5)) * (1.0f - (float)idealDistanceToCentroid / e1.Length);
-                                factor = factor * fraction;
-                                v1Pos = Vector3.Normalize(v1Pos + e1 * factor);
-                            }
-                            else if (e1.Length < idealDistanceToCentroid * 0.9)
-                            {
-                                // Move vertex away from the centroid
-                                float factor = 1 - e1.Length / (float)idealDistanceToCentroid;
-                                //int fraction = 1 + rand.Next((int)(90.0*(e1.Length/idealDistanceToCentroid)));
-                                //factor = factor * (float)fraction / 100.0f;
-                                float fraction = (0.5f + 0.05f * rand.Next(5)) * (e1.Length / (float)idealDistanceToCentroid);
-                                factor = factor * fraction;
-                                v1Pos = Vector3.Normalize(v1Pos - e1 * factor);
-                            }
-                            newPositions[j] = v1Pos;
+                            //SetPosition(ref mesh.vertices[indices[i + j]], ref newPositions[j]);
+                            shiftPositions[indices[i + j]] = newPositions[j];
                         }
-
-                        // If this makes the triangle less parallel to the sphere, don't do it.
-                        Vector3 a = newPositions[1] - newPositions[0];
-                        Vector3 b = newPositions[2] - newPositions[1];
-                        Vector3 normal = Vector3.Cross(a, b);
-                        normal.Normalize();
-                        float dot = Vector3.Dot(centroid, normal);
-                        double phi = Math.Acos(dot);
-
-                        a = oldPositions[1] - oldPositions[0];
-                        b = oldPositions[2] - oldPositions[1];
-                        normal = Vector3.Cross(a, b);
-                        normal.Normalize();
-                        dot = Vector3.Dot(centroid, normal);
-                        double theta = Math.Acos(dot);
-                        if(phi < dot)
-                        {
-                            for (int j = 0; j < 3; ++j)
-                            {
-                                SetPosition(ref mesh.vertices[indices[i + j]], ref newPositions[j]);
-                            }
-                        }
-
-                        // If any surrounding triangles would be less parallel to the sphere than
-                        // this is more parallel, don't do it.
                     }
+
+                    // If any surrounding triangles would be less parallel to the sphere than
+                    // this is more parallel, don't do it.
                 }
             }
+
+            TVertex[] vertices = new TVertex[mesh.vertices.Length];
+            newMesh = new Mesh<TVertex>(vertices, mesh.VertexFormat);
+            float totalShift = 0;
+            for (int i = 0; i < mesh.vertices.Length; ++i)
+            {
+                Vector3 delta = shiftPositions[i] - GetPosition(ref mesh.vertices[i]);
+                SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
+                totalShift += delta.Length;
+            }
+            return totalShift;
         }
 
         public float RelaxTriangles(float multiplier)
@@ -380,7 +392,7 @@ namespace HelloTK
                 Vector3 newEdge = newPos2 - newPos1;
                 if( newEdge.Length < idealEdgeLength * 0.5f)
                 {
-                    // Move shift positions back out to ensure that the edge is never minimal.
+                    // Move shift positions back out to ensure that the edge is never too small.
                     Vector3 midPt = newPos1 + 0.5f * newEdge;
                     newEdge.Normalize();
                     newEdge *= ((float)idealEdgeLength * 0.25f);
@@ -390,7 +402,7 @@ namespace HelloTK
                 }
                 if (newEdge.Length > idealEdgeLength * 1.4f)
                 {
-                    // Move shift positions back in to ensure that the edge is never minimal.
+                    // Move shift positions back in to ensure that the edge is never too large.
                     Vector3 midPt = newPos1 + 0.5f * newEdge;
                     newEdge.Normalize();
                     newEdge *= ((float)idealEdgeLength * .7f);
@@ -405,23 +417,29 @@ namespace HelloTK
                 rotationSuppressions[index2] = Math.Max(suppression, rotationSuppressions[index2]);
             }
 
-            TVertex[] vertices = new TVertex[mesh.vertices.Length];
-            newMesh = new Mesh<TVertex>(vertices, mesh.VertexFormat);
-            float totalShift = 0;
-            for( int i=0; i<mesh.vertices.Length; ++i )
+            for (int i = 0; i < mesh.vertices.Length; ++i)
             {
                 Vector3 pos = GetPosition(ref mesh.vertices[i]);
                 Vector3 delta = pos;
                 pos = Lerp(pos, shiftPositions[i], (float)(1.0f - Math.Sqrt(rotationSuppressions[i])));
                 pos.Normalize();
-                TVertex vertex = mesh.vertices[i];
-                SetPosition(ref mesh.vertices[i], ref pos);
-                newMesh.vertices[i] = vertex;
-                delta -= pos;
-                totalShift += delta.Length;
+                shiftPositions[i] = pos;
             }
 
+            // To prevent triangles from becoming too thin:
+            // foreach triangle, 
+            //    if there's an obtuse angle, 
+            //      push the vertex out from the centroid until it isn't.
+            //   
 
+            float totalShift = 0;
+            for( int i=0; i<mesh.vertices.Length; ++i )
+            {
+                Vector3 delta = GetPosition(ref mesh.vertices[i]);
+                SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
+                delta -= shiftPositions[i];
+                totalShift += delta.Length;
+            }
             return totalShift;
         }
 

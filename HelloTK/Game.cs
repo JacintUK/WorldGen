@@ -106,7 +106,7 @@ namespace HelloTK
             icoCentroidDebug = new Renderer(centroidGeom, pointShader);
             icoCentroidDebug.DepthTestFlag = false;
             icoCentroidDebug.CullFaceFlag = false;
-            icoCentroidDebug.AddUniform(new UniformProperty("color", new Vector4(0.7f, 0, 0, 1)));
+            icoCentroidDebug.AddUniform(new UniformProperty("color", new Vector4(0.6f, 0, 0.4f, 1)));
             icoCentroidDebug.AddUniform(new UniformProperty("pointSize", 5f));
             icoCentroidDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
             renderers.Add(icoCentroidDebug);
@@ -164,7 +164,7 @@ namespace HelloTK
         {
             if (down)
             {
-                icoGeom.TweakTriangles(0.2f, ref rand);
+                icoGeom.TweakTriangles(0.25f, ref rand);
 
                 IGeometry newGeometry = icoGeom.Clone();
                 newGeometry.PrimitiveType = PrimitiveType.Triangles;
@@ -182,6 +182,8 @@ namespace HelloTK
         private void DR1(bool down)
         {
             DistortTriangles(down);
+            RelaxTriangles(down);
+            RelaxTriangles(down);
             RelaxTriangles(down);
         }
         private void DR2(bool down)
