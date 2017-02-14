@@ -15,13 +15,16 @@ namespace HelloTK
         bool buttonDownTrigger = false;
         int xDelta;
         int yDelta;
+        public delegate void UpdateDelegate(MouseButton button);
+        UpdateDelegate handler;
         public int XDelta { get { return xDelta; } }
         public int YDelta { get { return yDelta; } }
         public bool IsDown { get { return buttonDown; } }
 
-        public MouseButton(OpenTK.Input.MouseButton button)
+        public MouseButton(OpenTK.Input.MouseButton button, UpdateDelegate handler)
         {
             this.button = button;
+            this.handler = handler;
         }
 
         public void Down(OpenTK.Input.MouseButton button)
@@ -55,6 +58,7 @@ namespace HelloTK
                 xDelta = mousePos.X - oldPoint.X;
                 yDelta = mousePos.Y - oldPoint.Y;
                 oldPoint = mousePos;
+                handler(this);
             }
         }
     }

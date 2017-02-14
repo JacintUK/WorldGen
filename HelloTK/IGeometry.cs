@@ -7,6 +7,7 @@ namespace HelloTK
     {
         PrimitiveType PrimitiveType { get; set; }
         bool NeedsUpdate { set; get; }
+        bool OddEvenColorDebug { set; get; } // TODO Move to IGeometryDebug
 
         IGeometry Clone();
         IVertexBuffer CreateVertexBuffer();
@@ -16,7 +17,7 @@ namespace HelloTK
         void ConvertToVertexPerIndex();
         void AddNormals();
         void AddUVs();
-        void TweakTriangles(float ratio, ref Random rand);
+        void TweakTriangles(float ratio, Random rand);
         float RelaxTriangles( float multiplier );
         void ClearColor(Vector4 color);
         Mesh<Vertex3D> GenerateCentroidMesh();

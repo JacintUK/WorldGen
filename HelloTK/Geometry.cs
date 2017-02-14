@@ -15,7 +15,7 @@ namespace HelloTK
         public bool NeedsUpdate { set; get; }
 
         struct Edge { public int triangle1; public int triangle2; }
-        
+        public bool OddEvenColorDebug { set; get; }
 
         public Geometry(Mesh<TVertex> mesh, uint[] indices)
         {
@@ -91,7 +91,7 @@ namespace HelloTK
             return middlePt;
         }
 
-        public void TweakTriangles(float ratio, ref Random rand)
+        public void TweakTriangles(float ratio, Random rand)
         {
             NeedsUpdate = true;
 
@@ -597,14 +597,17 @@ namespace HelloTK
             for (int i = 0; i < indices.Length; ++i )
             {
                 TVertex v = mesh.vertices[indices[i]];
-                if((i/3)%2 == 0)
+                if( OddEvenColorDebug )
                 {
-                    var icv = v as IColorVertex;
-                    if (icv != null)
+                    if ((i / 3) % 2 == 0)
                     {
-                        icv.SetColor(new Vector4(0.5f, 0, 0, 1));
+                        var icv = v as IColorVertex;
+                        if (icv != null)
+                        {
+                            icv.SetColor(new Vector4(0.5f, 0, 0, 1));
+                        }
+                        v = (TVertex)icv;
                     }
-                    v = (TVertex)icv;
                 }
                 newVertices.Add(v);
                 newIndices.Add(newIndex++);

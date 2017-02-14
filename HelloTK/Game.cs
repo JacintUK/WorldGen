@@ -19,17 +19,21 @@ namespace HelloTK
         List<Renderer> renderers = new List<Renderer>();
         Color backgroundColor = Color.Aquamarine;
         Matrix4 projection;
-        IGeometry icoGeom;
+        IGeometry worldGeometry;
+        IGeometry worldRenderGeometry;
         Renderer ico;
         Renderer icoCentroidDebug;
         Renderer icoVertsDebug;
         Vector3 icoPos;
         Vector3 lightPosition = new Vector3(-2, 2, 2);
         Vector3 cameraPosition = Vector3.UnitZ *2.0f;
-        float fieldOfView = (float)Math.PI / 4.0f;
         Vector3 ambientColor;
-        float longitude, attitude;
         Random rand;
+        float fieldOfView = (float)Math.PI / 4.0f;
+        float longitude, attitude;
+        float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
+        int worldSeed=0;
+
         const string SHADER_PATH = "Resources/Shaders/";
 
         public Game(int w, int h)
@@ -46,19 +50,14 @@ namespace HelloTK
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Left));
-            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Middle));
-            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Right));
+            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Left, UpdateIco));
+            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Middle, UpdateZoom));
+            pressedButtons.Add(new MouseButton(OpenTK.Input.MouseButton.Right, UpdateCameraPos));
+
             keyHandlers.Add(new KeyHandler(Key.Space, RelaxTriangles));
             keyHandlers.Add(new KeyHandler(Key.D, DistortTriangles));
             keyHandlers.Add(new KeyHandler(Key.R, ResetSphere));
             keyHandlers.Add(new KeyHandler(Key.Number1, DR1));
-            keyHandlers.Add(new KeyHandler(Key.Number2, DR2));
-            keyHandlers.Add(new KeyHandler(Key.Number3, DR3));
-            keyHandlers.Add(new KeyHandler(Key.Number4, DR4));
-            keyHandlers.Add(new KeyHandler(Key.Number5, DR5));
-            keyHandlers.Add(new KeyHandler(Key.Number6, DR6));
-
 
             GL.ClearColor(System.Drawing.Color.Aquamarine);
 
@@ -76,13 +75,17 @@ namespace HelloTK
 
             Shader texShader = new Shader(SHADER_PATH+"quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
             Shader shader = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
+            Shader pointShader = new Shader(SHADER_PATH + "pointVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
+
             Texture cellTexture = new Texture("CellCorner.png");
             
             rand = new Random(0);
-            icoGeom = RendererFactory.CreateIcosphere(rand);
-            var icoGeomClone = icoGeom.Clone();
-            icoGeomClone.PrimitiveType = PrimitiveType.Triangles;
-            ico = RendererFactory.GenerateNormals(icoGeomClone, shader);
+
+            InitializeWorld();
+            DistortWorld();
+            GenerateRenderGeometry();
+
+            ico = new Renderer(worldRenderGeometry, shader);
             ico.AddUniform(new UniformProperty("lightPosition", lightPosition));
             ico.AddUniform(new UniformProperty("ambientColor", ambientColor));
 
@@ -92,25 +95,60 @@ namespace HelloTK
             ico.CullFaceFlag = false;
             renderers.Add(ico);
 
-            Shader pointShader = new Shader(SHADER_PATH + "pointVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
-
-            icoGeom.PrimitiveType = PrimitiveType.Points;
-            icoVertsDebug = new Renderer(icoGeom, pointShader);
-            icoVertsDebug.AddUniform(new UniformProperty("color", new Vector4(0, 0, 0.7f, 1)));
+            icoVertsDebug = new Renderer(worldGeometry, pointShader);
+            icoVertsDebug.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
             icoVertsDebug.AddUniform(new UniformProperty("pointSize", 3f));
             icoVertsDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
             renderers.Add(icoVertsDebug);
 
-            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(icoGeom.GenerateCentroidMesh());
+            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(worldGeometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             icoCentroidDebug = new Renderer(centroidGeom, pointShader);
             icoCentroidDebug.DepthTestFlag = false;
             icoCentroidDebug.CullFaceFlag = false;
-            icoCentroidDebug.AddUniform(new UniformProperty("color", new Vector4(0.6f, 0, 0.4f, 1)));
-            icoCentroidDebug.AddUniform(new UniformProperty("pointSize", 5f));
+            icoCentroidDebug.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0, 0.5f, 1)));
+            icoCentroidDebug.AddUniform(new UniformProperty("pointSize", 3f));
             icoCentroidDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
             renderers.Add(icoCentroidDebug);
-           
+        }
+
+        private void InitializeWorld()
+        {
+            worldGeometry = RendererFactory.CreateIcosphere(rand, 4);
+            worldGeometry.ClearColor(new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
+            worldGeometry.PrimitiveType = PrimitiveType.Points;
+        }
+
+        private void DistortWorld()
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                worldGeometry.TweakTriangles(tweakRatio, rand);
+                worldGeometry.RelaxTriangles(0.5f);
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                worldGeometry.RelaxTriangles(0.5f);
+            }
+        }
+
+        private void GenerateRenderGeometry()
+        {
+            worldRenderGeometry = worldGeometry.Clone();
+            worldRenderGeometry.PrimitiveType = PrimitiveType.Triangles;
+            worldRenderGeometry.ConvertToVertexPerIndex();
+            worldRenderGeometry.AddNormals();
+            worldRenderGeometry.AddUVs();
+        }
+
+        void UpdateRenderers()
+        {
+            ico.Update(worldRenderGeometry);
+            icoVertsDebug.Update(worldGeometry);
+
+            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(worldRenderGeometry.GenerateCentroidMesh());
+            centroidGeom.PrimitiveType = PrimitiveType.Points;
+            icoCentroidDebug.Update(centroidGeom);
         }
 
         private void SetCameraProjection()
@@ -124,20 +162,10 @@ namespace HelloTK
         {
             if(down)
             {
-                rand = new Random(0);
-                icoGeom = RendererFactory.CreateIcosphere(rand);
-                icoGeom.ClearColor(new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
-                IGeometry newGeometry = icoGeom.Clone();
-                icoGeom.PrimitiveType = PrimitiveType.Points;
-                newGeometry.ConvertToVertexPerIndex();
-                newGeometry.AddNormals();
-                newGeometry.AddUVs();
-                ico.Update(newGeometry);
-                icoVertsDebug.Update(icoGeom);
-
-                Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(newGeometry.GenerateCentroidMesh());
-                centroidGeom.PrimitiveType = PrimitiveType.Points;
-                icoCentroidDebug.Update(centroidGeom);
+                rand = new Random(worldSeed);
+                InitializeWorld();
+                GenerateRenderGeometry();
+                UpdateRenderers();
             }
         }
 
@@ -145,18 +173,9 @@ namespace HelloTK
         {
             if (down)
             {
-                icoGeom.RelaxTriangles(0.5f);
-
-                IGeometry newGeometry = icoGeom.Clone();
-                newGeometry.PrimitiveType = PrimitiveType.Triangles;
-                newGeometry.ConvertToVertexPerIndex();
-                newGeometry.AddNormals();
-                newGeometry.AddUVs();
-                ico.Update(newGeometry);
-
-                Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(newGeometry.GenerateCentroidMesh());
-                centroidGeom.PrimitiveType = PrimitiveType.Points;
-                icoCentroidDebug.Update(centroidGeom);
+                worldGeometry.RelaxTriangles(0.5f);
+                GenerateRenderGeometry();
+                UpdateRenderers();
             }
         }
 
@@ -164,55 +183,21 @@ namespace HelloTK
         {
             if (down)
             {
-                icoGeom.TweakTriangles(0.25f, ref rand);
-
-                IGeometry newGeometry = icoGeom.Clone();
-                newGeometry.PrimitiveType = PrimitiveType.Triangles;
-                newGeometry.ConvertToVertexPerIndex();
-                newGeometry.AddNormals();
-                newGeometry.AddUVs();
-                ico.Update(newGeometry);
-      
-                Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(newGeometry.GenerateCentroidMesh());
-                centroidGeom.PrimitiveType = PrimitiveType.Points;
-                icoCentroidDebug.Update(centroidGeom);
+                worldGeometry.TweakTriangles(tweakRatio, rand);
+                GenerateRenderGeometry();
+                UpdateRenderers();
             }
         }
-
+ 
         private void DR1(bool down)
         {
-            DistortTriangles(down);
-            RelaxTriangles(down);
-            RelaxTriangles(down);
-            RelaxTriangles(down);
+            if(down)
+            {
+                DistortWorld();
+                GenerateRenderGeometry();
+                UpdateRenderers();
+            }
         }
-        private void DR2(bool down)
-        {
-            for (int i = 0; i < 5; ++i)
-                DR1(down);
-        }
-        private void DR3(bool down)
-        {
-            for (int i = 0; i < 5; ++i)
-                DR2(down);
-        }
-        private void DR4(bool down)
-        {
-            for (int i = 0; i < 5; ++i)
-                DR3(down);
-        }
-        private void DR5(bool down)
-        {
-            for (int i = 0; i < 5; ++i)
-                DR4(down);
-        }
-        private void DR6(bool down)
-        {
-            for (int i = 0; i < 5; ++i)
-                DR5(down);
-        }
-
-
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
@@ -284,10 +269,6 @@ namespace HelloTK
             {
                 button.Update(new Point(e.X, e.Y));
             }
-
-            UpdateIco(pressedButtons[0]);
-            UpdateZoom(pressedButtons[1]);
-            UpdateCameraPos(pressedButtons[2]);
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
