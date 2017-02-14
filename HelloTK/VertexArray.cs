@@ -7,7 +7,7 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    class VertexArray<TVertex> where TVertex : struct
+    class VertexArray<TVertex> where TVertex : struct, IVertex
     {
         private int handle;
 

@@ -9,12 +9,24 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    struct Vertex3DColorUV : INormalVertex, IPositionVertex, ITextureCoordinateVertex, IColorVertex
+    struct Vertex3DColorUV : IVertex, INormalVertex, IPositionVertex, ITextureCoordinateVertex, IColorVertex
     {
         public Vector3 position;
         public Vector3 normal;
         public Vector2 uv;
         public Vector4 color;
+
+        private static VertexFormat format = new VertexFormat(new List<Attribute> {
+                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
+                new Attribute() { Name = "aNormal", Type = Attribute.AType.VECTOR3},
+                new Attribute() { Name = "aTexCoords", Type = Attribute.AType.VECTOR2},
+                new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} });
+
+        public VertexFormat GetVertexFormat()
+        {
+            return format;
+        }
+
         public Color Color 
         {
             get { return Color.FromArgb((int)(color.W*255), (int)(color.X*255), (int)(color.Y*255), (int)(color.Z*255) ); }

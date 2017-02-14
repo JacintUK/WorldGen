@@ -10,29 +10,19 @@ namespace HelloTK
     {
         static public Renderer CreateTriangle(Shader shader)
         {
-            VertexFormat format = new VertexFormat( new List<Attribute> {
-                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
-                new Attribute() { Name = "aTexCoords", Type = Attribute.AType.VECTOR2},
-                new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} } );
-
             Vertex[] verts = new Vertex[3]
             {
                 new Vertex(new Vector3(-1.0f, 0.0f, 0.0f), new Vector2(0,0), Color.Red),
                 new Vertex(new Vector3(-1.0f, -1.0f, 0.0f), new Vector2(0,1), Color.Blue),
                 new Vertex(new Vector3( 0.0f, -1.0f, 0.0f), new Vector2(1,1), Color.Purple),
             };
-            var mesh = new Mesh<Vertex>(verts, format);
+            var mesh = new Mesh<Vertex>(verts);
             Renderer renderer = new Renderer(new Geometry<Vertex>(mesh), shader);
             return renderer;
         }
 
         static public Renderer CreateQuad(Shader shader)
         {
-            VertexFormat format = new VertexFormat(new List<Attribute> {
-                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
-                new Attribute() { Name = "aTexCoords", Type = Attribute.AType.VECTOR2},
-                new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} });
-
             Vertex[] quad = new Vertex[4]
             {
                 new Vertex(new Vector3(-0.5f, -0.5f, 0.0f), new Vector2(0,1), Color.White),
@@ -45,12 +35,12 @@ namespace HelloTK
                 0, 1, 2, 1, 2, 3
             };
 
-            Renderer quadRenderer = new Renderer(new Geometry<Vertex>(new Mesh<Vertex>(quad, format), indices), shader);
+            Renderer quadRenderer = new Renderer(new Geometry<Vertex>(new Mesh<Vertex>(quad), indices), shader);
             quadRenderer.Model = Matrix4.CreateTranslation(0, 0, 0);
             return quadRenderer;
         }
 
-        static public Renderer CreateRenderer<TVertex>(Shader shader, Mesh<TVertex> mesh, uint[] indices) where TVertex : struct
+        static public Renderer CreateRenderer<TVertex>(Shader shader, Mesh<TVertex> mesh, uint[] indices) where TVertex : struct, IVertex
         {
             var vertexBuffer = new VertexBuffer<TVertex>(mesh);
             var indexBuffer = new IndexBuffer(indices);
@@ -61,12 +51,6 @@ namespace HelloTK
 
         static public IGeometry CreateIcosphere(Random rand, int subDivisions)
         {
-            VertexFormat format = new VertexFormat(new List<Attribute> {
-                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
-                new Attribute() { Name = "aNormal", Type = Attribute.AType.VECTOR3},
-                new Attribute() { Name = "aTexCoords", Type = Attribute.AType.VECTOR2},
-                new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} });
-
             Vertex3DColorUV[] verts = new Vertex3DColorUV[12];
             Vector4 color = new Vector4(0.2f, 0.2f, 1.0f, 1.0f);
             Vector4 color2 = new Vector4(1.0f, 0.2f, 1.0f, 1.0f);
@@ -88,7 +72,7 @@ namespace HelloTK
             verts[9] = new Vertex3DColorUV(Vector3.Normalize(new Vector3(t, 0, 1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
             verts[10] = new Vertex3DColorUV(Vector3.Normalize(new Vector3(-t, 0, -1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
             verts[11] = new Vertex3DColorUV(Vector3.Normalize(new Vector3(-t, 0, 1)), new Vector3(0, 0, 0), new Vector2(0, 0), color);
-            var mesh = new Mesh<Vertex3DColorUV>(verts, format);
+            var mesh = new Mesh<Vertex3DColorUV>(verts);
             var indices = new List<uint>();
 
             AddIndices(ref indices, 0, 1, 7);

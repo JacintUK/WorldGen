@@ -57,6 +57,7 @@
     <Compile Include="INormalVertex.cs" />
     <Compile Include="ITextureCoordinateVertex.cs" />
     <Compile Include="IPositionVertex.cs" />
+    <Compile Include="IVertex.cs" />
     <Compile Include="IVertexBuffer.cs" />
     <Compile Include="KeyHandler.cs" />
     <Compile Include="Mesh.cs" />

@@ -5,7 +5,7 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    class Geometry<TVertex> : IGeometry where TVertex : struct
+    class Geometry<TVertex> : IGeometry where TVertex : struct, IVertex
     {
         Mesh<TVertex> mesh;
         uint[] indices;
@@ -29,7 +29,7 @@ namespace HelloTK
         }
         public IGeometry Clone()
         {
-            Mesh<TVertex> newMesh = new Mesh<TVertex>(mesh.vertices, mesh.VertexFormat);
+            Mesh<TVertex> newMesh = new Mesh<TVertex>(mesh.vertices);
             uint[] newIndices = (uint[])indices.Clone();
             Geometry<TVertex> newGeom = new Geometry<TVertex>(newMesh, newIndices);
             return newGeom;
@@ -307,7 +307,7 @@ namespace HelloTK
             }
 
             TVertex[] vertices = new TVertex[mesh.vertices.Length];
-            newMesh = new Mesh<TVertex>(vertices, mesh.VertexFormat);
+            newMesh = new Mesh<TVertex>(vertices);
             float totalShift = 0;
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
@@ -448,28 +448,6 @@ namespace HelloTK
             return (1.0f - t) * a + t * b;
         }
 
-        public Mesh<Vertex3D> GenerateCentroidMesh()
-        {
-            int numIndices = indices.Length;
-            Vertex3D[] centroidVerts = new Vertex3D[numIndices / 3];
-            Vertex3D centroidVertex = new Vertex3D();
-            VertexFormat format = new VertexFormat(new List<Attribute> {
-                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3} });
-            Mesh<Vertex3D> centroidMesh = new Mesh<Vertex3D>(centroidVerts, format);
-            int triangleIndex = 0;
-            for (int i = 0; i < numIndices; i += 3)
-            {
-                Vector3 centroid = GetCentroid(i);
-                //centroid.Normalize();
-                IPositionVertex ipv = centroidVertex as IPositionVertex;
-                if (ipv != null)
-                {
-                    ipv.SetPosition(centroid);
-                }
-                centroidMesh.vertices[triangleIndex++] = (Vertex3D)ipv;
-            }
-            return centroidMesh;
-        }
 
         public void ClearColor(Vector4 color)
         {
@@ -589,6 +567,41 @@ namespace HelloTK
             return centroid;
         }
 
+
+        public Mesh<Vertex3D> GenerateCentroidMesh()
+        {
+            int numIndices = indices.Length;
+            Vertex3D[] centroidVerts = new Vertex3D[numIndices / 3];
+            Vertex3D centroidVertex = new Vertex3D();
+            Mesh<Vertex3D> centroidMesh = new Mesh<Vertex3D>(centroidVerts);
+            int triangleIndex = 0;
+            for (int i = 0; i < numIndices; i += 3)
+            {
+                Vector3 centroid = GetCentroid(i);
+                IPositionVertex ipv = centroidVertex as IPositionVertex;
+                if (ipv != null)
+                {
+                    ipv.SetPosition(centroid);
+                }
+                centroidMesh.vertices[triangleIndex++] = (Vertex3D)ipv;
+            }
+            return centroidMesh;
+        }
+
+        public Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex
+        {
+            // Each vertex becomes a face
+            // For each vert, connect normalized centroids of surrounding triangles.
+            // Ensure face is flat... Or at least all tris within face have same normal, even if
+            // they aren't flat. Normal for all tri's should be the original vertex pos.
+
+            AltVertex[] vertices = new AltVertex[1];
+
+            var mesh = new Mesh<AltVertex>(vertices);
+            var geom = new Geometry<AltVertex>(mesh);
+            return geom;
+        }
+
         public void ConvertToVertexPerIndex()
         {
             List<TVertex> newVertices = new List<TVertex>();
@@ -612,7 +625,7 @@ namespace HelloTK
                 newVertices.Add(v);
                 newIndices.Add(newIndex++);
             }
-            mesh = new Mesh<TVertex>(newVertices.ToArray(), mesh.VertexFormat);
+            mesh = new Mesh<TVertex>(newVertices.ToArray());
             indices = newIndices.ToArray();
         }
 

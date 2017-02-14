@@ -9,7 +9,7 @@ using OpenTK;
 
 namespace HelloTK
 {
-    class VertexBuffer<TVertex> : IVertexBuffer where TVertex : struct 
+    class VertexBuffer<TVertex> : IVertexBuffer where TVertex : struct, IVertex
     {
         private TVertex[] vertices;
         private VertexArray<TVertex> vertexArray; 

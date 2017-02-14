@@ -9,10 +9,17 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    struct Vertex3D : IPositionVertex
+    struct Vertex3D : IVertex, IPositionVertex
     {
         public Vector3 position;
+        private static VertexFormat format = new VertexFormat(new List<Attribute> {
+                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3 }
+                });
 
+        public VertexFormat GetVertexFormat()
+        {
+            return format;
+        }
         public static int SizeInBytes { get { return Vector3.SizeInBytes; } }
 
         public Vertex3D(Vector3 position )

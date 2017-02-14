@@ -9,12 +9,22 @@ using OpenTK.Graphics.OpenGL;
 
 namespace HelloTK
 {
-    struct Vertex
+    struct Vertex : IVertex
     {
         public Vector3 position;
         public Vector2 texCoords;
         public Vector4 color;
-        public static int SizeInBytes { get { return Vector2.SizeInBytes + Vector3.SizeInBytes + Vector4.SizeInBytes; } }
+
+        private static VertexFormat format = new VertexFormat(new List<Attribute> {
+                new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
+                new Attribute() { Name = "aTexCoords", Type = Attribute.AType.VECTOR2},
+                new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} });
+
+        public VertexFormat GetVertexFormat()
+        {
+            return format;
+        }
+
         public Color Color 
         {
             get { return Color.FromArgb((int)(color.W*255), (int)(color.X*255), (int)(color.Y*255), (int)(color.Z*255) ); }
