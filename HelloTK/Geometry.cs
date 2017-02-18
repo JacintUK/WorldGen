@@ -9,7 +9,6 @@ namespace HelloTK
     {
         Mesh<TVertex> mesh;
         uint[] indices;
-        //Mesh<TVertex> newMesh;
         PrimitiveType primType = PrimitiveType.Triangles;
         public PrimitiveType PrimitiveType { get { return primType; } set { primType = value; } }
         public bool NeedsUpdate { set; get; }
@@ -328,7 +327,6 @@ namespace HelloTK
             }
 
             TVertex[] vertices = new TVertex[mesh.vertices.Length];
-            //newMesh = new Mesh<TVertex>(vertices);
             float totalShift = 0;
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
@@ -395,10 +393,7 @@ namespace HelloTK
             // Doesn't stop triangles flipping.
             float[] rotationSuppressions = new float[mesh.vertices.Length];
             rotationSuppressions.Initialize();
-            //for (int i = 0; i < mesh.vertices.Length; ++i)
-            //{
-            //    rotationSuppressions[i] = 0;
-            //}
+
             FindEdges();
             foreach (var iter in edgeCache2)
             {
@@ -448,10 +443,9 @@ namespace HelloTK
             }
 
             // To prevent triangles from becoming too thin:
-            // foreach triangle, 
-            //    if there's an obtuse angle, 
-            //      push the vertex out from the centroid until it isn't.
-            //   
+            // For each vertex,
+            //   Calculate centroid of dual face
+            //   move vertex towards centroid 
 
             float totalShift = 0;
             for (int i = 0; i < mesh.vertices.Length; ++i)
@@ -626,9 +620,15 @@ namespace HelloTK
             // For each edge, 
             //   get centroids of triangles each side
             //   make 2 new triangles from verts of edge + centroids
-            List<AltVertex> newVerts = new List<AltVertex>(edgeCache2.Count * 2);
+
+            List<AltVertex> newVerts = new List<AltVertex>(mesh.vertices.Length+edgeCache2.Count*2);
+            // Initialize the first V verts
+            for ( int i=0; i< mesh.vertices.Length; ++i)
+            {
+                newVerts.Add(new AltVertex());
+            }
+
             List<uint> newIndices = new List<uint>();
-            int newIndex = 0;
             foreach (var iter in edgeCache2)
             {
                 Int64 key = iter.Key;
@@ -644,32 +644,27 @@ namespace HelloTK
                 // new tris are index1, c2, c1; index2, c1, c2
                 // otherwise, the opposite order.
 
-                uint vertex1 = indices[index1];
-                uint vertex2 = indices[index2];
                 bool edgeOrderIsAnticlockwise = false;
                 for (int i = 0; i < 3; i++)
                 {
-                    if (indices[e.triangle1 + i] == vertex1)
+                    if (indices[e.triangle1 + i] == index1)
                     {
-                        if (indices[e.triangle1 + (i + 1) % 3] == vertex2)
+                        if (indices[e.triangle1 + (i + 1) % 3] == index2)
                         {
                             edgeOrderIsAnticlockwise = true;
                         }
                         break;
                     }
                 }
-
-                Vector3 v1 = GetPosition(ref mesh.vertices[index1]);
-                Vector3 v2 = GetPosition(ref mesh.vertices[index2]);
                 if (edgeOrderIsAnticlockwise)
                 {
-                    AddTriangle(ref newVerts, ref newIndices, ref v1, ref centroid1, ref centroid2);
-                    AddTriangle(ref newVerts, ref newIndices, ref v2, ref centroid2, ref centroid1);
+                    AddTriangle2(ref newVerts, ref newIndices, index1, ref centroid2, ref centroid1);
+                    AddTriangle2(ref newVerts, ref newIndices, index2, ref centroid1, ref centroid2);
                 }
                 else
                 {
-                    AddTriangle(ref newVerts, ref newIndices, ref v1, ref centroid2, ref centroid1);
-                    AddTriangle(ref newVerts, ref newIndices, ref v2, ref centroid1, ref centroid2);
+                    AddTriangle2(ref newVerts, ref newIndices, index1, ref centroid1, ref centroid2);
+                    AddTriangle2(ref newVerts, ref newIndices, index2, ref centroid2, ref centroid1);
                 }
             }
 
@@ -677,6 +672,42 @@ namespace HelloTK
             var newGeom = new Geometry<AltVertex>(newMesh, newIndices.ToArray());
             return newGeom;
         }
+
+        private void AddTriangle2<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, int v1index, ref Vector3 v2, ref Vector3 v3)
+            where AltVertex : struct, IVertex
+        {
+            AltVertex[] triVerts = new AltVertex[3];
+            triVerts.Initialize();
+
+            Vector3 v1Pos = GetPosition(ref mesh.vertices[v1index]);
+
+            SetPosition(ref triVerts[0], ref v1Pos);
+            SetPosition(ref triVerts[1], ref v2);
+            SetPosition(ref triVerts[2], ref v3);
+
+            v1Pos.Normalize();
+            for (int i = 0; i < 3; i++)
+            {
+                SetNormal(ref triVerts[i], v1Pos);
+            }
+            SetUV(ref triVerts[0], new Vector2(0.5f, 1));
+            SetUV(ref triVerts[1], new Vector2(0, 0));
+            SetUV(ref triVerts[2], new Vector2(1, 0));
+
+            SetColor(ref triVerts[0], GetColor(ref mesh.vertices[v1index]));
+            SetColor(ref triVerts[1], GetColor(ref mesh.vertices[v1index]));
+            SetColor(ref triVerts[2], GetColor(ref mesh.vertices[v1index]));
+
+            newVerts[(int)v1index] = triVerts[0];
+            int index = newVerts.Count;
+            newVerts.Add(triVerts[1]);
+            newVerts.Add(triVerts[2]);
+
+            newIndices.Add((uint)v1index);
+            newIndices.Add((uint)index++);
+            newIndices.Add((uint)index++);
+        }
+
 
         public void AddTriangle<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3)
             where AltVertex : struct, IVertex
@@ -764,6 +795,14 @@ namespace HelloTK
             }
         }
 
+        public void RandomiseColors(ref Random rand)
+        {
+            for (int i = 0; i < mesh.vertices.Length; ++i)
+            {
+                Vector4 color = new Vector4((float)rand.Next(256) / 255.0f, rand.Next(256) / 255.0f, rand.Next(256) / 255.0f, 1.0f);
+                SetColor(ref mesh.vertices[i], color);
+            }
+        }
         private static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {
             IPositionVertex ipv = vertex as IPositionVertex;
@@ -811,7 +850,15 @@ namespace HelloTK
             }
             vertex = (TVertex2)inv;
         }
-
+        private static Vector4 GetColor<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
+        {
+            IColorVertex ipv = vertex as IColorVertex;
+            if (ipv != null)
+            {
+                return ipv.GetColor();
+            }
+            return Vector4.Zero;
+        }
         public IVertexBuffer CreateVertexBuffer()
         {
             return new VertexBuffer<TVertex>(mesh);

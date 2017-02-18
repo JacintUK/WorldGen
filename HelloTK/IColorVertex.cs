@@ -10,5 +10,6 @@ namespace HelloTK
     internal interface IColorVertex
     {
         void SetColor(Vector4 color);
+        Vector4 GetColor();
     }
 }

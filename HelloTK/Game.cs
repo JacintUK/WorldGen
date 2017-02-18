@@ -92,14 +92,14 @@ namespace HelloTK
             icoPos = new Vector3(0, 0, -3);
             ico.Model = Matrix4.CreateTranslation(icoPos);
             ico.AddTexture(cellTexture);
-            ico.CullFaceFlag = false;
+            ico.CullFaceFlag = true;
             renderers.Add(ico);
 
             icoVertsDebug = new Renderer(worldGeometry, pointShader);
             icoVertsDebug.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
             icoVertsDebug.AddUniform(new UniformProperty("pointSize", 3f));
             icoVertsDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
-            renderers.Add(icoVertsDebug);
+            //renderers.Add(icoVertsDebug);
 
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(worldGeometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
@@ -109,13 +109,14 @@ namespace HelloTK
             icoCentroidDebug.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0, 0.5f, 1)));
             icoCentroidDebug.AddUniform(new UniformProperty("pointSize", 3f));
             icoCentroidDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
-            renderers.Add(icoCentroidDebug);
+            //renderers.Add(icoCentroidDebug);
         }
 
         private void InitializeWorld()
         {
             worldGeometry = RendererFactory.CreateIcosphere(rand, 4);
             worldGeometry.PrimitiveType = PrimitiveType.Points;
+            worldGeometry.RandomiseColors(ref rand);
         }
 
         private void DistortWorld()
@@ -134,7 +135,6 @@ namespace HelloTK
         private void GenerateRenderGeometry()
         {
             worldRenderGeometry = worldGeometry.GenerateDualMesh<Vertex3DColorUV>();
-            worldRenderGeometry.ClearColor(new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
         }
 
         void UpdateRenderers()

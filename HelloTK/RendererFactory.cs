@@ -51,28 +51,28 @@ namespace HelloTK
 
         static public IGeometry CreateIcosphere(Random rand, int subDivisions)
         {
-            Vertex3D[] verts = new Vertex3D[12];
+            Vertex3DColor[] verts = new Vertex3DColor[12];
             Vector4 color = new Vector4(0.2f, 0.2f, 1.0f, 1.0f);
             Vector4 color2 = new Vector4(1.0f, 0.2f, 1.0f, 1.0f);
             Vector4 color3 = new Vector4(0.2f, 1.0f, 1.0f, 1.0f);
 
             float t = 1.61803398875f;// approximation of golden ratio
 
-            verts[0] = new Vertex3D(Vector3.Normalize(new Vector3(-1, t, 0)));
-            verts[1] = new Vertex3D(Vector3.Normalize(new Vector3(1, t, 0)));
-            verts[2] = new Vertex3D(Vector3.Normalize(new Vector3(-1, -t, 0)));
-            verts[3] = new Vertex3D(Vector3.Normalize(new Vector3(1, -t, 0)));
+            verts[0] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, t, 0)),color2);
+            verts[1] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, t, 0)), color);
+            verts[2] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, -t, 0)), color);
+            verts[3] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, -t, 0)), color);
 
-            verts[4] = new Vertex3D(Vector3.Normalize(new Vector3(0, -1, t)));
-            verts[5] = new Vertex3D(Vector3.Normalize(new Vector3(0, 1, t)));
-            verts[6] = new Vertex3D(Vector3.Normalize(new Vector3(0, -1, -t)));
-            verts[7] = new Vertex3D(Vector3.Normalize(new Vector3(0, 1, -t)));
+            verts[4] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, -1, t)), color3);
+            verts[5] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, 1, t)), color);
+            verts[6] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, -1, -t)), color);
+            verts[7] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, 1, -t)), color);
 
-            verts[8] = new Vertex3D(Vector3.Normalize(new Vector3(t, 0, -1)));
-            verts[9] = new Vertex3D(Vector3.Normalize(new Vector3(t, 0, 1)));
-            verts[10] = new Vertex3D(Vector3.Normalize(new Vector3(-t, 0, -1)));
-            verts[11] = new Vertex3D(Vector3.Normalize(new Vector3(-t, 0, 1)));
-            var mesh = new Mesh<Vertex3D>(verts);
+            verts[8] = new Vertex3DColor(Vector3.Normalize(new Vector3(t, 0, -1)), color);
+            verts[9] = new Vertex3DColor(Vector3.Normalize(new Vector3(t, 0, 1)), color);
+            verts[10] = new Vertex3DColor(Vector3.Normalize(new Vector3(-t, 0, -1)), color);
+            verts[11] = new Vertex3DColor(Vector3.Normalize(new Vector3(-t, 0, 1)), color);
+            var mesh = new Mesh<Vertex3DColor>(verts);
             var indices = new List<uint>();
 
             AddIndices(ref indices, 0, 1, 7);
@@ -99,7 +99,7 @@ namespace HelloTK
             AddIndices(ref indices, 3, 8, 9);
             AddIndices(ref indices, 3, 9, 4);
 
-            var geometry = new Geometry<Vertex3D>(mesh, indices.ToArray());
+            var geometry = new Geometry<Vertex3DColor>(mesh, indices.ToArray());
             int vertCount = geometry.SubDivide(subDivisions);
 
             return geometry;

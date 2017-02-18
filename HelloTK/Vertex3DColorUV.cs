@@ -67,6 +67,10 @@ namespace HelloTK
         {
             this.color = color;
         }
+        public Vector4 GetColor()
+        {
+            return this.color;
+        }
         public Vector2 GetTextureCoordinates()
         {
             return this.uv;

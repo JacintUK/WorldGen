@@ -16,7 +16,7 @@ out vec4 outputColor;
 
 void main()
 {
-	vec3 texColor =  texture2D(sTexture,vTexCoords).xyz;
+	vec3 texColor = vColor.rgb * texture2D(sTexture,vTexCoords).xyz;
 	
 	vec3 litColor =  vAmbientColor + 
 		texColor * intensity *power/distanceSq +
