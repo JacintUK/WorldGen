@@ -10,6 +10,8 @@ namespace HelloTK
         bool OddEvenColorDebug { set; get; } // TODO Move to IGeometryDebug
 
         IGeometry Clone();
+        IGeometry ClonePosition<TVertex2>() where TVertex2 : struct, IVertex;
+
         IVertexBuffer CreateVertexBuffer();
         IndexBuffer CreateIndexBuffer();
         void Upload(IVertexBuffer vbo, IndexBuffer ibo);
@@ -21,5 +23,6 @@ namespace HelloTK
         float RelaxTriangles( float multiplier );
         void ClearColor(Vector4 color);
         Mesh<Vertex3D> GenerateCentroidMesh();
+        Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex;
     }
 }

@@ -77,7 +77,7 @@ namespace HelloTK
             Shader shader = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
             Shader pointShader = new Shader(SHADER_PATH + "pointVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
 
-            Texture cellTexture = new Texture("CellCorner.png");
+            Texture cellTexture = new Texture("Edge.png");
             
             rand = new Random(0);
 
@@ -115,7 +115,6 @@ namespace HelloTK
         private void InitializeWorld()
         {
             worldGeometry = RendererFactory.CreateIcosphere(rand, 4);
-            worldGeometry.ClearColor(new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
             worldGeometry.PrimitiveType = PrimitiveType.Points;
         }
 
@@ -134,11 +133,8 @@ namespace HelloTK
 
         private void GenerateRenderGeometry()
         {
-            worldRenderGeometry = worldGeometry.Clone();
-            worldRenderGeometry.PrimitiveType = PrimitiveType.Triangles;
-            worldRenderGeometry.ConvertToVertexPerIndex();
-            worldRenderGeometry.AddNormals();
-            worldRenderGeometry.AddUVs();
+            worldRenderGeometry = worldGeometry.GenerateDualMesh<Vertex3DColorUV>();
+            worldRenderGeometry.ClearColor(new Vector4(0.2f, 0.2f, 1.0f, 1.0f));
         }
 
         void UpdateRenderers()
@@ -146,7 +142,7 @@ namespace HelloTK
             ico.Update(worldRenderGeometry);
             icoVertsDebug.Update(worldGeometry);
 
-            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(worldRenderGeometry.GenerateCentroidMesh());
+            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(worldGeometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             icoCentroidDebug.Update(centroidGeom);
         }

@@ -9,7 +9,7 @@ namespace HelloTK
     {
         Mesh<TVertex> mesh;
         uint[] indices;
-        Mesh<TVertex> newMesh;
+        //Mesh<TVertex> newMesh;
         PrimitiveType primType = PrimitiveType.Triangles;
         public PrimitiveType PrimitiveType { get { return primType; } set { primType = value; } }
         public bool NeedsUpdate { set; get; }
@@ -27,11 +27,30 @@ namespace HelloTK
             this.mesh = mesh;
             this.indices = null;
         }
+
         public IGeometry Clone()
         {
             Mesh<TVertex> newMesh = new Mesh<TVertex>(mesh.vertices);
             uint[] newIndices = (uint[])indices.Clone();
             Geometry<TVertex> newGeom = new Geometry<TVertex>(newMesh, newIndices);
+            return newGeom;
+        }
+
+        public IGeometry ClonePosition<TVertex2>() where TVertex2 : struct, IVertex
+        {
+            TVertex2[] newVerts = new TVertex2[mesh.vertices.Length];
+            int index = 0;
+            foreach ( var iter in mesh.vertices)
+            {
+                TVertex vertex = iter;
+                Vector3 pos = GetPosition( ref vertex );
+                newVerts[index] = new TVertex2();
+                SetPosition(ref newVerts[index], ref pos);
+                index++;
+            }
+            Mesh<TVertex2> newMesh = new Mesh<TVertex2>(newVerts);
+            uint[] newIndices = (uint[])indices.Clone();
+            Geometry<TVertex2> newGeom = new Geometry<TVertex2>(newMesh, newIndices);
             return newGeom;
         }
 
@@ -75,7 +94,7 @@ namespace HelloTK
 
         uint GenerateVertex(ref List<TVertex> verts, int a, int b)
         {
-            Int64 key1 = CreateKey(indices[a], indices[b]);
+            Int64 key1 = CreateEdgeKey(indices[a], indices[b]);
             uint middlePt;
             if (!edgeCache.TryGetValue(key1, out middlePt))
             {
@@ -113,9 +132,9 @@ namespace HelloTK
 
                 // TODO - add flag to triangle to avoid n2/2 lookup.
                 bool r = false;
-                foreach( var visited in visitedTris )
+                foreach (var visited in visitedTris)
                 {
-                    if(edge.triangle1 == visited || edge.triangle2 == visited)
+                    if (edge.triangle1 == visited || edge.triangle2 == visited)
                     {
                         r = true;
                         break;
@@ -167,7 +186,7 @@ namespace HelloTK
 
                 float oldLength = new Vector3(pos2 - pos1).Length;
                 float newLength = new Vector3(pos4 - pos3).Length;
-                if( oldLength/newLength >= 2 || oldLength/newLength <= 0.5f)
+                if (oldLength / newLength >= 2 || oldLength / newLength <= 0.5f)
                 {
                     continue;
                 }
@@ -178,31 +197,33 @@ namespace HelloTK
                 vertCounts[index4]++;
 
                 // Need to keep tris in CCW order.
-                if ( b == index2 )
+                if (b == index2)
                 {
                     // order is a b c; c is the non-shared vertex.
                     // new tris are: ADC, DBC
                     // tri2 order is a d b
-                    indices[edge.triangle1]   = a;
-                    indices[edge.triangle1+1] = d;
-                    indices[edge.triangle1+2] = c;
-                    indices[edge.triangle2]   = d;
-                    indices[edge.triangle2+1] = b;
-                    indices[edge.triangle2+2] = c;
+                    indices[edge.triangle1] = a;
+                    indices[edge.triangle1 + 1] = d;
+                    indices[edge.triangle1 + 2] = c;
+                    indices[edge.triangle2] = d;
+                    indices[edge.triangle2 + 1] = b;
+                    indices[edge.triangle2 + 2] = c;
                 }
                 else
                 {
                     // order is a b c; b is the non-shared value
                     // new tris are ACD, CBD
                     // tri2 order is a b d 
-                    indices[edge.triangle1]   = a;
-                    indices[edge.triangle1+1] = b;
-                    indices[edge.triangle1+2] = d;
-                    indices[edge.triangle2]   = c;
-                    indices[edge.triangle2+1] = d;
-                    indices[edge.triangle2+2] = b;
+                    indices[edge.triangle1] = a;
+                    indices[edge.triangle1 + 1] = b;
+                    indices[edge.triangle1 + 2] = d;
+                    indices[edge.triangle2] = c;
+                    indices[edge.triangle2 + 1] = d;
+                    indices[edge.triangle2 + 2] = b;
                 }
             }
+            // Ensure the edge cache is cleared, as it's no longer valid.
+            edgeCache2.Clear();
         }
 
         // Alternative algorithm
@@ -237,7 +258,7 @@ namespace HelloTK
 
             for (int i = 0; i < numIndices; i += 3)
             {
-                if (1==1)//TooThin(i))
+                if (1 == 1)//TooThin(i))
                 {
                     Vector3 centroid = GetCentroid(i);
                     centroid.Normalize();
@@ -292,7 +313,7 @@ namespace HelloTK
                     normal.Normalize();
                     dot = Vector3.Dot(centroid, normal);
                     double theta = Math.Acos(dot);
-                    if(phi < dot)
+                    if (phi < dot)
                     {
                         for (int j = 0; j < 3; ++j)
                         {
@@ -307,7 +328,7 @@ namespace HelloTK
             }
 
             TVertex[] vertices = new TVertex[mesh.vertices.Length];
-            newMesh = new Mesh<TVertex>(vertices);
+            //newMesh = new Mesh<TVertex>(vertices);
             float totalShift = 0;
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
@@ -322,7 +343,7 @@ namespace HelloTK
         {
             NeedsUpdate = true;
 
-            double totalSurfaceArea = 4.0 * Math.PI; 
+            double totalSurfaceArea = 4.0 * Math.PI;
             double idealFaceArea = totalSurfaceArea / (indices.Length / 3);
             double idealEdgeLength = Math.Sqrt(idealFaceArea * 4.0 / Math.Sqrt(3.0));
             double idealDistanceToCentroid = idealEdgeLength * Math.Sqrt(3) / 3.0 * 0.9;
@@ -336,7 +357,7 @@ namespace HelloTK
 
             TVertex[] centroidVerts = new TVertex[numIndices / 3];
             TVertex centroidVertex = new TVertex();
-           
+
             for (int i = 0; i < numIndices; i += 3)
             {
                 Vector3 centroid = GetCentroid(i);
@@ -350,15 +371,15 @@ namespace HelloTK
                     new Vector3( GetPosition(ref mesh.vertices[indices[i+2]])),
                 };
 
-                for( int j=0; j<3; ++j)
+                for (int j = 0; j < 3; ++j)
                 {
                     Vector3 midLine = centroid - oldPositions[j];
                     float midLength = midLine.Length;
                     midLine *= (float)(multiplier * (midLength - idealDistanceToCentroid) / midLength);
-                    shiftPositions[indices[i+j]] += midLine;
+                    shiftPositions[indices[i + j]] += midLine;
                 }
             }
-            
+
             var origin = Vector3.Zero;
             Plane p = new Plane(Vector3.UnitY, Vector3.Zero);
             for (int i = 0; i < mesh.vertices.Length; ++i)
@@ -372,14 +393,14 @@ namespace HelloTK
 
             // Stop poylgons rotating about their centroid.
             // Doesn't stop triangles flipping.
-            float[] rotationSuppressions= new float[mesh.vertices.Length];
+            float[] rotationSuppressions = new float[mesh.vertices.Length];
             rotationSuppressions.Initialize();
             //for (int i = 0; i < mesh.vertices.Length; ++i)
             //{
             //    rotationSuppressions[i] = 0;
             //}
             FindEdges();
-            foreach( var iter in edgeCache2)
+            foreach (var iter in edgeCache2)
             {
                 Int64 key = iter.Key;
                 int index1 = (int)(key & 0xffffffff);
@@ -390,7 +411,7 @@ namespace HelloTK
                 Vector3 newPos2 = shiftPositions[index2];
                 Vector3 oldEdge = oldPos2 - oldPos1;
                 Vector3 newEdge = newPos2 - newPos1;
-                if( newEdge.Length < idealEdgeLength * 0.5f)
+                if (newEdge.Length < idealEdgeLength * 0.5f)
                 {
                     // Move shift positions back out to ensure that the edge is never too small.
                     Vector3 midPt = newPos1 + 0.5f * newEdge;
@@ -433,7 +454,7 @@ namespace HelloTK
             //   
 
             float totalShift = 0;
-            for( int i=0; i<mesh.vertices.Length; ++i )
+            for (int i = 0; i < mesh.vertices.Length; ++i)
             {
                 Vector3 delta = GetPosition(ref mesh.vertices[i]);
                 SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
@@ -451,7 +472,7 @@ namespace HelloTK
 
         public void ClearColor(Vector4 color)
         {
-            for(int i=0; i<mesh.vertices.Length; ++i)
+            for (int i = 0; i < mesh.vertices.Length; ++i)
             {
                 SetColor(ref mesh.vertices[i], color);
             }
@@ -460,30 +481,30 @@ namespace HelloTK
         private int GetTriOffset(int triangle, uint corner)
         {
             if (indices[triangle] == corner) return 0;
-            if (indices[triangle+1] == corner) return 1;
-            if (indices[triangle+2] == corner) return 2;
+            if (indices[triangle + 1] == corner) return 1;
+            if (indices[triangle + 2] == corner) return 2;
             return -1;
         }
 
-        private bool IsObtuse( int triangle )
+        private bool IsObtuse(int triangle)
         {
             TVertex v1 = mesh.vertices[indices[triangle]];
-            TVertex v2 = mesh.vertices[indices[triangle+1]];
-            TVertex v3 = mesh.vertices[indices[triangle+2]];
+            TVertex v2 = mesh.vertices[indices[triangle + 1]];
+            TVertex v3 = mesh.vertices[indices[triangle + 2]];
             Vector3 e1 = GetPosition(ref v2) - GetPosition(ref v1);
             Vector3 e2 = GetPosition(ref v3) - GetPosition(ref v1);
             Vector3 e3 = GetPosition(ref v3) - GetPosition(ref v2);
             float l1Sq = e1.LengthSquared;
             float l2Sq = e2.LengthSquared;
             float l3Sq = e3.LengthSquared;
-            if( l1Sq + l2Sq < l3Sq || l1Sq + l3Sq < l2Sq || l2Sq + l3Sq < l1Sq )
+            if (l1Sq + l2Sq < l3Sq || l1Sq + l3Sq < l2Sq || l2Sq + l3Sq < l1Sq)
             {
                 return true;
             }
             return false;
         }
 
-        private bool TooThin( int triangle )
+        private bool TooThin(int triangle)
         {
             TVertex v1 = mesh.vertices[indices[triangle]];
             TVertex v2 = mesh.vertices[indices[triangle + 1]];
@@ -493,16 +514,16 @@ namespace HelloTK
             Vector3 e3 = GetPosition(ref v3) - GetPosition(ref v2);
 
             float[] angles = new float[3];
-            
+
             angles[0] = (float)Math.Acos((e2.LengthSquared + e3.LengthSquared - e1.LengthSquared) / (2.0f * e2.Length * e3.Length));
             angles[1] = (float)Math.Acos((e1.LengthSquared + e3.LengthSquared - e2.LengthSquared) / (2.0f * e1.Length * e3.Length));
             angles[2] = (float)Math.PI - (angles[0] + angles[1]);
             const float LOWER = (float)Math.PI * 35.0f / 180.0f;
             const float UPPER = (float)Math.PI * 80.0f / 180.0f;
             bool tooThin = false;
-            for (int i=0; i<3; ++i)
+            for (int i = 0; i < 3; ++i)
             {
-                if( angles[i] < LOWER || angles[i] > UPPER )
+                if (angles[i] < LOWER || angles[i] > UPPER)
                 {
                     tooThin = true;
                     break;
@@ -524,31 +545,31 @@ namespace HelloTK
                 RegisterEdge(i + 1, i + 2);
                 RegisterEdge(i, i + 2);
                 vertCounts[indices[i]]++;
-                vertCounts[indices[i+1]]++;
-                vertCounts[indices[i+2]]++;
+                vertCounts[indices[i + 1]]++;
+                vertCounts[indices[i + 2]]++;
             }
         }
 
         void RegisterEdge(int a, int b)
         {
-            Int64 key1 = CreateKey(indices[a], indices[b]);
+            Int64 key = CreateEdgeKey(indices[a], indices[b]);
             Edge edge;
-            if ( ! edgeCache2.TryGetValue(key1, out edge) )
+            if (!edgeCache2.TryGetValue(key, out edge))
             {
-                edge.triangle1 = a-(a%3); // First vertex of the triangle
-                edgeCache2.Add(key1, edge);
+                edge.triangle1 = a - (a % 3); // First vertex of the triangle
+                edgeCache2.Add(key, edge);
             }
             else
             {
-                edge.triangle2 = a-(a%3);
-                edgeCache2[key1] = edge;
+                edge.triangle2 = a - (a % 3);
+                edgeCache2[key] = edge;
             }
         }
 
-        static Int64 CreateKey(uint a, uint b)
+        static Int64 CreateEdgeKey(uint a, uint b)
         {
-            Int64 min = a<b ? a : b;
-            Int64 max = a>=b ? a : b;
+            Int64 min = a < b ? a : b;
+            Int64 max = a >= b ? a : b;
             Int64 key = min << 32 | max;
             return key;
         }
@@ -590,16 +611,94 @@ namespace HelloTK
 
         public Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex
         {
-            // Each vertex becomes a face
-            // For each vert, connect normalized centroids of surrounding triangles.
-            // Ensure face is flat... Or at least all tris within face have same normal, even if
-            // they aren't flat. Normal for all tri's should be the original vertex pos.
+            int numIndices = indices.Length;
+            List<Vector3> centroids = new List<Vector3>(numIndices / 3);
+            for (int i = 0; i < numIndices; i += 3)
+            {
+                Vector3 centroid = GetCentroid(i);
+                centroid.Normalize();
+                centroids.Add(centroid); // Index into list is triangle/3
+            }
 
-            AltVertex[] vertices = new AltVertex[1];
+            if (edgeCache2.Count == 0)
+                FindEdges();
 
-            var mesh = new Mesh<AltVertex>(vertices);
-            var geom = new Geometry<AltVertex>(mesh);
-            return geom;
+            // For each edge, 
+            //   get centroids of triangles each side
+            //   make 2 new triangles from verts of edge + centroids
+            List<AltVertex> newVerts = new List<AltVertex>(edgeCache2.Count * 2);
+            List<uint> newIndices = new List<uint>();
+            int newIndex = 0;
+            foreach (var iter in edgeCache2)
+            {
+                Int64 key = iter.Key;
+                int index1 = (int)(key & 0xffffffff);
+                int index2 = (int)((key >> 32) & 0xffffffff);
+                Edge e = iter.Value;
+
+                Vector3 centroid1 = centroids[e.triangle1 / 3];
+                Vector3 centroid2 = centroids[e.triangle2 / 3];
+
+                // To find which order of vertices to use; 
+                // if triangle1 contains index1 followed by index2, 
+                // new tris are index1, c2, c1; index2, c1, c2
+                // otherwise, the opposite order.
+
+                uint vertex1 = indices[index1];
+                uint vertex2 = indices[index2];
+                bool edgeOrderIsAnticlockwise = false;
+                for (int i = 0; i < 3; i++)
+                {
+                    if (indices[e.triangle1 + i] == vertex1)
+                    {
+                        if (indices[e.triangle1 + (i + 1) % 3] == vertex2)
+                        {
+                            edgeOrderIsAnticlockwise = true;
+                        }
+                        break;
+                    }
+                }
+
+                Vector3 v1 = GetPosition(ref mesh.vertices[index1]);
+                Vector3 v2 = GetPosition(ref mesh.vertices[index2]);
+                if (edgeOrderIsAnticlockwise)
+                {
+                    AddTriangle(ref newVerts, ref newIndices, ref v1, ref centroid1, ref centroid2);
+                    AddTriangle(ref newVerts, ref newIndices, ref v2, ref centroid2, ref centroid1);
+                }
+                else
+                {
+                    AddTriangle(ref newVerts, ref newIndices, ref v1, ref centroid2, ref centroid1);
+                    AddTriangle(ref newVerts, ref newIndices, ref v2, ref centroid1, ref centroid2);
+                }
+            }
+
+            var newMesh = new Mesh<AltVertex>(newVerts.ToArray());
+            var newGeom = new Geometry<AltVertex>(newMesh, newIndices.ToArray());
+            return newGeom;
+        }
+
+        public void AddTriangle<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3)
+            where AltVertex : struct, IVertex
+        {
+            AltVertex[] triVerts = new AltVertex[3];
+            triVerts.Initialize();
+            SetPosition(ref triVerts[0], ref v1);
+            SetPosition(ref triVerts[1], ref v2);
+            SetPosition(ref triVerts[2], ref v3);
+            v1.Normalize();
+            for (int i = 0; i < 3; i++)
+            {
+                SetNormal(ref triVerts[i], v1);
+            }
+            SetUV(ref triVerts[0], new Vector2(0.5f, 1));
+            SetUV(ref triVerts[1], new Vector2(0, 0));
+            SetUV(ref triVerts[2], new Vector2(1, 0));
+            int index = newVerts.Count;
+            for (int i = 0; i < 3; i++)
+                newVerts.Add(triVerts[i]);
+            for (int i = 0; i < 3; i++)
+                newIndices.Add((uint)index++);
         }
 
         public void ConvertToVertexPerIndex()
@@ -665,7 +764,7 @@ namespace HelloTK
             }
         }
 
-        private static Vector3 GetPosition(ref TVertex vertex)
+        private static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {
             IPositionVertex ipv = vertex as IPositionVertex;
             if (ipv != null)
@@ -675,42 +774,42 @@ namespace HelloTK
             return Vector3.Zero;
         }
 
-        private static void SetPosition(ref TVertex vert, ref Vector3 pos)
+        private static void SetPosition<TVertex2>(ref TVertex2 vert, ref Vector3 pos) where TVertex2 : struct, IVertex
         {
             IPositionVertex ipv = vert as IPositionVertex;
             if (ipv != null)
             {
                 ipv.SetPosition(pos);
             }
-            vert = (TVertex)ipv;
+            vert = (TVertex2)ipv;
         }
 
-        private static void SetNormal(ref TVertex vertex, Vector3 normal)
+        private static void SetNormal<TVertex2>(ref TVertex2 vertex, Vector3 normal) where TVertex2 : struct, IVertex
         {
             INormalVertex inv = vertex as INormalVertex;
             if (inv != null)
             {
                 inv.SetNormal(normal);
             }
-            vertex = (TVertex)inv;
+            vertex = (TVertex2)inv;
         }
-        private static void SetUV(ref TVertex vertex, Vector2 uv)
+        private static void SetUV<TVertex2>(ref TVertex2 vertex, Vector2 uv) where TVertex2 : struct, IVertex
         {
             ITextureCoordinateVertex inv = vertex as ITextureCoordinateVertex;
             if (inv != null)
             {
                 inv.SetTextureCoordinates(uv);
             }
-            vertex = (TVertex)inv;
+            vertex = (TVertex2)inv;
         }
-        private static void SetColor(ref TVertex vertex, Vector4 color)
+        private static void SetColor<TVertex2>(ref TVertex2 vertex, Vector4 color) where TVertex2 : struct, IVertex
         {
             IColorVertex inv = vertex as IColorVertex;
             if (inv != null)
             {
                 inv.SetColor(color);
             }
-            vertex = (TVertex)inv;
+            vertex = (TVertex2)inv;
         }
 
         public IVertexBuffer CreateVertexBuffer()
