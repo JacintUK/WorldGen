@@ -61,9 +61,9 @@ namespace HelloTK
             verts[0] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, t, 0)),color2);
             verts[1] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, t, 0)), color);
             verts[2] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, -t, 0)), color);
-            verts[3] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, -t, 0)), color);
+            verts[3] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, -t, 0)), color3);
 
-            verts[4] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, -1, t)), color3);
+            verts[4] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, -1, t)), color);
             verts[5] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, 1, t)), color);
             verts[6] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, -1, -t)), color);
             verts[7] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, 1, -t)), color);
@@ -105,17 +105,6 @@ namespace HelloTK
             return geometry;
         }
 
-        public static Renderer GenerateNormals( IGeometry geometry, Shader shader )
-        { 
-
-            geometry.ConvertToVertexPerIndex();
-
-            // Todo: shove normals and UVs in a separate VBO ?
-            geometry.AddNormals();
-            geometry.AddUVs();
-            Renderer r = new Renderer(geometry, shader);
-            return r;
-        }
 
         private static void AddIndices( ref List<uint> list, uint one, uint two, uint three )
         {
