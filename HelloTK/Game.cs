@@ -60,6 +60,8 @@ namespace HelloTK
             keyHandlers.Add(new KeyHandler(Key.R, ResetSphere));
             keyHandlers.Add(new KeyHandler(Key.Number1, DR1));
             keyHandlers.Add(new KeyHandler(Key.C, Recolor));
+            keyHandlers.Add(new KeyHandler(Key.I, InitPlates));
+            keyHandlers.Add(new KeyHandler(Key.P, GrowPlates));
 
             GL.ClearColor(System.Drawing.Color.Aquamarine);
 
@@ -206,6 +208,26 @@ namespace HelloTK
                 UpdateRenderers();
             }
         }
+
+        private void InitPlates(bool down)
+        {
+            if (down)
+            {
+                worldGeometry.InitPlates(ref rand, numPlates);
+                GenerateRenderGeometry();
+                UpdateRenderers();
+            }
+        }
+        private void GrowPlates(bool down)
+        {
+            if (down)
+            {
+                worldGeometry.GrowPlates();
+                GenerateRenderGeometry();
+                UpdateRenderers();
+            }
+        }
+
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {

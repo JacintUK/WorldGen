@@ -7,9 +7,9 @@ using OpenTK;
 
 namespace HelloTK
 {
-    class Plate<TVertex> where TVertex : struct, IVertex
+    class Plate
     {
-        private Mesh<TVertex> mesh;
+        private IMesh mesh;
         private int startIndex;
         List<int> allIndices;
         List<int> outerIndices;
@@ -17,7 +17,7 @@ namespace HelloTK
         int cycleNum = 0;
         float hue;
 
-        public Plate(Mesh<TVertex> mesh, int startIndex, Neighbours neighbours, ref Random rand)
+        public Plate(IMesh mesh, int startIndex, Neighbours neighbours, ref Random rand)
         {
             this.mesh = mesh;
             this.startIndex = startIndex;
@@ -29,7 +29,7 @@ namespace HelloTK
             outerIndices.Add(startIndex);
             hue = rand.Next(500) / 500.0f;
             Vector4 color = NextColor(0);
-            MeshAttr.SetColor(ref mesh.vertices[startIndex], color);
+            mesh.SetColor(startIndex, ref color);
         }
 
         private Vector4 NextColor(int numCycles)
@@ -54,12 +54,12 @@ namespace HelloTK
 
                     foreach (int neighbourIndex in neighbour)
                     {
-                        Vector4 vertexColor = MeshAttr.GetColor(ref mesh.vertices[neighbourIndex]);
+                        Vector4 vertexColor = mesh.GetColor(neighbourIndex);
                         if (vertexColor.W == 0.0f )
                         {
                             // It's not been claimed yet.
                             newOuterIndices.Add(neighbourIndex);
-                            MeshAttr.SetColor(ref mesh.vertices[neighbourIndex], cycleColor);
+                            mesh.SetColor(neighbourIndex, ref cycleColor);
                         }
                     }
                 }

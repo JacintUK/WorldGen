@@ -25,5 +25,8 @@ namespace HelloTK
         Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex;
  
         void Colorise(ref Random rand, int numPlates);
+        void InitPlates(ref Random rand, int numPlates);
+        void GrowPlates();
+
     }
 }

@@ -394,6 +394,9 @@ namespace HelloTK
             rotationSuppressions.Initialize();
 
             FindEdges();
+            float minEdgeLength = (float)idealEdgeLength * 0.8f;
+            float maxEdgeLength = (float)idealEdgeLength * 1.2f;
+
             foreach (var iter in edgeCache2)
             {
                 Int64 key = iter.Key;
@@ -405,22 +408,22 @@ namespace HelloTK
                 Vector3 newPos2 = shiftPositions[index2];
                 Vector3 oldEdge = oldPos2 - oldPos1;
                 Vector3 newEdge = newPos2 - newPos1;
-                if (newEdge.Length < idealEdgeLength * 0.5f)
+                if (newEdge.Length < minEdgeLength)
                 {
                     // Move shift positions back out to ensure that the edge is never too small.
                     Vector3 midPt = newPos1 + 0.5f * newEdge;
                     newEdge.Normalize();
-                    newEdge *= ((float)idealEdgeLength * 0.25f);
+                    newEdge *= minEdgeLength * 0.5f;
                     shiftPositions[index1] = midPt - newEdge;
                     shiftPositions[index2] = midPt + newEdge;
                     newEdge = shiftPositions[index2] - shiftPositions[index1];
                 }
-                if (newEdge.Length > idealEdgeLength * 1.4f)
+                if (newEdge.Length > maxEdgeLength)
                 {
                     // Move shift positions back in to ensure that the edge is never too large.
                     Vector3 midPt = newPos1 + 0.5f * newEdge;
                     newEdge.Normalize();
-                    newEdge *= ((float)idealEdgeLength * .7f);
+                    newEdge *= (maxEdgeLength * 0.5f);
                     shiftPositions[index1] = midPt - newEdge;
                     shiftPositions[index2] = midPt + newEdge;
                     newEdge = shiftPositions[index2] - shiftPositions[index1];
@@ -441,11 +444,6 @@ namespace HelloTK
                 shiftPositions[i] = pos;
             }
 
-            // To prevent triangles from becoming too thin:
-            // For each vertex,
-            //   Calculate centroid of dual face
-            //   move vertex towards centroid 
-
             float totalShift = 0;
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
@@ -461,7 +459,7 @@ namespace HelloTK
         {
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
-                MeshAttr.SetColor(ref mesh.vertices[i], color);
+                MeshAttr.SetColor(ref mesh.vertices[i], ref color);
             }
         }
 
@@ -681,15 +679,24 @@ namespace HelloTK
             v1Pos.Normalize();
             for (int i = 0; i < 3; i++)
             {
-                MeshAttr.SetNormal(ref triVerts[i], v1Pos);
+                MeshAttr.SetNormal(ref triVerts[i], ref v1Pos);
             }
-            MeshAttr.SetUV(ref triVerts[0], new Vector2(0.5f, 1));
-            MeshAttr.SetUV(ref triVerts[1], new Vector2(0, 0));
-            MeshAttr.SetUV(ref triVerts[2], new Vector2(1, 0));
 
-            MeshAttr.SetColor(ref triVerts[0], MeshAttr.GetColor(ref mesh.vertices[v1index]));
-            MeshAttr.SetColor(ref triVerts[1], MeshAttr.GetColor(ref mesh.vertices[v1index]));
-            MeshAttr.SetColor(ref triVerts[2], MeshAttr.GetColor(ref mesh.vertices[v1index]));
+            Vector2 uv0=new Vector2(0.5f, 1);
+            Vector2 uv1=new Vector2(0, 0);
+            Vector2 uv2=new Vector2(1, 0);
+
+            MeshAttr.SetUV(ref triVerts[0], ref uv0);
+            MeshAttr.SetUV(ref triVerts[1], ref uv1);
+            MeshAttr.SetUV(ref triVerts[2], ref uv2);
+
+            Vector4 c0 = MeshAttr.GetColor(ref mesh.vertices[v1index]);
+            Vector4 c1 = MeshAttr.GetColor(ref mesh.vertices[v1index]);
+            Vector4 c2 = MeshAttr.GetColor(ref mesh.vertices[v1index]);
+
+            MeshAttr.SetColor(ref triVerts[0], ref c0);
+            MeshAttr.SetColor(ref triVerts[1], ref c1);
+            MeshAttr.SetColor(ref triVerts[2], ref c2);
 
             newVerts[(int)v1index] = triVerts[0];
             int index = newVerts.Count;
@@ -713,11 +720,16 @@ namespace HelloTK
             v1.Normalize();
             for (int i = 0; i < 3; i++)
             {
-                MeshAttr.SetNormal(ref triVerts[i], v1);
+                MeshAttr.SetNormal(ref triVerts[i], ref v1);
             }
-            MeshAttr.SetUV(ref triVerts[0], new Vector2(0.5f, 1));
-            MeshAttr.SetUV(ref triVerts[1], new Vector2(0, 0));
-            MeshAttr.SetUV(ref triVerts[2], new Vector2(1, 0));
+
+            Vector2 uv0 = new Vector2(0.5f, 1);
+            Vector2 uv1 = new Vector2(0, 0);
+            Vector2 uv2 = new Vector2(1, 0);
+
+            MeshAttr.SetUV(ref triVerts[0], ref uv0);
+            MeshAttr.SetUV(ref triVerts[1], ref uv1);
+            MeshAttr.SetUV(ref triVerts[2], ref uv2);
             int index = newVerts.Count;
             for (int i = 0; i < 3; i++)
                 newVerts.Add(triVerts[i]);
@@ -770,9 +782,9 @@ namespace HelloTK
                     Vector3 normal = Vector3.Cross(a, b);
                     normal.Normalize();
 
-                    MeshAttr.SetNormal(ref mesh.vertices[i], normal);
-                    MeshAttr.SetNormal(ref mesh.vertices[i + 1], normal);
-                    MeshAttr.SetNormal(ref mesh.vertices[i + 2], normal);
+                    MeshAttr.SetNormal(ref mesh.vertices[i], ref normal);
+                    MeshAttr.SetNormal(ref mesh.vertices[i + 1], ref normal);
+                    MeshAttr.SetNormal(ref mesh.vertices[i + 2], ref normal);
                 }
             }
         }
@@ -784,54 +796,42 @@ namespace HelloTK
             Vector2 uv3 = new Vector2(1, 1);
             for (int i = 0; i < indices.Length; i += 3)
             {
-                MeshAttr.SetUV(ref mesh.vertices[i], uv1);
-                MeshAttr.SetUV(ref mesh.vertices[i + 1], uv2);
-                MeshAttr.SetUV(ref mesh.vertices[i + 2], uv3);
+                MeshAttr.SetUV(ref mesh.vertices[i], ref uv1);
+                MeshAttr.SetUV(ref mesh.vertices[i + 1], ref uv2);
+                MeshAttr.SetUV(ref mesh.vertices[i + 2], ref uv3);
             }
         }
 
-        //public void InitPlates(ref Random rand, int numPlates)
-        //{
-        //    for (int i = 0; i < mesh.vertices.Length; ++i)
-        //        SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 0.0f));
-
-        //    Neighbours neighbours = GetNeighbours();
-
-        //    // Choose N random points; flood fill from each point.
-
-        //    plates = new Plate<TVertex>[numPlates];
-        //    int total = numPlates;
-        //    for (int i = 0; i < numPlates; ++i)
-        //    {
-        //        int vertexIndex = rand.Next(mesh.vertices.Length);
-        //        plates[i] = new Plate<TVertex>(mesh, vertexIndex, neighbours, ref rand);
-        //    }
-        //}
-
-        //public void GrowPlates(ref Random rand)
-        //{
-        //    for (int i = 0; i < numPlates; ++i)
-        //    {
-        //        total += plates[i].Grow(1);
-        //    }
-        //}
-        public void Colorise(ref Random rand, int numPlates)
+        Plate[] plates;
+        public void InitPlates(ref Random rand, int numPlates)
         {
-            for (int i = 0; i < mesh.vertices.Length; ++i)
-                MeshAttr.SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 0.0f));
+            Vector4 blankColor = new Vector4(0.2f, 0.3f, 0.8f, 0.0f);
+            for (int i = 0; i < mesh.Length; ++i)
+                mesh.SetColor(i, ref blankColor);
 
             Neighbours neighbours = GetNeighbours();
 
-            // Choose N random points; flood fill from each point.
-
-            var plates = new Plate<TVertex>[numPlates];
-            int total=numPlates;
+            plates = new Plate[numPlates];
+            int total = numPlates;
             for (int i = 0; i < numPlates; ++i)
             {
-                int vertexIndex = rand.Next(mesh.vertices.Length);
-                plates[i] = new Plate<TVertex>(mesh, vertexIndex, neighbours, ref rand);
+                int vertexIndex = rand.Next(mesh.Length);
+                plates[i] = new Plate(mesh, vertexIndex, neighbours, ref rand);
             }
+        }
 
+        public void GrowPlates()
+        {
+            for (int i = 0; i < plates.Length; ++i)
+            {
+                plates[i].Grow(1);
+            }
+        }
+
+        public void Colorise(ref Random rand, int numPlates)
+        {
+            InitPlates(ref rand, numPlates);
+            int total = numPlates;
             while (total < mesh.vertices.Length)
             {
                 for (int i = 0; i < numPlates; ++i)
