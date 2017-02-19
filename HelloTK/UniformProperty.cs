@@ -7,7 +7,7 @@ using OpenTK;
 using OpenTK.Graphics;
 using System.Drawing;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class UniformProperty
     {

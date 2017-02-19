@@ -4,7 +4,7 @@ using OpenTK.Graphics.OpenGL;
 using System.Collections.Generic;
 using System;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class RendererFactory
     {

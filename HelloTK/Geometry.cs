@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using System.Linq;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class Geometry<TVertex> : IGeometry where TVertex : struct, IVertex
     {

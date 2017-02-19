@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using OpenTK;
 using System.Drawing;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class Math2
     {

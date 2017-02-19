@@ -3,7 +3,7 @@ using OpenTK;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     internal struct Attribute
     {

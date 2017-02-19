@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
 using OpenTK;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class VertexBuffer<TVertex> : IVertexBuffer where TVertex : struct, IVertex
     {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using OpenTK;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     internal class Mesh<TVertex> : IMesh where TVertex : struct, IVertex
     {

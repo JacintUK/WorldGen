@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using OpenTK.Graphics.OpenGL;
 using OpenTK;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class Renderer
     {

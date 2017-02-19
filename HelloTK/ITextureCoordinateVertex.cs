@@ -1,6 +1,6 @@
 ﻿using OpenTK;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     internal interface ITextureCoordinateVertex
     {

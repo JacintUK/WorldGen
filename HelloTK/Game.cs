@@ -10,7 +10,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 using static OpenTK.MathHelper;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class Game : OpenTK.GameWindow
     {

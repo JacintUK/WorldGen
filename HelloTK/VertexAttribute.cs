@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using OpenTK.Graphics.OpenGL;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     sealed class VertexAttribute
     {

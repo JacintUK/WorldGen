@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     struct Vertex : IVertex
     {

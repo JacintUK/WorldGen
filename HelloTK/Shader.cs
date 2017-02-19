@@ -8,7 +8,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Graphics;
 using OpenTK;
 
-namespace HelloTK
+namespace WorldGenerator
 {
     class Shader
     {

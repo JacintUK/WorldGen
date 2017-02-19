@@ -1,7 +1,7 @@
 ﻿using System;
 using OpenTK.Graphics.OpenGL;
 using OpenTK;
-namespace HelloTK
+namespace WorldGenerator
 {
     internal interface IGeometry
     {
