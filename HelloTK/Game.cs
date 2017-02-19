@@ -154,7 +154,7 @@ namespace HelloTK
         {
             if(down)
             {
-                world.Colorise();
+                world.CreatePlates();
                 UpdateRenderers();
             }
         }

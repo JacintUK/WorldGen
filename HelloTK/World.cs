@@ -40,7 +40,7 @@ namespace HelloTK
             {
                 geometry.RelaxTriangles(0.5f);
             }
-            Colorise(ref rand, numPlates);
+            CreatePlates(ref rand, numPlates);
         }
 
         public void ResetSeed()
@@ -58,9 +58,9 @@ namespace HelloTK
             geometry.TweakTriangles(tweakRatio, rand);
         }
 
-        public void Colorise()
+        public void CreatePlates()
         {
-            Colorise(ref rand, numPlates);
+            CreatePlates(ref rand, numPlates);
         }
 
         public void InitPlates()
@@ -74,7 +74,6 @@ namespace HelloTK
                 plates[i].Grow(1);
             }
         }
-
 
         Plate[] plates;
         private void InitPlates(ref Random rand, int numPlates)
@@ -94,7 +93,7 @@ namespace HelloTK
             }
         }
 
-        private void Colorise(ref Random rand, int numPlates)
+        private void CreatePlates(ref Random rand, int numPlates)
         {
             InitPlates(ref rand, numPlates);
             int total = numPlates;
