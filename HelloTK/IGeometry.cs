@@ -7,7 +7,7 @@ namespace HelloTK
     {
         PrimitiveType PrimitiveType { get; set; }
         bool NeedsUpdate { set; get; }
-
+        IMesh Mesh { get; }
         IGeometry Clone();
         IGeometry ClonePosition<TVertex2>() where TVertex2 : struct, IVertex;
 
@@ -23,10 +23,6 @@ namespace HelloTK
         void ClearColor(Vector4 color);
         Mesh<Vertex3D> GenerateCentroidMesh();
         Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex;
- 
-        void Colorise(ref Random rand, int numPlates);
-        void InitPlates(ref Random rand, int numPlates);
-        void GrowPlates();
-
+        Neighbours GetNeighbours();
     }
 }

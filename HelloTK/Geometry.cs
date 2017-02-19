@@ -8,11 +8,12 @@ namespace HelloTK
 {
     class Geometry<TVertex> : IGeometry where TVertex : struct, IVertex
     {
-        Mesh<TVertex> mesh;
-        uint[] indices;
-        PrimitiveType primType = PrimitiveType.Triangles;
+        private Mesh<TVertex> mesh;
+        private uint[] indices;
+        private PrimitiveType primType = PrimitiveType.Triangles;
         public PrimitiveType PrimitiveType { get { return primType; } set { primType = value; } }
         public bool NeedsUpdate { set; get; }
+        public IMesh Mesh { get { return mesh; } }
 
         struct Edge { public int triangle1; public int triangle2; }
 
@@ -799,45 +800,6 @@ namespace HelloTK
                 MeshAttr.SetUV(ref mesh.vertices[i], ref uv1);
                 MeshAttr.SetUV(ref mesh.vertices[i + 1], ref uv2);
                 MeshAttr.SetUV(ref mesh.vertices[i + 2], ref uv3);
-            }
-        }
-
-        Plate[] plates;
-        public void InitPlates(ref Random rand, int numPlates)
-        {
-            Vector4 blankColor = new Vector4(0.2f, 0.3f, 0.8f, 0.0f);
-            for (int i = 0; i < mesh.Length; ++i)
-                mesh.SetColor(i, ref blankColor);
-
-            Neighbours neighbours = GetNeighbours();
-
-            plates = new Plate[numPlates];
-            int total = numPlates;
-            for (int i = 0; i < numPlates; ++i)
-            {
-                int vertexIndex = rand.Next(mesh.Length);
-                plates[i] = new Plate(mesh, vertexIndex, neighbours, ref rand);
-            }
-        }
-
-        public void GrowPlates()
-        {
-            for (int i = 0; i < plates.Length; ++i)
-            {
-                plates[i].Grow(1);
-            }
-        }
-
-        public void Colorise(ref Random rand, int numPlates)
-        {
-            InitPlates(ref rand, numPlates);
-            int total = numPlates;
-            while (total < mesh.vertices.Length)
-            {
-                for (int i = 0; i < numPlates; ++i)
-                {
-                    total += plates[i].Grow(1);
-                }
             }
         }
 

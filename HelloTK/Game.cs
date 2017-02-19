@@ -19,7 +19,7 @@ namespace HelloTK
         List<Renderer> renderers = new List<Renderer>();
         Color backgroundColor = Color.Aquamarine;
         Matrix4 projection;
-        IGeometry worldGeometry;
+
         IGeometry worldRenderGeometry;
         Renderer ico;
         Renderer icoCentroidDebug;
@@ -28,18 +28,16 @@ namespace HelloTK
         Vector3 lightPosition = new Vector3(-2, 2, 2);
         Vector3 cameraPosition = Vector3.UnitZ *2.0f;
         Vector3 ambientColor;
-        Random rand;
+
         float fieldOfView = (float)Math.PI / 4.0f;
         float longitude, attitude;
-        float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
-        int worldSeed=0;
-        int numPlates = 20;
+        World world;
 
         const string SHADER_PATH = "Resources/Shaders/";
 
         public Game(int w, int h)
            : base(w, h, new OpenTK.Graphics.GraphicsMode(32, 8, 0, 0), 
-                 "Icosahedron",
+                 "WorldGen",
                   GameWindowFlags.Default, DisplayDevice.Default,
                   // ask for an OpenGL 3.0 forward compatible context
                    3, 0, GraphicsContextFlags.ForwardCompatible)
@@ -82,11 +80,9 @@ namespace HelloTK
             Shader pointShader = new Shader(SHADER_PATH + "pointVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
 
             Texture cellTexture = new Texture("Edge.png");
-            
-            rand = new Random(0);
-
-            InitializeWorld();
-            DistortWorld();
+            world = new World();
+            world.Initialize();
+            world.Distort();
             GenerateRenderGeometry();
 
             ico = new Renderer(worldRenderGeometry, shader);
@@ -99,13 +95,13 @@ namespace HelloTK
             ico.CullFaceFlag = true;
             renderers.Add(ico);
 
-            icoVertsDebug = new Renderer(worldGeometry, pointShader);
+            icoVertsDebug = new Renderer(world.geometry, pointShader);
             icoVertsDebug.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
             icoVertsDebug.AddUniform(new UniformProperty("pointSize", 3f));
             icoVertsDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
             //renderers.Add(icoVertsDebug);
 
-            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(worldGeometry.GenerateCentroidMesh());
+            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             icoCentroidDebug = new Renderer(centroidGeom, pointShader);
             icoCentroidDebug.DepthTestFlag = false;
@@ -116,37 +112,18 @@ namespace HelloTK
             //renderers.Add(icoCentroidDebug);
         }
 
-        private void InitializeWorld()
-        {
-            worldGeometry = RendererFactory.CreateIcosphere( 4 );
-            worldGeometry.PrimitiveType = PrimitiveType.Points;
-        }
-
-        private void DistortWorld()
-        {
-            for (int i = 0; i < 6; i++)
-            {
-                worldGeometry.TweakTriangles(tweakRatio, rand);
-                worldGeometry.RelaxTriangles(0.5f);
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                worldGeometry.RelaxTriangles(0.5f);
-            }
-            worldGeometry.Colorise(ref rand, numPlates);
-        }
 
         private void GenerateRenderGeometry()
         {
-            worldRenderGeometry = worldGeometry.GenerateDualMesh<Vertex3DColorUV>();
+            worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
         }
 
         void UpdateRenderers()
         {
             ico.Update(worldRenderGeometry);
-            icoVertsDebug.Update(worldGeometry);
+            icoVertsDebug.Update(world.geometry);
 
-            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(worldGeometry.GenerateCentroidMesh());
+            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             icoCentroidDebug.Update(centroidGeom);
         }
@@ -162,8 +139,9 @@ namespace HelloTK
         {
             if(down)
             {
-                rand = new Random(worldSeed);
-                InitializeWorld();
+                world.ResetSeed();
+ 
+                world.Initialize();
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }
@@ -173,7 +151,7 @@ namespace HelloTK
         {
             if (down)
             {
-                worldGeometry.RelaxTriangles(0.5f);
+                world.RelaxTriangles();   
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }
@@ -183,7 +161,7 @@ namespace HelloTK
         {
             if (down)
             {
-                worldGeometry.TweakTriangles(tweakRatio, rand);
+                world.TweakTriangles();
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }
@@ -193,7 +171,7 @@ namespace HelloTK
         {
             if(down)
             {
-                DistortWorld();
+                world.Distort();
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }
@@ -203,7 +181,7 @@ namespace HelloTK
         {
             if(down)
             {
-                worldGeometry.Colorise(ref rand, numPlates);
+                world.Colorise();
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }
@@ -213,7 +191,7 @@ namespace HelloTK
         {
             if (down)
             {
-                worldGeometry.InitPlates(ref rand, numPlates);
+                world.InitPlates();
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }
@@ -222,7 +200,7 @@ namespace HelloTK
         {
             if (down)
             {
-                worldGeometry.GrowPlates();
+                world.GrowPlates();
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }
