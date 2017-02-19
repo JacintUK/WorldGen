@@ -24,6 +24,7 @@ namespace HelloTK
         void ClearColor(Vector4 color);
         Mesh<Vertex3D> GenerateCentroidMesh();
         Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex;
-        void RandomiseColors(ref Random rand);
+ 
+        void Colorise(ref Random rand);
     }
 }

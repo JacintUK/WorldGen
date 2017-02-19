@@ -39,10 +39,10 @@ namespace HelloTK
         {
             TVertex2[] newVerts = new TVertex2[mesh.vertices.Length];
             int index = 0;
-            foreach ( var iter in mesh.vertices)
+            foreach (var iter in mesh.vertices)
             {
                 TVertex vertex = iter;
-                Vector3 pos = GetPosition( ref vertex );
+                Vector3 pos = GetPosition(ref vertex);
                 newVerts[index] = new TVertex2();
                 SetPosition(ref newVerts[index], ref pos);
                 index++;
@@ -116,12 +116,12 @@ namespace HelloTK
             // Assumptions: minimised mesh. Shared edges won't work without shared verts.
             FindEdges();
             // How many edges do we have? exchange some percentage of them...
-            int numPeturbations = (int)((float)edgeCache2.Count * ratio);
+            int numPerturbations = (int)((float)edgeCache2.Count * ratio);
             int numTriangles = mesh.vertices.Length;
             List<Int64> keys = new List<Int64>(edgeCache2.Keys);
 
             List<int> visitedTris = new List<int>();
-            for (int i = 0; i < numPeturbations; ++i)
+            for (int i = 0; i < numPerturbations; ++i)
             {
                 // Choose a random edge:
                 int edgeIndex = rand.Next(edgeCache2.Count);
@@ -621,9 +621,9 @@ namespace HelloTK
             //   get centroids of triangles each side
             //   make 2 new triangles from verts of edge + centroids
 
-            List<AltVertex> newVerts = new List<AltVertex>(mesh.vertices.Length+edgeCache2.Count*2);
+            List<AltVertex> newVerts = new List<AltVertex>(mesh.vertices.Length + edgeCache2.Count * 2);
             // Initialize the first V verts
-            for ( int i=0; i< mesh.vertices.Length; ++i)
+            for (int i = 0; i < mesh.vertices.Length; ++i)
             {
                 newVerts.Add(new AltVertex());
             }
@@ -732,15 +732,55 @@ namespace HelloTK
                 newIndices.Add((uint)index++);
         }
 
+        class VertexNeighbours
+        {
+            List<uint> neighbours;            
+            public List<uint> Neighbours { get { return neighbours; } }
+            public VertexNeighbours()
+            {
+                this.neighbours = new List<uint>();
+            }
+        }
+        private VertexNeighbours[] neighbours;
+
+        public void FindNeighbors()
+        {
+            neighbours = new VertexNeighbours[mesh.vertices.Length];
+            for (int i = 0; i < mesh.vertices.Length; ++i)
+                neighbours[i] = new VertexNeighbours();
+
+            for (int i = 0; i < indices.Length; i += 3)
+            {
+                uint v0 = indices[i];
+                uint v1 = indices[i + 1];
+                uint v2 = indices[i + 2];
+
+                if (!neighbours[v0].Neighbours.Contains(v1))
+                    neighbours[v0].Neighbours.Add(v1);
+                if (!neighbours[v0].Neighbours.Contains(v2))
+                    neighbours[v0].Neighbours.Add(v2);
+
+                if (!neighbours[v1].Neighbours.Contains(v0))
+                    neighbours[v1].Neighbours.Add(v0);
+                if (!neighbours[v1].Neighbours.Contains(v2))
+                    neighbours[v1].Neighbours.Add(v2);
+
+                if (!neighbours[v2].Neighbours.Contains(v1))
+                    neighbours[v2].Neighbours.Add(v1);
+                if (!neighbours[v2].Neighbours.Contains(v0))
+                    neighbours[v2].Neighbours.Add(v0);
+            }
+        }
+
         public void ConvertToVertexPerIndex()
         {
             List<TVertex> newVertices = new List<TVertex>();
             List<uint> newIndices = new List<uint>();
             uint newIndex = 0;
-            for (int i = 0; i < indices.Length; ++i )
+            for (int i = 0; i < indices.Length; ++i)
             {
                 TVertex v = mesh.vertices[indices[i]];
-                if( OddEvenColorDebug )
+                if (OddEvenColorDebug)
                 {
                     if ((i / 3) % 2 == 0)
                     {
@@ -776,8 +816,8 @@ namespace HelloTK
                     normal.Normalize();
 
                     SetNormal(ref mesh.vertices[i], normal);
-                    SetNormal(ref mesh.vertices[i+1], normal);
-                    SetNormal(ref mesh.vertices[i+2], normal);
+                    SetNormal(ref mesh.vertices[i + 1], normal);
+                    SetNormal(ref mesh.vertices[i + 2], normal);
                 }
             }
         }
@@ -789,19 +829,113 @@ namespace HelloTK
             Vector2 uv3 = new Vector2(1, 1);
             for (int i = 0; i < indices.Length; i += 3)
             {
-                SetUV(ref mesh.vertices[i],   uv1);
-                SetUV(ref mesh.vertices[i+1], uv2);
-                SetUV(ref mesh.vertices[i+2], uv3);
+                SetUV(ref mesh.vertices[i], uv1);
+                SetUV(ref mesh.vertices[i + 1], uv2);
+                SetUV(ref mesh.vertices[i + 2], uv3);
             }
         }
 
-        public void RandomiseColors(ref Random rand)
+        public void RandomiseColors2(ref Random rand)
         {
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
                 Vector4 color = new Vector4((float)rand.Next(256) / 255.0f, rand.Next(256) / 255.0f, rand.Next(256) / 255.0f, 1.0f);
                 SetColor(ref mesh.vertices[i], color);
             }
+        }
+        public void Colorise(ref Random rand)
+        {
+            for (int i = 0; i < mesh.vertices.Length; ++i)
+                SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
+
+            FindNeighbors();
+
+            for (int i = 0; i < mesh.vertices.Length/5; ++i)
+            {
+                int vertexIndex = rand.Next(mesh.vertices.Length);
+                Neighbour neighbour = new Neighbour(ref neighbours, vertexIndex);
+
+                float hue = rand.Next(mesh.vertices.Length) / (float)mesh.vertices.Length;
+                Vector3 HSV = new Vector3( hue, 0.5f, 0.8f);
+                Vector3 RGB = HSV2RGB(HSV);
+                Vector4 color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
+                SetColor(ref mesh.vertices[vertexIndex], color);
+
+                HSV.Z = 1.0f;
+                RGB = HSV2RGB(HSV);
+                color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
+
+                //Vector4 vertexColor = GetColor(ref mesh.vertices[index]);
+                for (int index = 0; index >= 0; index = neighbour.Next() )
+                {
+                    SetColor(ref mesh.vertices[index], color);
+                }
+            }
+        }
+
+        class Neighbour
+        {
+            int vertexIndex;
+            int currentIndex;
+            VertexNeighbours neighbours;
+            public int Count { get { return neighbours.Neighbours.Count; } }
+            public Neighbour( ref VertexNeighbours[] neighbours, int vertexIndex)
+            {
+                this.neighbours = neighbours[vertexIndex];
+                this.vertexIndex = vertexIndex;
+                this.currentIndex = 0;
+                // Sort neighbours by angle about vertex pole.
+            }
+            public int Next()
+            {
+                int numNeighbours = neighbours.Neighbours.Count;
+                currentIndex++;
+                if (currentIndex < numNeighbours)
+                {
+                    return (int)neighbours.Neighbours[currentIndex];
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+        }
+
+
+        static Vector3 HSV2RGB(Vector3 hsv)
+        {
+            Vector4 K = new Vector4(1.0f, 2.0f / 3.0f, 1.0f / 3.0f, 3.0f);
+            Vector3 p = Abs(Fract(Fill(hsv.X) + K.Xyz) * 6.0f - Fill(K.W));
+            return hsv.Z * Mix(Fill(K.X), Vector3.Clamp(p - Fill(K.X), Fill(0.0f), Fill(1.0f)), hsv.Y);
+        }
+        static Vector3 Mix( Vector3 a, Vector3 b, float t)
+        {
+            Vector3 c = a + t * (b - a);
+            return c;
+        }
+        static float Fract(float a)
+        {
+            return (float)(a - Math.Floor(a));
+        }
+        static Vector3 Fract( Vector3 a)
+        {
+            Vector3 b;
+            b.X = Fract(a.X);
+            b.Y = Fract(a.Y);
+            b.Z = Fract(a.Z);
+            return b;
+        }
+        static Vector3 Abs(Vector3 a)
+        {
+            Vector3 b;
+            b.X = Math.Abs(a.X);
+            b.Y = Math.Abs(a.Y);
+            b.Z = Math.Abs(a.Z);
+            return b;
+        }
+        static Vector3 Fill(float a)
+        {
+            return new Vector3(a, a, a);
         }
         private static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {

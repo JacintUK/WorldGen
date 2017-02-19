@@ -116,7 +116,7 @@ namespace HelloTK
         {
             worldGeometry = RendererFactory.CreateIcosphere(rand, 4);
             worldGeometry.PrimitiveType = PrimitiveType.Points;
-            worldGeometry.RandomiseColors(ref rand);
+            worldGeometry.Colorise(ref rand);
         }
 
         private void DistortWorld()
