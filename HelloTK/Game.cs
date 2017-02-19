@@ -43,7 +43,7 @@ namespace HelloTK
                   // ask for an OpenGL 3.0 forward compatible context
                    3, 0, GraphicsContextFlags.ForwardCompatible)
         {
-            ambientColor = ToVec3(backgroundColor)*0.25f;
+            ambientColor = Math2.ToVec3(backgroundColor)*0.25f;
             Console.WriteLine("gl version: " + GL.GetString(StringName.Version));
         }
 
@@ -114,7 +114,7 @@ namespace HelloTK
 
         private void InitializeWorld()
         {
-            worldGeometry = RendererFactory.CreateIcosphere(rand, 4);
+            worldGeometry = RendererFactory.CreateIcosphere( 4 );
             worldGeometry.PrimitiveType = PrimitiveType.Points;
             worldGeometry.Colorise(ref rand);
         }
@@ -271,7 +271,7 @@ namespace HelloTK
         {
             base.OnUpdateFrame(e);
             // Coords relative to drawing frame
-            var mousePos = base.PointToClient(new Point(Mouse.X, Mouse.Y));
+            // var mousePos = base.PointToClient(new Point(Mouse.X, Mouse.Y));
         }
 
         void UpdateZoom(MouseButton button)
@@ -313,31 +313,6 @@ namespace HelloTK
                 icoCentroidDebug.Model = ico.Model;
                 icoVertsDebug.Model = ico.Model;
             }
-        }
-
-        Quaternion FromEuler(float pitch, float yaw, float roll)
-        {
-            yaw *= 0.5f * (float)Math.PI/180.0f;
-            pitch *= 0.5f * (float)Math.PI / 180.0f;
-            roll *= 0.5f * (float)Math.PI / 180.0f;
-
-            float c1 = (float)Math.Cos(yaw);
-            float c2 = (float)Math.Cos(pitch);
-            float c3 = (float)Math.Cos(roll);
-            float s1 = (float)Math.Sin(yaw);
-            float s2 = (float)Math.Sin(pitch);
-            float s3 = (float)Math.Sin(roll);
-
-            float w = c1 * c2 * c3 - s1 * s2 * s3;
-            Vector3 xyz = new Vector3();
-            xyz.X = s1 * s2 * c3 + c1 * c2 * s3;
-            xyz.Y = s1 * c2 * c3 + c1 * s2 * s3;
-            xyz.Z = c1 * s2 * c3 - s1 * c2 * s3;
-            return new Quaternion(xyz, w);
-        }
-        public Vector3 ToVec3(Color value)
-        {
-            return new Vector3(value.R / 255.0f, value.G / 255.0f, value.B / 255.0f);
         }
     }
 }

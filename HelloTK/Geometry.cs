@@ -14,7 +14,6 @@ namespace HelloTK
         public bool NeedsUpdate { set; get; }
 
         struct Edge { public int triangle1; public int triangle2; }
-        public bool OddEvenColorDebug { set; get; }
 
         public Geometry(Mesh<TVertex> mesh, uint[] indices)
         {
@@ -388,7 +387,6 @@ namespace HelloTK
                 shiftPositions[i].Normalize();
             }
 
-
             // Stop poylgons rotating about their centroid.
             // Doesn't stop triangles flipping.
             float[] rotationSuppressions = new float[mesh.vertices.Length];
@@ -437,7 +435,7 @@ namespace HelloTK
             {
                 Vector3 pos = GetPosition(ref mesh.vertices[i]);
                 Vector3 delta = pos;
-                pos = Lerp(pos, shiftPositions[i], (float)(1.0f - Math.Sqrt(rotationSuppressions[i])));
+                pos = Math2.Lerp(pos, shiftPositions[i], (float)(1.0f - Math.Sqrt(rotationSuppressions[i])));
                 pos.Normalize();
                 shiftPositions[i] = pos;
             }
@@ -457,12 +455,6 @@ namespace HelloTK
             }
             return totalShift;
         }
-
-        static private Vector3 Lerp(Vector3 a, Vector3 b, float t)
-        {
-            return (1.0f - t) * a + t * b;
-        }
-
 
         public void ClearColor(Vector4 color)
         {
@@ -528,7 +520,7 @@ namespace HelloTK
 
         private Dictionary<Int64, Edge> edgeCache2 = new Dictionary<long, Edge>();
         private int[] vertCounts;
-        public void FindEdges()
+        private void FindEdges()
         {
             vertCounts = new int[mesh.vertices.Length];
             edgeCache2.Clear();
@@ -780,18 +772,6 @@ namespace HelloTK
             for (int i = 0; i < indices.Length; ++i)
             {
                 TVertex v = mesh.vertices[indices[i]];
-                if (OddEvenColorDebug)
-                {
-                    if ((i / 3) % 2 == 0)
-                    {
-                        var icv = v as IColorVertex;
-                        if (icv != null)
-                        {
-                            icv.SetColor(new Vector4(0.5f, 0, 0, 1));
-                        }
-                        v = (TVertex)icv;
-                    }
-                }
                 newVertices.Add(v);
                 newIndices.Add(newIndex++);
             }
@@ -857,12 +837,12 @@ namespace HelloTK
 
                 float hue = rand.Next(mesh.vertices.Length) / (float)mesh.vertices.Length;
                 Vector3 HSV = new Vector3( hue, 0.5f, 0.8f);
-                Vector3 RGB = HSV2RGB(HSV);
+                Vector3 RGB = Math2.HSV2RGB(HSV);
                 Vector4 color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
                 SetColor(ref mesh.vertices[vertexIndex], color);
 
                 HSV.Z = 1.0f;
-                RGB = HSV2RGB(HSV);
+                RGB = Math2.HSV2RGB(HSV);
                 color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
 
                 //Vector4 vertexColor = GetColor(ref mesh.vertices[index]);
@@ -902,41 +882,6 @@ namespace HelloTK
         }
 
 
-        static Vector3 HSV2RGB(Vector3 hsv)
-        {
-            Vector4 K = new Vector4(1.0f, 2.0f / 3.0f, 1.0f / 3.0f, 3.0f);
-            Vector3 p = Abs(Fract(Fill(hsv.X) + K.Xyz) * 6.0f - Fill(K.W));
-            return hsv.Z * Mix(Fill(K.X), Vector3.Clamp(p - Fill(K.X), Fill(0.0f), Fill(1.0f)), hsv.Y);
-        }
-        static Vector3 Mix( Vector3 a, Vector3 b, float t)
-        {
-            Vector3 c = a + t * (b - a);
-            return c;
-        }
-        static float Fract(float a)
-        {
-            return (float)(a - Math.Floor(a));
-        }
-        static Vector3 Fract( Vector3 a)
-        {
-            Vector3 b;
-            b.X = Fract(a.X);
-            b.Y = Fract(a.Y);
-            b.Z = Fract(a.Z);
-            return b;
-        }
-        static Vector3 Abs(Vector3 a)
-        {
-            Vector3 b;
-            b.X = Math.Abs(a.X);
-            b.Y = Math.Abs(a.Y);
-            b.Z = Math.Abs(a.Z);
-            return b;
-        }
-        static Vector3 Fill(float a)
-        {
-            return new Vector3(a, a, a);
-        }
         private static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {
             IPositionVertex ipv = vertex as IPositionVertex;
@@ -953,8 +898,8 @@ namespace HelloTK
             if (ipv != null)
             {
                 ipv.SetPosition(pos);
+                vert = (TVertex2)ipv;
             }
-            vert = (TVertex2)ipv;
         }
 
         private static void SetNormal<TVertex2>(ref TVertex2 vertex, Vector3 normal) where TVertex2 : struct, IVertex
@@ -963,17 +908,18 @@ namespace HelloTK
             if (inv != null)
             {
                 inv.SetNormal(normal);
+                vertex = (TVertex2)inv;
             }
-            vertex = (TVertex2)inv;
         }
+
         private static void SetUV<TVertex2>(ref TVertex2 vertex, Vector2 uv) where TVertex2 : struct, IVertex
         {
             ITextureCoordinateVertex inv = vertex as ITextureCoordinateVertex;
             if (inv != null)
             {
                 inv.SetTextureCoordinates(uv);
+                vertex = (TVertex2)inv;
             }
-            vertex = (TVertex2)inv;
         }
         private static void SetColor<TVertex2>(ref TVertex2 vertex, Vector4 color) where TVertex2 : struct, IVertex
         {
@@ -981,8 +927,8 @@ namespace HelloTK
             if (inv != null)
             {
                 inv.SetColor(color);
+                vertex = (TVertex2)inv;
             }
-            vertex = (TVertex2)inv;
         }
         private static Vector4 GetColor<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {
@@ -993,6 +939,8 @@ namespace HelloTK
             }
             return Vector4.Zero;
         }
+
+
         public IVertexBuffer CreateVertexBuffer()
         {
             return new VertexBuffer<TVertex>(mesh);

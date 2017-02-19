@@ -55,6 +55,10 @@ namespace HelloTK
         {
             this.position = position;
         }
+        public Vector3 GetNormal()
+        {
+            return this.normal;
+        }
         public void SetNormal(Vector3 normal)
         {
             this.normal = normal;

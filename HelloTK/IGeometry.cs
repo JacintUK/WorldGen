@@ -7,7 +7,6 @@ namespace HelloTK
     {
         PrimitiveType PrimitiveType { get; set; }
         bool NeedsUpdate { set; get; }
-        bool OddEvenColorDebug { set; get; } // TODO Move to IGeometryDebug
 
         IGeometry Clone();
         IGeometry ClonePosition<TVertex2>() where TVertex2 : struct, IVertex;

@@ -11,14 +11,14 @@ using System.IO;
 
 namespace HelloTK
 {
-    class Texture
+    internal class Texture
     {
         private const string IMAGE_PATH = "Resources/Images/";
         private readonly int handle;
 
         public Texture(string filename)
         {
-            if(!File.Exists(filename) && !File.Exists(IMAGE_PATH+filename))
+            if( !File.Exists(filename) && !File.Exists(IMAGE_PATH+filename) )
             {
                 Console.WriteLine("Texture(" + filename + ") Filename doesn't exist");
                 throw new FileNotFoundException("Texture(" + filename + ") Filename doesn't exist");
@@ -47,7 +47,6 @@ namespace HelloTK
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Clamp);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-
         }
     }
 }

@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 
 namespace HelloTK
 {
-    class Mesh<TVertex> : IMesh where TVertex : struct, IVertex
+    internal class Mesh<TVertex> : IMesh where TVertex : struct, IVertex
     {
         public TVertex[] vertices;
         VertexFormat vertexFormat;
-        //public TVertex[] Vertices { get { return vertices; } }
         public int Length { get { return vertices.Length; } }
         public VertexFormat VertexFormat { get { return vertexFormat; } }
 

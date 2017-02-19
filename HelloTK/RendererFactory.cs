@@ -49,7 +49,7 @@ namespace HelloTK
             return renderer;
         }
 
-        static public IGeometry CreateIcosphere(Random rand, int subDivisions)
+        static public IGeometry CreateIcosphere(int subDivisions)
         {
             Vertex3DColor[] verts = new Vertex3DColor[12];
             Vector4 color = new Vector4(0.2f, 0.2f, 1.0f, 1.0f);

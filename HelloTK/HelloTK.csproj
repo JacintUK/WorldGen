@@ -60,6 +60,7 @@
     <Compile Include="IVertex.cs" />
     <Compile Include="IVertexBuffer.cs" />
     <Compile Include="KeyHandler.cs" />
+    <Compile Include="Math2.cs" />
     <Compile Include="Mesh.cs" />
     <Compile Include="MouseButton.cs" />
     <Compile Include="Plane.cs" />
