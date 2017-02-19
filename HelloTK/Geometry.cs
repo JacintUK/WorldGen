@@ -42,9 +42,9 @@ namespace HelloTK
             foreach (var iter in mesh.vertices)
             {
                 TVertex vertex = iter;
-                Vector3 pos = GetPosition(ref vertex);
+                Vector3 pos = MeshAttr.GetPosition(ref vertex);
                 newVerts[index] = new TVertex2();
-                SetPosition(ref newVerts[index], ref pos);
+                MeshAttr.SetPosition(ref newVerts[index], ref pos);
                 index++;
             }
             Mesh<TVertex2> newMesh = new Mesh<TVertex2>(newVerts);
@@ -97,11 +97,11 @@ namespace HelloTK
             uint middlePt;
             if (!edgeCache.TryGetValue(key1, out middlePt))
             {
-                Vector3 pos1 = GetPosition(ref mesh.vertices[indices[a]]);
-                Vector3 pos2 = GetPosition(ref mesh.vertices[indices[b]]);
+                Vector3 pos1 = MeshAttr.GetPosition(ref mesh.vertices[indices[a]]);
+                Vector3 pos2 = MeshAttr.GetPosition(ref mesh.vertices[indices[b]]);
                 Vector3 e1 = Vector3.Normalize(pos1 + (pos2 - pos1) * 0.5f);
                 TVertex v1 = mesh.vertices[indices[a]];
-                SetPosition(ref v1, ref e1);
+                MeshAttr.SetPosition(ref v1, ref e1);
                 middlePt = (uint)verts.Count;
                 edgeCache.Add(key1, middlePt);
                 verts.Add(v1);
@@ -178,10 +178,10 @@ namespace HelloTK
                     continue;
                 }
                 // Check edge lengths
-                Vector3 pos1 = GetPosition(ref mesh.vertices[index1]);
-                Vector3 pos2 = GetPosition(ref mesh.vertices[index2]);
-                Vector3 pos3 = GetPosition(ref mesh.vertices[index3]);
-                Vector3 pos4 = GetPosition(ref mesh.vertices[index4]);
+                Vector3 pos1 = MeshAttr.GetPosition(ref mesh.vertices[index1]);
+                Vector3 pos2 = MeshAttr.GetPosition(ref mesh.vertices[index2]);
+                Vector3 pos3 = MeshAttr.GetPosition(ref mesh.vertices[index3]);
+                Vector3 pos4 = MeshAttr.GetPosition(ref mesh.vertices[index4]);
 
                 float oldLength = new Vector3(pos2 - pos1).Length;
                 float newLength = new Vector3(pos4 - pos3).Length;
@@ -268,15 +268,15 @@ namespace HelloTK
                     // this point.)
                     Vector3[] oldPositions = new Vector3[3]
                     {
-                        new Vector3( GetPosition(ref mesh.vertices[indices[i]])),
-                        new Vector3( GetPosition(ref mesh.vertices[indices[i+1]])),
-                        new Vector3( GetPosition(ref mesh.vertices[indices[i+2]])),
+                        new Vector3( MeshAttr.GetPosition(ref mesh.vertices[indices[i]])),
+                        new Vector3( MeshAttr.GetPosition(ref mesh.vertices[indices[i+1]])),
+                        new Vector3( MeshAttr.GetPosition(ref mesh.vertices[indices[i+2]])),
                     };
                     Vector3[] newPositions = new Vector3[3];
                     for (int j = 0; j < 3; ++j)
                     {
                         TVertex v1 = mesh.vertices[indices[i + j]];
-                        Vector3 v1Pos = GetPosition(ref v1);
+                        Vector3 v1Pos = MeshAttr.GetPosition(ref v1);
                         Vector3 e1 = centroid - v1Pos;
 
                         if (e1.Length > idealDistanceToCentroid * 1.1)
@@ -330,8 +330,8 @@ namespace HelloTK
             float totalShift = 0;
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
-                Vector3 delta = shiftPositions[i] - GetPosition(ref mesh.vertices[i]);
-                SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
+                Vector3 delta = shiftPositions[i] - MeshAttr.GetPosition(ref mesh.vertices[i]);
+                MeshAttr.SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
                 totalShift += delta.Length;
             }
             return totalShift;
@@ -360,13 +360,13 @@ namespace HelloTK
             {
                 Vector3 centroid = GetCentroid(i);
                 centroid.Normalize();
-                SetPosition(ref centroidVertex, ref centroid);
+                MeshAttr.SetPosition(ref centroidVertex, ref centroid);
 
                 Vector3[] oldPositions = new Vector3[3]
                 {
-                    new Vector3( GetPosition(ref mesh.vertices[indices[i]])),
-                    new Vector3( GetPosition(ref mesh.vertices[indices[i+1]])),
-                    new Vector3( GetPosition(ref mesh.vertices[indices[i+2]])),
+                    new Vector3( MeshAttr.GetPosition(ref mesh.vertices[indices[i]])),
+                    new Vector3( MeshAttr.GetPosition(ref mesh.vertices[indices[i+1]])),
+                    new Vector3( MeshAttr.GetPosition(ref mesh.vertices[indices[i+2]])),
                 };
 
                 for (int j = 0; j < 3; ++j)
@@ -382,7 +382,7 @@ namespace HelloTK
             Plane p = new Plane(Vector3.UnitY, Vector3.Zero);
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
-                Vector3 vertexPosition = GetPosition(ref mesh.vertices[i]);
+                Vector3 vertexPosition = MeshAttr.GetPosition(ref mesh.vertices[i]);
                 p.Redefine(vertexPosition, origin);
                 shiftPositions[i] = vertexPosition + p.ProjectPoint(shiftPositions[i]);
                 shiftPositions[i].Normalize();
@@ -399,8 +399,8 @@ namespace HelloTK
                 Int64 key = iter.Key;
                 int index1 = (int)(key & 0xffffffff);
                 int index2 = (int)((key >> 32) & 0xffffffff);
-                Vector3 oldPos1 = GetPosition(ref mesh.vertices[index1]);
-                Vector3 oldPos2 = GetPosition(ref mesh.vertices[index2]);
+                Vector3 oldPos1 = MeshAttr.GetPosition(ref mesh.vertices[index1]);
+                Vector3 oldPos2 = MeshAttr.GetPosition(ref mesh.vertices[index2]);
                 Vector3 newPos1 = shiftPositions[index1];
                 Vector3 newPos2 = shiftPositions[index2];
                 Vector3 oldEdge = oldPos2 - oldPos1;
@@ -434,7 +434,7 @@ namespace HelloTK
 
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
-                Vector3 pos = GetPosition(ref mesh.vertices[i]);
+                Vector3 pos = MeshAttr.GetPosition(ref mesh.vertices[i]);
                 Vector3 delta = pos;
                 pos = Math2.Lerp(pos, shiftPositions[i], (float)(1.0f - Math.Sqrt(rotationSuppressions[i])));
                 pos.Normalize();
@@ -449,8 +449,8 @@ namespace HelloTK
             float totalShift = 0;
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
-                Vector3 delta = GetPosition(ref mesh.vertices[i]);
-                SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
+                Vector3 delta = MeshAttr.GetPosition(ref mesh.vertices[i]);
+                MeshAttr.SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
                 delta -= shiftPositions[i];
                 totalShift += delta.Length;
             }
@@ -461,7 +461,7 @@ namespace HelloTK
         {
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
-                SetColor(ref mesh.vertices[i], color);
+                MeshAttr.SetColor(ref mesh.vertices[i], color);
             }
         }
 
@@ -478,9 +478,9 @@ namespace HelloTK
             TVertex v1 = mesh.vertices[indices[triangle]];
             TVertex v2 = mesh.vertices[indices[triangle + 1]];
             TVertex v3 = mesh.vertices[indices[triangle + 2]];
-            Vector3 e1 = GetPosition(ref v2) - GetPosition(ref v1);
-            Vector3 e2 = GetPosition(ref v3) - GetPosition(ref v1);
-            Vector3 e3 = GetPosition(ref v3) - GetPosition(ref v2);
+            Vector3 e1 = MeshAttr.GetPosition(ref v2) - MeshAttr.GetPosition(ref v1);
+            Vector3 e2 = MeshAttr.GetPosition(ref v3) - MeshAttr.GetPosition(ref v1);
+            Vector3 e3 = MeshAttr.GetPosition(ref v3) - MeshAttr.GetPosition(ref v2);
             float l1Sq = e1.LengthSquared;
             float l2Sq = e2.LengthSquared;
             float l3Sq = e3.LengthSquared;
@@ -496,9 +496,9 @@ namespace HelloTK
             TVertex v1 = mesh.vertices[indices[triangle]];
             TVertex v2 = mesh.vertices[indices[triangle + 1]];
             TVertex v3 = mesh.vertices[indices[triangle + 2]];
-            Vector3 e1 = GetPosition(ref v2) - GetPosition(ref v1);
-            Vector3 e2 = GetPosition(ref v3) - GetPosition(ref v1);
-            Vector3 e3 = GetPosition(ref v3) - GetPosition(ref v2);
+            Vector3 e1 = MeshAttr.GetPosition(ref v2) - MeshAttr.GetPosition(ref v1);
+            Vector3 e2 = MeshAttr.GetPosition(ref v3) - MeshAttr.GetPosition(ref v1);
+            Vector3 e3 = MeshAttr.GetPosition(ref v3) - MeshAttr.GetPosition(ref v2);
 
             float[] angles = new float[3];
 
@@ -566,9 +566,9 @@ namespace HelloTK
             TVertex v1 = mesh.vertices[indices[triangle]];
             TVertex v2 = mesh.vertices[indices[triangle + 1]];
             TVertex v3 = mesh.vertices[indices[triangle + 2]];
-            Vector3 v1Pos = GetPosition(ref v1);
-            Vector3 v2Pos = GetPosition(ref v2);
-            Vector3 v3Pos = GetPosition(ref v3);
+            Vector3 v1Pos = MeshAttr.GetPosition(ref v1);
+            Vector3 v2Pos = MeshAttr.GetPosition(ref v2);
+            Vector3 v3Pos = MeshAttr.GetPosition(ref v3);
             Vector3 e1 = v2Pos - v1Pos;
             Vector3 midPt = v1Pos + e1 * 0.5f;
             Vector3 centroid = midPt + (v3Pos - midPt) / 3.0f;
@@ -672,24 +672,24 @@ namespace HelloTK
             AltVertex[] triVerts = new AltVertex[3];
             triVerts.Initialize();
 
-            Vector3 v1Pos = GetPosition(ref mesh.vertices[v1index]);
+            Vector3 v1Pos = MeshAttr.GetPosition(ref mesh.vertices[v1index]);
 
-            SetPosition(ref triVerts[0], ref v1Pos);
-            SetPosition(ref triVerts[1], ref v2);
-            SetPosition(ref triVerts[2], ref v3);
+            MeshAttr.SetPosition(ref triVerts[0], ref v1Pos);
+            MeshAttr.SetPosition(ref triVerts[1], ref v2);
+            MeshAttr.SetPosition(ref triVerts[2], ref v3);
 
             v1Pos.Normalize();
             for (int i = 0; i < 3; i++)
             {
-                SetNormal(ref triVerts[i], v1Pos);
+                MeshAttr.SetNormal(ref triVerts[i], v1Pos);
             }
-            SetUV(ref triVerts[0], new Vector2(0.5f, 1));
-            SetUV(ref triVerts[1], new Vector2(0, 0));
-            SetUV(ref triVerts[2], new Vector2(1, 0));
+            MeshAttr.SetUV(ref triVerts[0], new Vector2(0.5f, 1));
+            MeshAttr.SetUV(ref triVerts[1], new Vector2(0, 0));
+            MeshAttr.SetUV(ref triVerts[2], new Vector2(1, 0));
 
-            SetColor(ref triVerts[0], GetColor(ref mesh.vertices[v1index]));
-            SetColor(ref triVerts[1], GetColor(ref mesh.vertices[v1index]));
-            SetColor(ref triVerts[2], GetColor(ref mesh.vertices[v1index]));
+            MeshAttr.SetColor(ref triVerts[0], MeshAttr.GetColor(ref mesh.vertices[v1index]));
+            MeshAttr.SetColor(ref triVerts[1], MeshAttr.GetColor(ref mesh.vertices[v1index]));
+            MeshAttr.SetColor(ref triVerts[2], MeshAttr.GetColor(ref mesh.vertices[v1index]));
 
             newVerts[(int)v1index] = triVerts[0];
             int index = newVerts.Count;
@@ -707,17 +707,17 @@ namespace HelloTK
         {
             AltVertex[] triVerts = new AltVertex[3];
             triVerts.Initialize();
-            SetPosition(ref triVerts[0], ref v1);
-            SetPosition(ref triVerts[1], ref v2);
-            SetPosition(ref triVerts[2], ref v3);
+            MeshAttr.SetPosition(ref triVerts[0], ref v1);
+            MeshAttr.SetPosition(ref triVerts[1], ref v2);
+            MeshAttr.SetPosition(ref triVerts[2], ref v3);
             v1.Normalize();
             for (int i = 0; i < 3; i++)
             {
-                SetNormal(ref triVerts[i], v1);
+                MeshAttr.SetNormal(ref triVerts[i], v1);
             }
-            SetUV(ref triVerts[0], new Vector2(0.5f, 1));
-            SetUV(ref triVerts[1], new Vector2(0, 0));
-            SetUV(ref triVerts[2], new Vector2(1, 0));
+            MeshAttr.SetUV(ref triVerts[0], new Vector2(0.5f, 1));
+            MeshAttr.SetUV(ref triVerts[1], new Vector2(0, 0));
+            MeshAttr.SetUV(ref triVerts[2], new Vector2(1, 0));
             int index = newVerts.Count;
             for (int i = 0; i < 3; i++)
                 newVerts.Add(triVerts[i]);
@@ -762,17 +762,17 @@ namespace HelloTK
             {
                 for (int i = 0; i < indices.Length; i += 3)
                 {
-                    Vector3 pos1 = GetPosition(ref mesh.vertices[i]);
-                    Vector3 pos2 = GetPosition(ref mesh.vertices[i + 1]);
-                    Vector3 pos3 = GetPosition(ref mesh.vertices[i + 2]);
+                    Vector3 pos1 = MeshAttr.GetPosition(ref mesh.vertices[i]);
+                    Vector3 pos2 = MeshAttr.GetPosition(ref mesh.vertices[i + 1]);
+                    Vector3 pos3 = MeshAttr.GetPosition(ref mesh.vertices[i + 2]);
                     Vector3 a = pos2 - pos1;
                     Vector3 b = pos3 - pos1;
                     Vector3 normal = Vector3.Cross(a, b);
                     normal.Normalize();
 
-                    SetNormal(ref mesh.vertices[i], normal);
-                    SetNormal(ref mesh.vertices[i + 1], normal);
-                    SetNormal(ref mesh.vertices[i + 2], normal);
+                    MeshAttr.SetNormal(ref mesh.vertices[i], normal);
+                    MeshAttr.SetNormal(ref mesh.vertices[i + 1], normal);
+                    MeshAttr.SetNormal(ref mesh.vertices[i + 2], normal);
                 }
             }
         }
@@ -784,16 +784,41 @@ namespace HelloTK
             Vector2 uv3 = new Vector2(1, 1);
             for (int i = 0; i < indices.Length; i += 3)
             {
-                SetUV(ref mesh.vertices[i], uv1);
-                SetUV(ref mesh.vertices[i + 1], uv2);
-                SetUV(ref mesh.vertices[i + 2], uv3);
+                MeshAttr.SetUV(ref mesh.vertices[i], uv1);
+                MeshAttr.SetUV(ref mesh.vertices[i + 1], uv2);
+                MeshAttr.SetUV(ref mesh.vertices[i + 2], uv3);
             }
         }
 
+        //public void InitPlates(ref Random rand, int numPlates)
+        //{
+        //    for (int i = 0; i < mesh.vertices.Length; ++i)
+        //        SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 0.0f));
+
+        //    Neighbours neighbours = GetNeighbours();
+
+        //    // Choose N random points; flood fill from each point.
+
+        //    plates = new Plate<TVertex>[numPlates];
+        //    int total = numPlates;
+        //    for (int i = 0; i < numPlates; ++i)
+        //    {
+        //        int vertexIndex = rand.Next(mesh.vertices.Length);
+        //        plates[i] = new Plate<TVertex>(mesh, vertexIndex, neighbours, ref rand);
+        //    }
+        //}
+
+        //public void GrowPlates(ref Random rand)
+        //{
+        //    for (int i = 0; i < numPlates; ++i)
+        //    {
+        //        total += plates[i].Grow(1);
+        //    }
+        //}
         public void Colorise(ref Random rand, int numPlates)
         {
             for (int i = 0; i < mesh.vertices.Length; ++i)
-                SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 0.0f));
+                MeshAttr.SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 0.0f));
 
             Neighbours neighbours = GetNeighbours();
 
@@ -815,66 +840,6 @@ namespace HelloTK
                 }
             }
         }
-
-        public static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
-        {
-            IPositionVertex ipv = vertex as IPositionVertex;
-            if (ipv != null)
-            {
-                return ipv.GetPosition();
-            }
-            return Vector3.Zero;
-        }
-
-        public static void SetPosition<TVertex2>(ref TVertex2 vert, ref Vector3 pos) where TVertex2 : struct, IVertex
-        {
-            IPositionVertex ipv = vert as IPositionVertex;
-            if (ipv != null)
-            {
-                ipv.SetPosition(pos);
-                vert = (TVertex2)ipv;
-            }
-        }
-
-        public static void SetNormal<TVertex2>(ref TVertex2 vertex, Vector3 normal) where TVertex2 : struct, IVertex
-        {
-            INormalVertex inv = vertex as INormalVertex;
-            if (inv != null)
-            {
-                inv.SetNormal(normal);
-                vertex = (TVertex2)inv;
-            }
-        }
-
-        public static void SetUV<TVertex2>(ref TVertex2 vertex, Vector2 uv) where TVertex2 : struct, IVertex
-        {
-            ITextureCoordinateVertex inv = vertex as ITextureCoordinateVertex;
-            if (inv != null)
-            {
-                inv.SetTextureCoordinates(uv);
-                vertex = (TVertex2)inv;
-            }
-        }
-        public static void SetColor<TVertex2>(ref TVertex2 vertex, Vector4 color) where TVertex2 : struct, IVertex
-        {
-            IColorVertex inv = vertex as IColorVertex;
-            if (inv != null)
-            {
-                inv.SetColor(color);
-                vertex = (TVertex2)inv;
-            }
-        }
-
-        public static Vector4 GetColor<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
-        {
-            IColorVertex ipv = vertex as IColorVertex;
-            if (ipv != null)
-            {
-                return ipv.GetColor();
-            }
-            return Vector4.Zero;
-        }
-
 
         public IVertexBuffer CreateVertexBuffer()
         {

@@ -29,7 +29,7 @@ namespace HelloTK
             outerIndices.Add(startIndex);
             hue = rand.Next(500) / 500.0f;
             Vector4 color = NextColor(0);
-            Geometry<TVertex>.SetColor(ref mesh.vertices[startIndex], color);
+            MeshAttr.SetColor(ref mesh.vertices[startIndex], color);
         }
 
         private Vector4 NextColor(int numCycles)
@@ -54,12 +54,12 @@ namespace HelloTK
 
                     foreach (int neighbourIndex in neighbour)
                     {
-                        Vector4 vertexColor = Geometry<TVertex>.GetColor(ref mesh.vertices[neighbourIndex]);
+                        Vector4 vertexColor = MeshAttr.GetColor(ref mesh.vertices[neighbourIndex]);
                         if (vertexColor.W == 0.0f )
                         {
                             // It's not been claimed yet.
                             newOuterIndices.Add(neighbourIndex);
-                            Geometry<TVertex>.SetColor(ref mesh.vertices[neighbourIndex], cycleColor);
+                            MeshAttr.SetColor(ref mesh.vertices[neighbourIndex], cycleColor);
                         }
                     }
                 }
