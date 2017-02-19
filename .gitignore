@@ -1,7 +1,8 @@
 *.exe
-HelloTK/bin
-HelloTK/obj
+WorldGen/bin
+WorldGen/obj
 .vs/
+*~
 packages/
-/HelloTK.VC.db
-/HelloTK.VC.VC.opendb
+/WorldGen.VC.db
+/WorldGen.VC.VC.opendb
