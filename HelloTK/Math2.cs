@@ -50,7 +50,10 @@ namespace HelloTK
         {
             return new Vector3(a, a, a);
         }
-
+        public static float Clamp( float value, float minimum, float maximum )
+        {
+            return Math.Min(Math.Max(value, minimum), maximum);
+        }
         public static Quaternion FromEuler(float pitch, float yaw, float roll)
         {
             yaw *= 0.5f * (float)Math.PI / 180.0f;

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
+using System.Linq;
 
 namespace HelloTK
 {
@@ -724,44 +725,18 @@ namespace HelloTK
                 newIndices.Add((uint)index++);
         }
 
-        class VertexNeighbours
+        public Neighbours GetNeighbours()
         {
-            List<uint> neighbours;            
-            public List<uint> Neighbours { get { return neighbours; } }
-            public VertexNeighbours()
-            {
-                this.neighbours = new List<uint>();
-            }
-        }
-        private VertexNeighbours[] neighbours;
-
-        public void FindNeighbors()
-        {
-            neighbours = new VertexNeighbours[mesh.vertices.Length];
-            for (int i = 0; i < mesh.vertices.Length; ++i)
-                neighbours[i] = new VertexNeighbours();
+            var neighbours = new Neighbours(mesh.vertices.Length);
 
             for (int i = 0; i < indices.Length; i += 3)
             {
-                uint v0 = indices[i];
-                uint v1 = indices[i + 1];
-                uint v2 = indices[i + 2];
-
-                if (!neighbours[v0].Neighbours.Contains(v1))
-                    neighbours[v0].Neighbours.Add(v1);
-                if (!neighbours[v0].Neighbours.Contains(v2))
-                    neighbours[v0].Neighbours.Add(v2);
-
-                if (!neighbours[v1].Neighbours.Contains(v0))
-                    neighbours[v1].Neighbours.Add(v0);
-                if (!neighbours[v1].Neighbours.Contains(v2))
-                    neighbours[v1].Neighbours.Add(v2);
-
-                if (!neighbours[v2].Neighbours.Contains(v1))
-                    neighbours[v2].Neighbours.Add(v1);
-                if (!neighbours[v2].Neighbours.Contains(v0))
-                    neighbours[v2].Neighbours.Add(v0);
+                int v0 = (int)indices[i];
+                int v1 = (int)indices[i + 1];
+                int v2 = (int)indices[i + 2];
+                neighbours.AddTriangle(v0, v1, v2);
             }
+            return neighbours;
         }
 
         public void ConvertToVertexPerIndex()
@@ -815,74 +790,33 @@ namespace HelloTK
             }
         }
 
-        public void RandomiseColors2(ref Random rand)
+        public void Colorise(ref Random rand, int numPlates)
         {
             for (int i = 0; i < mesh.vertices.Length; ++i)
-            {
-                Vector4 color = new Vector4((float)rand.Next(256) / 255.0f, rand.Next(256) / 255.0f, rand.Next(256) / 255.0f, 1.0f);
-                SetColor(ref mesh.vertices[i], color);
-            }
-        }
-        public void Colorise(ref Random rand)
-        {
-            for (int i = 0; i < mesh.vertices.Length; ++i)
-                SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
+                SetColor(ref mesh.vertices[i], new Vector4(0.2f, 0.3f, 0.8f, 0.0f));
 
-            FindNeighbors();
+            Neighbours neighbours = GetNeighbours();
 
-            for (int i = 0; i < mesh.vertices.Length/5; ++i)
+            // Choose N random points; flood fill from each point.
+
+            var plates = new Plate<TVertex>[numPlates];
+            int total=numPlates;
+            for (int i = 0; i < numPlates; ++i)
             {
                 int vertexIndex = rand.Next(mesh.vertices.Length);
-                Neighbour neighbour = new Neighbour(ref neighbours, vertexIndex);
+                plates[i] = new Plate<TVertex>(mesh, vertexIndex, neighbours, ref rand);
+            }
 
-                float hue = rand.Next(mesh.vertices.Length) / (float)mesh.vertices.Length;
-                Vector3 HSV = new Vector3( hue, 0.5f, 0.8f);
-                Vector3 RGB = Math2.HSV2RGB(HSV);
-                Vector4 color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
-                SetColor(ref mesh.vertices[vertexIndex], color);
-
-                HSV.Z = 1.0f;
-                RGB = Math2.HSV2RGB(HSV);
-                color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
-
-                //Vector4 vertexColor = GetColor(ref mesh.vertices[index]);
-                for (int index = 0; index >= 0; index = neighbour.Next() )
+            while (total < mesh.vertices.Length)
+            {
+                for (int i = 0; i < numPlates; ++i)
                 {
-                    SetColor(ref mesh.vertices[index], color);
+                    total += plates[i].Grow(1);
                 }
             }
         }
 
-        class Neighbour
-        {
-            int vertexIndex;
-            int currentIndex;
-            VertexNeighbours neighbours;
-            public int Count { get { return neighbours.Neighbours.Count; } }
-            public Neighbour( ref VertexNeighbours[] neighbours, int vertexIndex)
-            {
-                this.neighbours = neighbours[vertexIndex];
-                this.vertexIndex = vertexIndex;
-                this.currentIndex = 0;
-                // Sort neighbours by angle about vertex pole.
-            }
-            public int Next()
-            {
-                int numNeighbours = neighbours.Neighbours.Count;
-                currentIndex++;
-                if (currentIndex < numNeighbours)
-                {
-                    return (int)neighbours.Neighbours[currentIndex];
-                }
-                else
-                {
-                    return -1;
-                }
-            }
-        }
-
-
-        private static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
+        public static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {
             IPositionVertex ipv = vertex as IPositionVertex;
             if (ipv != null)
@@ -892,7 +826,7 @@ namespace HelloTK
             return Vector3.Zero;
         }
 
-        private static void SetPosition<TVertex2>(ref TVertex2 vert, ref Vector3 pos) where TVertex2 : struct, IVertex
+        public static void SetPosition<TVertex2>(ref TVertex2 vert, ref Vector3 pos) where TVertex2 : struct, IVertex
         {
             IPositionVertex ipv = vert as IPositionVertex;
             if (ipv != null)
@@ -902,7 +836,7 @@ namespace HelloTK
             }
         }
 
-        private static void SetNormal<TVertex2>(ref TVertex2 vertex, Vector3 normal) where TVertex2 : struct, IVertex
+        public static void SetNormal<TVertex2>(ref TVertex2 vertex, Vector3 normal) where TVertex2 : struct, IVertex
         {
             INormalVertex inv = vertex as INormalVertex;
             if (inv != null)
@@ -912,7 +846,7 @@ namespace HelloTK
             }
         }
 
-        private static void SetUV<TVertex2>(ref TVertex2 vertex, Vector2 uv) where TVertex2 : struct, IVertex
+        public static void SetUV<TVertex2>(ref TVertex2 vertex, Vector2 uv) where TVertex2 : struct, IVertex
         {
             ITextureCoordinateVertex inv = vertex as ITextureCoordinateVertex;
             if (inv != null)
@@ -921,7 +855,7 @@ namespace HelloTK
                 vertex = (TVertex2)inv;
             }
         }
-        private static void SetColor<TVertex2>(ref TVertex2 vertex, Vector4 color) where TVertex2 : struct, IVertex
+        public static void SetColor<TVertex2>(ref TVertex2 vertex, Vector4 color) where TVertex2 : struct, IVertex
         {
             IColorVertex inv = vertex as IColorVertex;
             if (inv != null)
@@ -930,7 +864,8 @@ namespace HelloTK
                 vertex = (TVertex2)inv;
             }
         }
-        private static Vector4 GetColor<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
+
+        public static Vector4 GetColor<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {
             IColorVertex ipv = vertex as IColorVertex;
             if (ipv != null)

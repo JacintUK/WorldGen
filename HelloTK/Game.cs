@@ -33,6 +33,7 @@ namespace HelloTK
         float longitude, attitude;
         float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
         int worldSeed=0;
+        int numPlates = 20;
 
         const string SHADER_PATH = "Resources/Shaders/";
 
@@ -58,6 +59,7 @@ namespace HelloTK
             keyHandlers.Add(new KeyHandler(Key.D, DistortTriangles));
             keyHandlers.Add(new KeyHandler(Key.R, ResetSphere));
             keyHandlers.Add(new KeyHandler(Key.Number1, DR1));
+            keyHandlers.Add(new KeyHandler(Key.C, Recolor));
 
             GL.ClearColor(System.Drawing.Color.Aquamarine);
 
@@ -116,7 +118,6 @@ namespace HelloTK
         {
             worldGeometry = RendererFactory.CreateIcosphere( 4 );
             worldGeometry.PrimitiveType = PrimitiveType.Points;
-            worldGeometry.Colorise(ref rand);
         }
 
         private void DistortWorld()
@@ -130,6 +131,7 @@ namespace HelloTK
             {
                 worldGeometry.RelaxTriangles(0.5f);
             }
+            worldGeometry.Colorise(ref rand, numPlates);
         }
 
         private void GenerateRenderGeometry()
@@ -190,6 +192,16 @@ namespace HelloTK
             if(down)
             {
                 DistortWorld();
+                GenerateRenderGeometry();
+                UpdateRenderers();
+            }
+        }
+
+        private void Recolor(bool down)
+        {
+            if(down)
+            {
+                worldGeometry.Colorise(ref rand, numPlates);
                 GenerateRenderGeometry();
                 UpdateRenderers();
             }

@@ -56,7 +56,7 @@ namespace HelloTK
             Vector4 color2 = new Vector4(1.0f, 0.2f, 1.0f, 1.0f);
             Vector4 color3 = new Vector4(0.2f, 1.0f, 1.0f, 1.0f);
 
-            float t = 1.61803398875f;// approximation of golden ratio
+            const float t = 1.61803398875f;// approximation of golden ratio
 
             verts[0] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, t, 0)),color2);
             verts[1] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, t, 0)), color);
