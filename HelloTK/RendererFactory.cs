@@ -36,7 +36,6 @@ namespace HelloTK
             };
 
             Renderer quadRenderer = new Renderer(new Geometry<Vertex>(new Mesh<Vertex>(quad), indices), shader);
-            quadRenderer.Model = Matrix4.CreateTranslation(0, 0, 0);
             return quadRenderer;
         }
 
@@ -45,7 +44,6 @@ namespace HelloTK
             var vertexBuffer = new VertexBuffer<TVertex>(mesh);
             var indexBuffer = new IndexBuffer(indices);
             var renderer = new Renderer(new Geometry<TVertex>(mesh, indices), shader);
-            renderer.Model = Matrix4.CreateTranslation(0, 0, -1);
             return renderer;
         }
 

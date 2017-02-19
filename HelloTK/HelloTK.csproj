@@ -64,6 +64,7 @@
     <Compile Include="Mesh.cs" />
     <Compile Include="MouseButton.cs" />
     <Compile Include="Neighbours.cs" />
+    <Compile Include="Node.cs" />
     <Compile Include="Plane.cs" />
     <Compile Include="Plate.cs" />
     <Compile Include="Program.cs" />

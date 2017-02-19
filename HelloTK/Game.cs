@@ -16,7 +16,7 @@ namespace HelloTK
     {
         List<MouseButton> pressedButtons = new List<MouseButton>();
         List<KeyHandler> keyHandlers = new List<KeyHandler>();
-        List<Renderer> renderers = new List<Renderer>();
+        Node node;
         Color backgroundColor = Color.Aquamarine;
         Matrix4 projection;
 
@@ -61,6 +61,9 @@ namespace HelloTK
             keyHandlers.Add(new KeyHandler(Key.I, InitPlates));
             keyHandlers.Add(new KeyHandler(Key.P, GrowPlates));
 
+            node = new Node();
+            node.Model = Matrix4.CreateTranslation(0, 0, -3);
+
             GL.ClearColor(System.Drawing.Color.Aquamarine);
 
             GL.Enable(EnableCap.Blend);
@@ -83,23 +86,21 @@ namespace HelloTK
             world = new World();
             world.Initialize();
             world.Distort();
-            GenerateRenderGeometry();
+            worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
 
             ico = new Renderer(worldRenderGeometry, shader);
             ico.AddUniform(new UniformProperty("lightPosition", lightPosition));
             ico.AddUniform(new UniformProperty("ambientColor", ambientColor));
 
             icoPos = new Vector3(0, 0, -3);
-            ico.Model = Matrix4.CreateTranslation(icoPos);
             ico.AddTexture(cellTexture);
             ico.CullFaceFlag = true;
-            renderers.Add(ico);
+            node.Add(ico);
 
             icoVertsDebug = new Renderer(world.geometry, pointShader);
             icoVertsDebug.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
             icoVertsDebug.AddUniform(new UniformProperty("pointSize", 3f));
-            icoVertsDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
-            //renderers.Add(icoVertsDebug);
+            node.Add(icoVertsDebug);
 
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
@@ -108,18 +109,14 @@ namespace HelloTK
             icoCentroidDebug.CullFaceFlag = false;
             icoCentroidDebug.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0, 0.5f, 1)));
             icoCentroidDebug.AddUniform(new UniformProperty("pointSize", 3f));
-            icoCentroidDebug.Model = Matrix4.CreateTranslation(0, 0, -3);
-            //renderers.Add(icoCentroidDebug);
+            node.Add(icoCentroidDebug);
         }
 
-
-        private void GenerateRenderGeometry()
-        {
-            worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
-        }
 
         void UpdateRenderers()
         {
+            worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
+
             ico.Update(worldRenderGeometry);
             icoVertsDebug.Update(world.geometry);
 
@@ -142,7 +139,6 @@ namespace HelloTK
                 world.ResetSeed();
  
                 world.Initialize();
-                GenerateRenderGeometry();
                 UpdateRenderers();
             }
         }
@@ -152,7 +148,6 @@ namespace HelloTK
             if (down)
             {
                 world.RelaxTriangles();   
-                GenerateRenderGeometry();
                 UpdateRenderers();
             }
         }
@@ -162,7 +157,6 @@ namespace HelloTK
             if (down)
             {
                 world.TweakTriangles();
-                GenerateRenderGeometry();
                 UpdateRenderers();
             }
         }
@@ -172,7 +166,6 @@ namespace HelloTK
             if(down)
             {
                 world.Distort();
-                GenerateRenderGeometry();
                 UpdateRenderers();
             }
         }
@@ -182,7 +175,6 @@ namespace HelloTK
             if(down)
             {
                 world.Colorise();
-                GenerateRenderGeometry();
                 UpdateRenderers();
             }
         }
@@ -192,7 +184,6 @@ namespace HelloTK
             if (down)
             {
                 world.InitPlates();
-                GenerateRenderGeometry();
                 UpdateRenderers();
             }
         }
@@ -201,11 +192,9 @@ namespace HelloTK
             if (down)
             {
                 world.GrowPlates();
-                GenerateRenderGeometry();
                 UpdateRenderers();
             }
         }
-
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
@@ -217,11 +206,7 @@ namespace HelloTK
             projection =
                 Matrix4.CreatePerspectiveFieldOfView(fieldOfView, Width / (float)Height, 0.1f, 100.0f);
 
-            foreach (var renderer in renderers)
-            {
-                renderer.Draw(view, projection);
-            }
-
+            node.Draw( ref view, ref projection);
             SwapBuffers();
         }
 
@@ -321,9 +306,7 @@ namespace HelloTK
                 //rotation = FromEuler(attitude, longitude, 0);
                 Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
                 Matrix4 tr = Matrix4.CreateTranslation(icoPos);
-                ico.Model = rotationMatrix * tr;
-                icoCentroidDebug.Model = ico.Model;
-                icoVertsDebug.Model = ico.Model;
+                node.Model = rotationMatrix * tr;
             }
         }
     }

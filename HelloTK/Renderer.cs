@@ -16,9 +16,6 @@ namespace HelloTK
         private Shader shader;
         private Texture texture;
         
-        private Matrix4 model = Matrix4.Identity;
-        public Matrix4 Model { set { model = value; } get { return model; } }
-        
         public bool DepthTestFlag { set; get; }
         public CullFaceMode CullFaceMode { set; get; }
         public bool CullFaceFlag { set; get; }
@@ -60,7 +57,7 @@ namespace HelloTK
         {
             uniforms.Add(uniform);
         }
-        public void Draw(Matrix4 view, Matrix4 projection )
+        public void Draw( Matrix4 model, Matrix4 view, Matrix4 projection )
         {
             if(geometry.NeedsUpdate)
             {
@@ -100,14 +97,14 @@ namespace HelloTK
                 }
 
                 // Set up uniforms:
-                Matrix4 mv = this.model * view;
+                Matrix4 mv = model * view;
                 Matrix3 mvIT = new Matrix3(mv);
                 mvIT.Invert();
                 mvIT.Transpose();
                 shader.SetUniformMatrix3("mvIT", mvIT);
                 shader.SetUniformMatrix4("modelView", mv);
                 shader.SetUniformMatrix4("projection", projection);
-                shader.SetUniformMatrix4("model", this.model);
+                shader.SetUniformMatrix4("model", model);
                 shader.SetUniformMatrix4("view", view);
 
                 foreach( var uniform in uniforms )
