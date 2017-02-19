@@ -16,6 +16,12 @@ namespace HelloTK
         int numPlates = 20;
         Random rand;
 
+        public World()
+        {
+            Initialize();
+            Distort();
+        }
+
         public void Initialize()
         {
             rand = new Random(0);

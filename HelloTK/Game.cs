@@ -24,7 +24,7 @@ namespace HelloTK
         Renderer ico;
         Renderer icoCentroidDebug;
         Renderer icoVertsDebug;
-        Vector3 icoPos;
+        Vector3 worldPosition;
         Vector3 lightPosition = new Vector3(-2, 2, 2);
         Vector3 cameraPosition = Vector3.UnitZ *2.0f;
         Vector3 ambientColor;
@@ -61,21 +61,7 @@ namespace HelloTK
             keyHandlers.Add(new KeyHandler(Key.I, InitPlates));
             keyHandlers.Add(new KeyHandler(Key.P, GrowPlates));
 
-            node = new Node();
-            node.Model = Matrix4.CreateTranslation(0, 0, -3);
-
-            GL.ClearColor(System.Drawing.Color.Aquamarine);
-
-            GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
-            GL.Enable(EnableCap.DepthTest);
-            GL.DepthFunc(DepthFunction.Lequal);
-
-            GL.Enable(EnableCap.Texture2D);
-            GL.Enable(EnableCap.PointSprite);
-            GL.Enable(EnableCap.PointSmooth);
-            GL.Enable(EnableCap.VertexProgramPointSize);
-
+            InitializeGL();
             SetCameraProjection();
 
             Shader texShader = new Shader(SHADER_PATH+"quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
@@ -84,15 +70,16 @@ namespace HelloTK
 
             Texture cellTexture = new Texture("Edge.png");
             world = new World();
-            world.Initialize();
-            world.Distort();
+            worldPosition = new Vector3(0, 0, -3);
+
+            node = new Node();
+            node.Model = Matrix4.CreateTranslation(worldPosition);
+
             worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
 
             ico = new Renderer(worldRenderGeometry, shader);
             ico.AddUniform(new UniformProperty("lightPosition", lightPosition));
             ico.AddUniform(new UniformProperty("ambientColor", ambientColor));
-
-            icoPos = new Vector3(0, 0, -3);
             ico.AddTexture(cellTexture);
             ico.CullFaceFlag = true;
             node.Add(ico);
@@ -123,13 +110,6 @@ namespace HelloTK
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             icoCentroidDebug.Update(centroidGeom);
-        }
-
-        private void SetCameraProjection()
-        {
-            GL.Viewport(ClientRectangle.X, ClientRectangle.Y, ClientRectangle.Width, ClientRectangle.Height);
-            projection =
-                Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 2.0f, Width / (float)Height, 0.1f, 100.0f);
         }
 
         private void ResetSphere(bool down)
@@ -187,6 +167,7 @@ namespace HelloTK
                 UpdateRenderers();
             }
         }
+
         private void GrowPlates(bool down)
         {
             if (down)
@@ -196,6 +177,76 @@ namespace HelloTK
             }
         }
 
+        void UpdateZoom(MouseButton button)
+        {
+            if (button.IsDown)
+            {
+                // drag up and down to change zoom level.
+                fieldOfView += button.YDelta / 100.0f;
+                fieldOfView = Clamp(fieldOfView, 0.1f, (float)Math.PI - 0.1f);
+            }
+        }
+
+        void UpdateCameraPos(MouseButton button)
+        {
+            if (button.IsDown)
+            {
+                // drag up and down to change camera Z.
+                cameraPosition.Z += button.YDelta / 100.0f;
+                cameraPosition.Z = Clamp(cameraPosition.Z, -1, 2);
+            }
+        }
+
+        void UpdateIco(MouseButton button)
+        {
+            if (button.IsDown)
+            {
+                // Rotate around Y axis
+                longitude += button.XDelta / 4.0f;
+                longitude %= 360;
+
+                attitude += button.YDelta / 2.0f;
+                attitude = Math.Max(Math.Min(90, attitude), -90);
+
+                Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
+                Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI * attitude / 180.0f);
+                Quaternion rotation = equatorRot * polarAxisRot;
+                //rotation = FromEuler(attitude, longitude, 0);
+                Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
+                Matrix4 tr = Matrix4.CreateTranslation(worldPosition);
+                node.Model = rotationMatrix * tr;
+            }
+        }
+
+
+        private void InitializeGL()
+        {
+            GL.Viewport(ClientRectangle.X, ClientRectangle.Y, ClientRectangle.Width, ClientRectangle.Height);
+            GL.ClearColor(System.Drawing.Color.Aquamarine);
+
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthFunc(DepthFunction.Lequal);
+
+            GL.Enable(EnableCap.Texture2D);
+            GL.Enable(EnableCap.PointSprite);
+            GL.Enable(EnableCap.PointSmooth);
+            GL.Enable(EnableCap.VertexProgramPointSize);
+        }
+
+        private void SetCameraProjection()
+        {
+            projection = Matrix4.CreatePerspectiveFieldOfView(fieldOfView, Width / (float)Height, 0.1f, 100.0f);
+        }
+
+        protected override void OnUpdateFrame(FrameEventArgs e)
+        {
+            base.OnUpdateFrame(e);
+            // Coords relative to drawing frame
+            // var mousePos = base.PointToClient(new Point(Mouse.X, Mouse.Y));
+        }
+
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
@@ -203,8 +254,7 @@ namespace HelloTK
             GL.ClearDepth(1);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             Matrix4 view = Matrix4.LookAt(cameraPosition, Vector3.Zero, Vector3.UnitY);
-            projection =
-                Matrix4.CreatePerspectiveFieldOfView(fieldOfView, Width / (float)Height, 0.1f, 100.0f);
+            SetCameraProjection();
 
             node.Draw( ref view, ref projection);
             SwapBuffers();
@@ -222,7 +272,6 @@ namespace HelloTK
             base.OnKeyDown(e);
             if (e.Key == Key.Escape)
             {
-                Console.WriteLine("Escape Down");
                 base.Exit();
             }
             foreach (var h in keyHandlers)
@@ -261,52 +310,6 @@ namespace HelloTK
             foreach (var button in pressedButtons)
             {
                 button.Update(new Point(e.X, e.Y));
-            }
-        }
-
-        protected override void OnUpdateFrame(FrameEventArgs e)
-        {
-            base.OnUpdateFrame(e);
-            // Coords relative to drawing frame
-            // var mousePos = base.PointToClient(new Point(Mouse.X, Mouse.Y));
-        }
-
-        void UpdateZoom(MouseButton button)
-        {
-            if (button.IsDown)
-            {
-                // drag up and down to change zoom level.
-                fieldOfView += button.YDelta / 100.0f;
-                fieldOfView = Clamp(fieldOfView, 0.1f, (float)Math.PI-0.1f);
-            }
-        }
-        void UpdateCameraPos(MouseButton button)
-        {
-            if (button.IsDown)
-            {
-                // drag up and down to change zoom level.
-                cameraPosition.Z += button.YDelta / 100.0f;
-                cameraPosition.Z = Clamp(cameraPosition.Z, -1, 2);
-            }
-        }
-        void UpdateIco(MouseButton button)
-        {
-            if (button.IsDown)
-            {
-                // Rotate around Y axis
-                longitude += button.XDelta / 4.0f;
-                longitude %= 360;
-
-                attitude += button.YDelta / 2.0f;
-                attitude = Math.Max(Math.Min(90, attitude), -90);
-
-                Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
-                Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI * attitude / 180.0f);
-                Quaternion rotation = equatorRot * polarAxisRot;
-                //rotation = FromEuler(attitude, longitude, 0);
-                Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
-                Matrix4 tr = Matrix4.CreateTranslation(icoPos);
-                node.Model = rotationMatrix * tr;
             }
         }
     }
