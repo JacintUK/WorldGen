@@ -17,11 +17,24 @@ namespace WorldGenerator
         int cycleNum = 0;
         float hue;
 
+        Vector3 center;
+        Vector3 pivot;
+        float centerRotation;
+        float pivotRotation;
+        float elevation;
+
         public Plate(IMesh mesh, int startIndex, Neighbours neighbours, ref Random rand)
         {
             this.mesh = mesh;
             this.startIndex = startIndex;
             this.neighbours = neighbours;
+
+            center = mesh.GetPosition(startIndex);
+            pivot = new Vector3(rand.Next(100), rand.Next(100), rand.Next(100));
+            pivot.Normalize();
+            centerRotation = (rand.Next(100)-50)*(float)Math.PI/3600.0f; // -2.5 -> 2.5 degrees
+            pivotRotation = (rand.Next(100)-50)*(float)Math.PI/3600.0f;  
+            elevation = rand.Next(20) - 10.0f; // -10 -> +10 
 
             allIndices = new List<int>(6);
             allIndices.Add(startIndex);
@@ -73,6 +86,13 @@ namespace WorldGenerator
                 growth += newOuterIndices.Count;
             }
             return growth;
+        }
+
+        public void CalculateMovement()
+        {
+            // For each vertex, 
+            //   motion due to rotation about pivot (drift)
+            //   + motion due to rotation about plate center (spin)
         }
     }
 }

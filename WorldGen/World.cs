@@ -20,6 +20,7 @@ namespace WorldGenerator
         {
             Initialize();
             Distort();
+            CreatePlates(ref rand, numPlates);
         }
 
         public void Initialize()
@@ -40,7 +41,6 @@ namespace WorldGenerator
             {
                 geometry.RelaxTriangles(0.5f);
             }
-            CreatePlates(ref rand, numPlates);
         }
 
         public void ResetSeed()
@@ -104,6 +104,38 @@ namespace WorldGenerator
                     total += plates[i].Grow(1);
                 }
             }
+            CalculatePlateBoundaries();
         }
+
+        private void PlateCalculations()
+        {
+            for (int i = 0; i < numPlates; ++i)
+            {
+                int vertexIndex = rand.Next(geometry.Mesh.Length);
+                plates[i].CalculateMovement();
+            }
+            // for each edge in plate boundaries,
+            //   calculate relative motion between tiles
+            //     both parallel to (shear) and perpendicular to (pressure) edge.
+            //     if perpendicular motion is +ve, it's a collision.
+            //                                -ve, it's a rift (which would form basaltic volcanoes)
+            //     If collision, then
+            //        if heights sufficiently close & same sign, treat as height increase
+            //           mountain formation; folding;
+            //        if heights opposite sign; subduct the lower under the higher.
+            //           tilt upper plate (calc for all boundaries)
+
+        }  
+
+        private void CalculatePlateBoundaries()
+        {
+            // Find the boundaries between each plate.
+            // Each plate keeps it's outerIndices.
+            //   Can use this, plus world geometry's neighbours to work out
+            //   the neighbouring tile & plate.
+            // For each edge in boundary, 
+            //   store plate index and tile index 
+        }
+
     }
 }

@@ -263,6 +263,7 @@ namespace WorldGenerator
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
+            GL.Viewport(ClientRectangle.X, ClientRectangle.Y, ClientRectangle.Width, ClientRectangle.Height);
             SetCameraProjection();
         }
 
