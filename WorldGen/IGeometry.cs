@@ -1,10 +1,15 @@
 ﻿using System;
 using OpenTK.Graphics.OpenGL;
 using OpenTK;
+using System.Collections.Generic;
+
 namespace WorldGenerator
 {
+    using Borders = Dictionary<Int64, Tuple<int, int>>;
+
     internal interface IGeometry
     {
+
         PrimitiveType PrimitiveType { get; set; }
         bool NeedsUpdate { set; get; }
         IMesh Mesh { get; }
@@ -23,6 +28,7 @@ namespace WorldGenerator
         void ClearColor(Vector4 color);
         Mesh<Vertex3D> GenerateCentroidMesh();
         Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex;
+        Geometry<AltVertex> GenerateBorderGeometry<AltVertex>(Borders borders) where AltVertex : struct, IVertex;
         Neighbours GetNeighbours();
     }
 }

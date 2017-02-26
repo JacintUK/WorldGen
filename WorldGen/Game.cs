@@ -21,9 +21,12 @@ namespace WorldGenerator
         Matrix4 projection;
 
         IGeometry worldRenderGeometry;
-        Renderer ico;
-        Renderer icoCentroidDebug;
-        Renderer icoVertsDebug;
+        IGeometry borderGeometry;
+        Renderer worldRenderer;
+        Renderer worldCentroidDebugRenderer;
+        Renderer worldVertsDebugRenderer;
+        Renderer borderRenderer;
+        Quaternion rotation = new Quaternion(Vector3.UnitY, 0.0f);
         Vector3 worldPosition;
         Vector3 lightPosition = new Vector3(-2, 2, 2);
         Vector3 cameraPosition = Vector3.UnitZ *2.0f;
@@ -67,7 +70,7 @@ namespace WorldGenerator
             Shader texShader = new Shader(SHADER_PATH+"quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
             Shader shader = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
             Shader pointShader = new Shader(SHADER_PATH + "pointVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
-
+            Shader borderShader = new Shader(SHADER_PATH + "Vert3DColorShader.glsl", SHADER_PATH + "pointFragShader.glsl");
             Texture cellTexture = new Texture("Edge.png");
             world = new World();
             worldPosition = new Vector3(0, 0, -3);
@@ -77,39 +80,47 @@ namespace WorldGenerator
 
             worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
 
-            ico = new Renderer(worldRenderGeometry, shader);
-            ico.AddUniform(new UniformProperty("lightPosition", lightPosition));
-            ico.AddUniform(new UniformProperty("ambientColor", ambientColor));
-            ico.AddTexture(cellTexture);
-            ico.CullFaceFlag = true;
-            node.Add(ico);
+            worldRenderer = new Renderer(worldRenderGeometry, shader);
+            worldRenderer.AddUniform(new UniformProperty("lightPosition", lightPosition));
+            worldRenderer.AddUniform(new UniformProperty("ambientColor", ambientColor));
+            worldRenderer.AddTexture(cellTexture);
+            worldRenderer.CullFaceFlag = true;
+            node.Add(worldRenderer);
 
-            icoVertsDebug = new Renderer(world.geometry, pointShader);
-            icoVertsDebug.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
-            icoVertsDebug.AddUniform(new UniformProperty("pointSize", 3f));
-            node.Add(icoVertsDebug);
+            borderGeometry = world.geometry.GenerateBorderGeometry<Vertex3DColor>(world.Borders);
+            borderGeometry.PrimitiveType = PrimitiveType.Triangles;
+            borderRenderer = new Renderer(borderGeometry, borderShader);
+            borderRenderer.DepthTestFlag = true;
+            borderRenderer.CullFaceFlag = false;
+            node.Add(borderRenderer);
+
+            worldVertsDebugRenderer = new Renderer(world.geometry, pointShader);
+            worldVertsDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
+            worldVertsDebugRenderer.AddUniform(new UniformProperty("pointSize", 3f));
+            node.Add(worldVertsDebugRenderer);
 
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
-            icoCentroidDebug = new Renderer(centroidGeom, pointShader);
-            icoCentroidDebug.DepthTestFlag = false;
-            icoCentroidDebug.CullFaceFlag = false;
-            icoCentroidDebug.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0, 0.5f, 1)));
-            icoCentroidDebug.AddUniform(new UniformProperty("pointSize", 3f));
-            node.Add(icoCentroidDebug);
+            worldCentroidDebugRenderer = new Renderer(centroidGeom, pointShader);
+            worldCentroidDebugRenderer.DepthTestFlag = false;
+            worldCentroidDebugRenderer.CullFaceFlag = false;
+            worldCentroidDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0, 0.5f, 1)));
+            worldCentroidDebugRenderer.AddUniform(new UniformProperty("pointSize", 3f));
+            node.Add(worldCentroidDebugRenderer);
         }
 
 
         void UpdateRenderers()
         {
             worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
-
-            ico.Update(worldRenderGeometry);
-            icoVertsDebug.Update(world.geometry);
+            borderGeometry = world.geometry.GenerateBorderGeometry<Vertex3DColor>(world.Borders);
+            borderRenderer.Update(borderGeometry);
+            worldRenderer.Update(worldRenderGeometry);
+            worldVertsDebugRenderer.Update(world.geometry);
 
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
-            icoCentroidDebug.Update(centroidGeom);
+            worldCentroidDebugRenderer.Update(centroidGeom);
         }
 
         private void ResetSphere(bool down)
@@ -201,6 +212,9 @@ namespace WorldGenerator
         {
             if (button.IsDown)
             {
+                // Actually, what you really want to do, is to unproject the mouse pointer onto the sphere, 
+                // before and after movement, then slerp to new rotation.
+
                 // Rotate around Y axis
                 longitude += button.XDelta / 4.0f;
                 longitude %= 360;
@@ -211,13 +225,11 @@ namespace WorldGenerator
                 Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
                 Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI * attitude / 180.0f);
                 Quaternion rotation = equatorRot * polarAxisRot;
-                //rotation = FromEuler(attitude, longitude, 0);
                 Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
                 Matrix4 tr = Matrix4.CreateTranslation(worldPosition);
                 node.Model = rotationMatrix * tr;
             }
         }
-
 
         private void InitializeGL()
         {

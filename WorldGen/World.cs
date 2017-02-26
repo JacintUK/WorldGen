@@ -8,19 +8,27 @@ using OpenTK.Graphics.OpenGL;
 
 namespace WorldGenerator
 {
+    using Borders = Dictionary<Int64, Tuple<int, int>>;
     class World
     {
+        private float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
+        private int worldSeed = 0;
+        private int[] vertexToPlate;
+        private Neighbours neighbours;
+        private Plate[] plates;
+        private int numPlates = 20;
+        private Random rand;
+        private Borders borders;
+
         public IGeometry geometry;
-        float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
-        int worldSeed = 0;
-        int numPlates = 20;
-        Random rand;
+        public Borders Borders { get { return borders; } }
 
         public World()
         {
             Initialize();
             Distort();
             CreatePlates(ref rand, numPlates);
+            CalculatePlateBoundaries();
         }
 
         public void Initialize()
@@ -28,6 +36,7 @@ namespace WorldGenerator
             rand = new Random(0);
             geometry = RendererFactory.CreateIcosphere(4);
             geometry.PrimitiveType = PrimitiveType.Points;
+
         }
 
         public void Distort()
@@ -41,6 +50,7 @@ namespace WorldGenerator
             {
                 geometry.RelaxTriangles(0.5f);
             }
+            CreatePlates();
         }
 
         public void ResetSeed()
@@ -61,12 +71,14 @@ namespace WorldGenerator
         public void CreatePlates()
         {
             CreatePlates(ref rand, numPlates);
+            CalculatePlateBoundaries();
         }
 
         public void InitPlates()
         {
             InitPlates(ref rand, numPlates);
         }
+
         public void GrowPlates()
         {
             for (int i = 0; i < plates.Length; ++i)
@@ -75,14 +87,13 @@ namespace WorldGenerator
             }
         }
 
-        Plate[] plates;
         private void InitPlates(ref Random rand, int numPlates)
         {
             Vector4 blankColor = new Vector4(0.2f, 0.3f, 0.8f, 0.0f);
             for (int i = 0; i < geometry.Mesh.Length; ++i)
                 geometry.Mesh.SetColor(i, ref blankColor);
 
-            Neighbours neighbours = geometry.GetNeighbours();
+            neighbours = geometry.GetNeighbours();
 
             plates = new Plate[numPlates];
             int total = numPlates;
@@ -104,7 +115,6 @@ namespace WorldGenerator
                     total += plates[i].Grow(1);
                 }
             }
-            CalculatePlateBoundaries();
         }
 
         private void PlateCalculations()
@@ -125,7 +135,8 @@ namespace WorldGenerator
             //        if heights opposite sign; subduct the lower under the higher.
             //           tilt upper plate (calc for all boundaries)
 
-        }  
+        }
+
 
         private void CalculatePlateBoundaries()
         {
@@ -135,7 +146,66 @@ namespace WorldGenerator
             //   the neighbouring tile & plate.
             // For each edge in boundary, 
             //   store plate index and tile index 
+            borders = new Dictionary<long, Tuple<int, int>>();
+
+            vertexToPlate = new int[geometry.Mesh.Length];
+            for (int i = 0; i < numPlates; ++i)
+            {
+                List<int> indices = plates[i].AllIndices;
+                for( int j = 0; j < indices.Count; ++j )
+                {
+                    vertexToPlate[indices[j]] = i;
+                }
+            }
+
+            if( neighbours == null )
+            {
+                neighbours = geometry.GetNeighbours();
+            }
+
+            int totalBorderTiles = 0;
+            for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
+            {
+                plates[plateIdx].CalculateBorderTiles(vertexToPlate);
+                totalBorderTiles += plates[plateIdx].OuterIndices.Count;
+            }
+
+            for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
+            {
+                List<int> outerIndices = plates[plateIdx].OuterIndices;
+                for( int outerVertexIndex = 0; outerVertexIndex< outerIndices.Count; ++outerVertexIndex )
+                {
+                    var outerNeighbours = neighbours.GetNeighbours(outerIndices[outerVertexIndex]);
+                    for( int neighbourIdx=0; neighbourIdx < outerNeighbours.Count; ++neighbourIdx)
+                    {
+                        int neighbourVertexIdx = outerNeighbours.Neighbours[neighbourIdx];
+                        int neighbourPlateIdx = vertexToPlate[neighbourVertexIdx];
+                        if ( neighbourPlateIdx != plateIdx)
+                        {
+                            // It's not in the plate, so must be a bordering plate.
+                            // Index by key from plates; stores verts.
+                            Int64 borderKey = CreateBorderKey((uint)neighbourVertexIdx, (uint)outerIndices[outerVertexIndex]);
+                            if (!borders.ContainsKey(borderKey ))
+                            {
+                                borders.Add(borderKey, new Tuple<int, int>(plateIdx, neighbourPlateIdx));
+                            }
+                        }
+                    }
+                }
+            }
+            if( borders.Count < totalBorderTiles/2.0f )
+            {
+                throw new Exception();
+            }
         }
 
+        private static Int64 CreateBorderKey( uint a, uint b )
+        {
+            Int64 min = a < b ? a : b;
+            Int64 max = a >= b ? a : b;
+            Int64 key = min << 32 | max;
+            return key;
+        }
+      
     }
 }

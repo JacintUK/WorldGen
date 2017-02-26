@@ -6,16 +6,22 @@ using System.Linq;
 
 namespace WorldGenerator
 {
+    using Borders = Dictionary<Int64, Tuple<int, int>>;
+
     class Geometry<TVertex> : IGeometry where TVertex : struct, IVertex
     {
+        struct Edge { public int triangle1; public int triangle2; } // triangle1 = 3 * triangle index
+
         private Mesh<TVertex> mesh;
         private uint[] indices;
         private PrimitiveType primType = PrimitiveType.Triangles;
+        private Dictionary<Int64, Edge> edgeCache2 = new Dictionary<long, Edge>();
+        private List<Vector3> centroids; // indexed by triangle.
+        private int[] vertCounts;
+
         public PrimitiveType PrimitiveType { get { return primType; } set { primType = value; } }
         public bool NeedsUpdate { set; get; }
         public IMesh Mesh { get { return mesh; } }
-
-        struct Edge { public int triangle1; public int triangle2; }
 
         public Geometry(Mesh<TVertex> mesh, uint[] indices)
         {
@@ -92,7 +98,7 @@ namespace WorldGenerator
             return numVerts;
         }
 
-        uint GenerateVertex(ref List<TVertex> verts, int a, int b)
+        private uint GenerateVertex(ref List<TVertex> verts, int a, int b)
         {
             Int64 key1 = CreateEdgeKey(indices[a], indices[b]);
             uint middlePt;
@@ -115,7 +121,8 @@ namespace WorldGenerator
             NeedsUpdate = true;
 
             // Assumptions: minimised mesh. Shared edges won't work without shared verts.
-            FindEdges();
+            GenerateEdges();
+
             // How many edges do we have? exchange some percentage of them...
             int numPerturbations = (int)((float)edgeCache2.Count * ratio);
             int numTriangles = mesh.vertices.Length;
@@ -224,6 +231,8 @@ namespace WorldGenerator
             }
             // Ensure the edge cache is cleared, as it's no longer valid.
             edgeCache2.Clear();
+            if( centroids != null)
+                centroids.Clear();
         }
 
         // Alternative algorithm
@@ -335,6 +344,10 @@ namespace WorldGenerator
                 MeshAttr.SetPosition(ref mesh.vertices[i], ref shiftPositions[i]);
                 totalShift += delta.Length;
             }
+
+            if( centroids != null)
+                centroids.Clear();
+
             return totalShift;
         }
 
@@ -394,7 +407,8 @@ namespace WorldGenerator
             float[] rotationSuppressions = new float[mesh.vertices.Length];
             rotationSuppressions.Initialize();
 
-            FindEdges();
+            edgeCache2.Clear();
+            GenerateEdges();
             float minEdgeLength = (float)idealEdgeLength * 0.8f;
             float maxEdgeLength = (float)idealEdgeLength * 1.2f;
 
@@ -453,6 +467,9 @@ namespace WorldGenerator
                 delta -= shiftPositions[i];
                 totalShift += delta.Length;
             }
+
+            if(centroids != null)
+                centroids.Clear();
             return totalShift;
         }
 
@@ -518,21 +535,21 @@ namespace WorldGenerator
             return tooThin;
         }
 
-        private Dictionary<Int64, Edge> edgeCache2 = new Dictionary<long, Edge>();
-        private int[] vertCounts;
-        private void FindEdges()
+        private void GenerateEdges()
         {
-            vertCounts = new int[mesh.vertices.Length];
-            edgeCache2.Clear();
-            int numIndices = indices.Length;
-            for (int i = 0; i < numIndices; i += 3)
+            if (edgeCache2 == null || edgeCache2.Count == 0)
             {
-                RegisterEdge(i, i + 1);
-                RegisterEdge(i + 1, i + 2);
-                RegisterEdge(i, i + 2);
-                vertCounts[indices[i]]++;
-                vertCounts[indices[i + 1]]++;
-                vertCounts[indices[i + 2]]++;
+                vertCounts = new int[mesh.vertices.Length];
+                int numIndices = indices.Length;
+                for (int i = 0; i < numIndices; i += 3)
+                {
+                    RegisterEdge(i, i + 1);
+                    RegisterEdge(i + 1, i + 2);
+                    RegisterEdge(i, i + 2);
+                    vertCounts[indices[i]]++;
+                    vertCounts[indices[i + 1]]++;
+                    vertCounts[indices[i + 2]]++;
+                }
             }
         }
 
@@ -560,6 +577,8 @@ namespace WorldGenerator
             return key;
         }
 
+        // triangle is the first index of the triangle vertices in the indices array,
+        // not the triangle index.
         private Vector3 GetCentroid(int triangle)
         {
             TVertex v1 = mesh.vertices[indices[triangle]];
@@ -573,7 +592,6 @@ namespace WorldGenerator
             Vector3 centroid = midPt + (v3Pos - midPt) / 3.0f;
             return centroid;
         }
-
 
         public Mesh<Vertex3D> GenerateCentroidMesh()
         {
@@ -595,19 +613,26 @@ namespace WorldGenerator
             return centroidMesh;
         }
 
-        public Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex
+        private void GenerateCentroids()
         {
             int numIndices = indices.Length;
-            List<Vector3> centroids = new List<Vector3>(numIndices / 3);
-            for (int i = 0; i < numIndices; i += 3)
-            {
-                Vector3 centroid = GetCentroid(i);
-                centroid.Normalize();
-                centroids.Add(centroid); // Index into list is triangle/3
-            }
 
-            if (edgeCache2.Count == 0)
-                FindEdges();
+            if (centroids == null || centroids.Count == 0)
+            { 
+                centroids = new List<Vector3>(numIndices / 3);
+                for (int i = 0; i < numIndices; i += 3)
+                {
+                    Vector3 centroid = GetCentroid(i);
+                    centroid.Normalize();
+                    centroids.Add(centroid); // Index into list is triangle index
+                }
+            }
+        }
+
+        public Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex
+        {
+            GenerateCentroids();
+            GenerateEdges();
 
             // For each edge, 
             //   get centroids of triangles each side
@@ -699,7 +724,7 @@ namespace WorldGenerator
             MeshAttr.SetColor(ref triVerts[1], ref c1);
             MeshAttr.SetColor(ref triVerts[2], ref c2);
 
-            newVerts[(int)v1index] = triVerts[0];
+            newVerts[v1index] = triVerts[0];
             int index = newVerts.Count;
             newVerts.Add(triVerts[1]);
             newVerts.Add(triVerts[2]);
@@ -709,8 +734,7 @@ namespace WorldGenerator
             newIndices.Add((uint)index++);
         }
 
-
-        public void AddTriangle<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3)
+        public void AddTriangle<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3, bool isAnticlockwise)
             where AltVertex : struct, IVertex
         {
             AltVertex[] triVerts = new AltVertex[3];
@@ -718,10 +742,11 @@ namespace WorldGenerator
             MeshAttr.SetPosition(ref triVerts[0], ref v1);
             MeshAttr.SetPosition(ref triVerts[1], ref v2);
             MeshAttr.SetPosition(ref triVerts[2], ref v3);
-            v1.Normalize();
+            Vector3 v1N = v1;
+            v1N.Normalize();
             for (int i = 0; i < 3; i++)
             {
-                MeshAttr.SetNormal(ref triVerts[i], ref v1);
+                MeshAttr.SetNormal(ref triVerts[i], ref v1N);
             }
 
             Vector2 uv0 = new Vector2(0.5f, 1);
@@ -734,9 +759,113 @@ namespace WorldGenerator
             int index = newVerts.Count;
             for (int i = 0; i < 3; i++)
                 newVerts.Add(triVerts[i]);
-            for (int i = 0; i < 3; i++)
-                newIndices.Add((uint)index++);
+
+            if (isAnticlockwise)
+            {
+                newIndices.Add((uint)index);
+                newIndices.Add((uint)index+1);
+                newIndices.Add((uint)index+2);
+            }
+            else
+            {
+                newIndices.Add((uint)index);
+                newIndices.Add((uint)index+2);
+                newIndices.Add((uint)index+1);
+            }
         }
+
+
+        public Geometry<AltVertex> GenerateBorderGeometry<AltVertex>( Borders borders ) 
+            where AltVertex : struct, IVertex
+        {
+            centroids.Clear();
+            GenerateCentroids();
+            GenerateEdges();
+
+            List<AltVertex> vertices = new List<AltVertex>();
+            List<uint> newIndices = new List<uint>();
+
+            const float h = 0.1f;
+
+            foreach (var iter in borders)
+            {
+                Int64 borderKey = iter.Key;
+                int v1index = (int)(borderKey & 0xffffffff);
+                int v2index = (int)((borderKey >> 32) & 0xffffffff);
+                Tuple<int, int> border = iter.Value;
+
+                // The border lies along an edge in the dual geometry.
+                int plateIndex1 = border.Item1;
+                int plateIndex2 = border.Item2;
+                Int64 edgeKey = CreateEdgeKey((uint) v1index, (uint) v2index);
+                Edge edge;
+                if (edgeCache2.TryGetValue(edgeKey, out edge))
+                {
+                    Vector3 v1Pos = mesh.GetPosition(v1index);
+                    Vector3 v2Pos = mesh.GetPosition(v2index);
+                    Vector3 centroid1 = centroids[edge.triangle1 / 3];
+                    Vector3 centroid2 = centroids[edge.triangle2 / 3];
+
+                    Vector3 v1g1prime = BaseProjection(v1Pos, centroid1, centroid2, h);
+                    Vector3 v1g2prime = BaseProjection(v1Pos, centroid2, centroid1, h);
+                    Vector3 v2g1prime = BaseProjection(v2Pos, centroid1, centroid2, h);
+                    Vector3 v2g2prime = BaseProjection(v2Pos, centroid2, centroid1, h);
+
+                    centroid1 *= 1.01f; // Project the centroids out of the sphere slightly
+                    centroid2 *= 1.01f;
+
+                    bool edgeOrderIsAnticlockwise = false;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (indices[edge.triangle1 + i] == v1index)
+                        {
+                            if (indices[edge.triangle1 + (i + 1) % 3] == v2index)
+                            {
+                                edgeOrderIsAnticlockwise = true;
+                            }
+                            break;
+                        }
+                    }
+
+                    AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid2, ref centroid1, edgeOrderIsAnticlockwise);
+                    AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid1, ref v1g1prime, edgeOrderIsAnticlockwise);
+                    AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid1, ref centroid2, edgeOrderIsAnticlockwise);
+                    AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid2, ref v2g2prime, edgeOrderIsAnticlockwise);
+                }
+            }
+
+            Vector4 borderColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+            AltVertex[] newVerts = vertices.ToArray();
+            for (int i = 0; i < newVerts.Length; ++i)
+            {
+                MeshAttr.SetColor<AltVertex>(ref newVerts[i], ref borderColor);
+            }
+            Mesh<AltVertex> newMesh = new Mesh<AltVertex>(newVerts);
+            return new Geometry<AltVertex>(newMesh, newIndices.ToArray());
+        }
+
+        // Given a triangle A, G1, G2
+        // Projects a line parallel to the base (G1-G2) of the triangle a distance h upwards,
+        // and returns a point A' which is the intersection of this line and edge A-G1.
+        private Vector3 BaseProjection(Vector3 A, Vector3 G1, Vector3 G2, float h)
+        {
+            // Want 1 line parallel to G2-G1 that are x pixels away and lie on tri A,G1,G2
+            // a' = h / cos(90-theta)
+            // a' lies on A-G1
+            // cos(theta) = (G1-A).(G1-G2)
+            // cos(90-theta)= cos(90)cos(theta)+sin(90)sin(theta) = sin(theta) = sqrt(1-cos^2(theta))
+            // a' = h / sqrt(1-cos^2(theta))
+            Vector3 AG1 = (G1 - A);
+            Vector3 AG1N = AG1;
+            AG1N.Normalize();
+            Vector3 b = (G1 - G2);
+            b.Normalize();
+            float cosTheta = Vector3.Dot(AG1N, b);
+            float aPrime = h / (float)Math.Sqrt(1.0f - cosTheta * cosTheta);
+            Vector3 APrime = A + AG1 * (1.0f - aPrime);
+            return APrime;
+        }
+
 
         public Neighbours GetNeighbours()
         {

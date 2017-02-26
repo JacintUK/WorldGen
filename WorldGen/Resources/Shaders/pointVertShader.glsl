@@ -18,7 +18,7 @@ void main()
 	gl_Position = projection * view * world;
 	
 	vColor=color;
-	if(world.z < -3)
+	if(world.z < -2.8)
 	{
 	  vColor.a = 0;// *= 0.5;
 	}

@@ -55,6 +55,8 @@ namespace WorldGenerator
     { 
         public static Vector3 GetPosition<TVertex2>(ref TVertex2 vertex) where TVertex2 : struct, IVertex
         {
+            //if (vertex is IPositionVertex)
+            //    return ((IPositionVertex)vertex).GetPosition();
             IPositionVertex ipv = vertex as IPositionVertex;
             if (ipv != null)
             {
