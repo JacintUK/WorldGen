@@ -27,7 +27,6 @@ namespace WorldGenerator
         {
             Initialize();
             Distort();
-            CreatePlates();
         }
 
         public void Initialize()
@@ -49,6 +48,7 @@ namespace WorldGenerator
             {
                 geometry.RelaxTriangles(0.5f);
             }
+            CreatePlates();
         }
 
         public void ResetSeed()

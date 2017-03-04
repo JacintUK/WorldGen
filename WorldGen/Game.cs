@@ -123,7 +123,7 @@ namespace WorldGenerator
             worldCentroidDebugRenderer.Update(centroidGeom);
         }
 
-        private bool _mainWindowOpened;
+        //private bool _mainWindowOpened;
         void DrawGUI()
         {
             //ImGui.BeginWindow("ImGUI.NET Sample Program", ref _mainWindowOpened, WindowFlags.NoResize | WindowFlags.NoTitleBar | WindowFlags.NoMove);
