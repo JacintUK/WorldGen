@@ -36,7 +36,10 @@ namespace WorldGenerator
         public void Update( IGeometry geometry )
         {
             this.geometry = geometry;
-            geometry.Upload(this.vertexBuffer, this.indexBuffer);
+            if (geometry != null)
+            {
+                geometry.Upload(this.vertexBuffer, this.indexBuffer);
+            }
         }
 
         public void AddIndexBuffer(IndexBuffer indexBuffer)
@@ -57,75 +60,78 @@ namespace WorldGenerator
         {
             uniforms.Add(uniform);
         }
-        public void Draw( Matrix4 model, Matrix4 view, Matrix4 projection )
+        public void Draw(Matrix4 model, Matrix4 view, Matrix4 projection)
         {
-            if(geometry.NeedsUpdate)
+            if (geometry != null)
             {
-                geometry.Upload(vertexBuffer, indexBuffer);
-            }
-
-            if( DepthTestFlag )
-            {
-                GL.Enable(EnableCap.DepthTest);
-            }
-            else
-            {
-                GL.Disable(EnableCap.DepthTest);
-            }
-            if (CullFaceFlag)
-            {
-                GL.Enable(EnableCap.CullFace);
-                GL.CullFace(CullFaceMode);
-            }
-            else
-            {
-                GL.Disable(EnableCap.CullFace);
-            }
-
-            if (shader != null)
-            {
-                shader.Use();
-
-                if (texture != null)
+                if (geometry.NeedsUpdate)
                 {
-                    texture.Bind();
-                    shader.SetSamplerUniform(0, 0);
+                    geometry.Upload(vertexBuffer, indexBuffer);
+                }
+
+                if (DepthTestFlag)
+                {
+                    GL.Enable(EnableCap.DepthTest);
                 }
                 else
                 {
-                    GL.BindTexture(TextureTarget.Texture2D, 0);
+                    GL.Disable(EnableCap.DepthTest);
                 }
-
-                // Set up uniforms:
-                Matrix4 mv = model * view;
-                Matrix3 mvIT = new Matrix3(mv);
-                mvIT.Invert();
-                mvIT.Transpose();
-                shader.SetUniformMatrix3("mvIT", mvIT);
-                shader.SetUniformMatrix4("modelView", mv);
-                shader.SetUniformMatrix4("projection", projection);
-                shader.SetUniformMatrix4("model", model);
-                shader.SetUniformMatrix4("view", view);
-
-                foreach( var uniform in uniforms )
+                if (CullFaceFlag)
                 {
-                    uniform.SetUniform(shader);
+                    GL.Enable(EnableCap.CullFace);
+                    GL.CullFace(CullFaceMode);
                 }
-            }
-            vertexBuffer.Bind(shader);
+                else
+                {
+                    GL.Disable(EnableCap.CullFace);
+                }
 
-            if (indexBuffer != null)
-            {
-                indexBuffer.Bind();
-                GL.DrawElements(geometry.PrimitiveType, indexBuffer.Size(), DrawElementsType.UnsignedInt, 0);
-            }
-            else
-            {
-                GL.DrawArrays(geometry.PrimitiveType, 0, vertexBuffer.Size);
-            }
+                if (shader != null)
+                {
+                    shader.Use();
 
-            GL.BindVertexArray(0);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+                    if (texture != null)
+                    {
+                        texture.Bind();
+                        shader.SetSamplerUniform(0, 0);
+                    }
+                    else
+                    {
+                        GL.BindTexture(TextureTarget.Texture2D, 0);
+                    }
+
+                    // Set up uniforms:
+                    Matrix4 mv = model * view;
+                    Matrix3 mvIT = new Matrix3(mv);
+                    mvIT.Invert();
+                    mvIT.Transpose();
+                    shader.SetUniformMatrix3("mvIT", mvIT);
+                    shader.SetUniformMatrix4("modelView", mv);
+                    shader.SetUniformMatrix4("projection", projection);
+                    shader.SetUniformMatrix4("model", model);
+                    shader.SetUniformMatrix4("view", view);
+
+                    foreach (var uniform in uniforms)
+                    {
+                        uniform.SetUniform(shader);
+                    }
+                }
+                vertexBuffer.Bind(shader);
+
+                if (indexBuffer != null)
+                {
+                    indexBuffer.Bind();
+                    GL.DrawElements(geometry.PrimitiveType, indexBuffer.Size(), DrawElementsType.UnsignedInt, 0);
+                }
+                else
+                {
+                    GL.DrawArrays(geometry.PrimitiveType, 0, vertexBuffer.Size);
+                }
+
+                GL.BindVertexArray(0);
+                GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            }
         }
     }
 }

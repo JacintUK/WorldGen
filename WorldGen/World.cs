@@ -27,8 +27,7 @@ namespace WorldGenerator
         {
             Initialize();
             Distort();
-            CreatePlates(ref rand, numPlates);
-            CalculatePlateBoundaries();
+            CreatePlates();
         }
 
         public void Initialize()
@@ -36,7 +35,7 @@ namespace WorldGenerator
             rand = new Random(0);
             geometry = RendererFactory.CreateIcosphere(4);
             geometry.PrimitiveType = PrimitiveType.Points;
-
+            borders = null;
         }
 
         public void Distort()
@@ -50,7 +49,6 @@ namespace WorldGenerator
             {
                 geometry.RelaxTriangles(0.5f);
             }
-            CreatePlates();
         }
 
         public void ResetSeed()
@@ -71,12 +69,14 @@ namespace WorldGenerator
         public void CreatePlates()
         {
             CreatePlates(ref rand, numPlates);
-            CalculatePlateBoundaries();
+            CalculatePlateBoundaries(true);
         }
 
         public void InitPlates()
         {
             InitPlates(ref rand, numPlates);
+            if (borders != null)
+                borders.Clear();
         }
 
         public void GrowPlates()
@@ -84,6 +84,20 @@ namespace WorldGenerator
             for (int i = 0; i < plates.Length; ++i)
             {
                 plates[i].Grow(1);
+            }
+            CalculatePlateBoundaries(false);
+        }
+
+        private void CreatePlates(ref Random rand, int numPlates)
+        {
+            InitPlates(ref rand, numPlates);
+            int total = numPlates;
+            while (total < geometry.Mesh.Length)
+            {
+                for (int i = 0; i < numPlates; ++i)
+                {
+                    total += plates[i].Grow(1);
+                }
             }
         }
 
@@ -99,21 +113,18 @@ namespace WorldGenerator
             int total = numPlates;
             for (int i = 0; i < numPlates; ++i)
             {
-                int vertexIndex = rand.Next(geometry.Mesh.Length);
-                plates[i] = new Plate(geometry.Mesh, vertexIndex, neighbours, ref rand);
-            }
-        }
-
-        private void CreatePlates(ref Random rand, int numPlates)
-        {
-            InitPlates(ref rand, numPlates);
-            int total = numPlates;
-            while (total < geometry.Mesh.Length)
-            {
-                for (int i = 0; i < numPlates; ++i)
+                Vector4 color = Vector4.Zero;
+                do
                 {
-                    total += plates[i].Grow(1);
-                }
+                    int vertexIndex = rand.Next(geometry.Mesh.Length);
+                    // prevent 2 plates spawning at the same vertex.
+                    color = geometry.Mesh.GetColor(vertexIndex);
+                    if (color.W == 0.0f)
+                    {
+                        plates[i] = new Plate(geometry.Mesh, vertexIndex, neighbours, ref rand);
+                        break;
+                    }
+                } while (color.W != 0.0f);
             }
         }
 
@@ -138,7 +149,7 @@ namespace WorldGenerator
         }
 
 
-        private void CalculatePlateBoundaries()
+        private void CalculatePlateBoundaries(bool recolor)
         {
             // Find the boundaries between each plate.
             // Each plate keeps it's outerIndices.
@@ -146,9 +157,13 @@ namespace WorldGenerator
             //   the neighbouring tile & plate.
             // For each edge in boundary, 
             //   store plate index and tile index 
+            if(borders != null)
+                borders.Clear();
             borders = new Dictionary<long, Tuple<int, int>>();
 
             vertexToPlate = new int[geometry.Mesh.Length];
+            for (int i = 0; i < geometry.Mesh.Length; ++i)
+                vertexToPlate[i] = -1;
             for (int i = 0; i < numPlates; ++i)
             {
                 List<int> indices = plates[i].AllIndices;
@@ -166,7 +181,7 @@ namespace WorldGenerator
             int totalBorderTiles = 0;
             for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
             {
-                plates[plateIdx].CalculateBorderTiles(vertexToPlate);
+                plates[plateIdx].CalculateBorderTiles(vertexToPlate, recolor);
                 totalBorderTiles += plates[plateIdx].OuterIndices.Count;
             }
 
@@ -206,6 +221,5 @@ namespace WorldGenerator
             Int64 key = min << 32 | max;
             return key;
         }
-      
     }
 }

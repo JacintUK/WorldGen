@@ -51,9 +51,9 @@ namespace WorldGenerator
             mesh.SetColor(startIndex, ref color);
         }
 
-        private Vector4 NextColor(int numCycles)
+        private Vector4 NextColor(int cycleNum)
         {
-            float value = Math2.Clamp(0.2f + numCycles / 20.0f, 0.0f, 1.0f);
+            float value = Math2.Clamp(0.2f + cycleNum / 20.0f, 0.0f, 1.0f);
             Vector3 HSV = new Vector3(hue, 0.5f, value);
             Vector3 RGB = Math2.HSV2RGB(HSV);
             Vector4 color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
@@ -95,7 +95,7 @@ namespace WorldGenerator
             return growth;
         }
 
-        public void CalculateBorderTiles(int[] vertexToPlate)
+        public void CalculateBorderTiles(int[] vertexToPlate, bool recolor)
         {
             Vector3 HSV = new Vector3(hue, 0.7f, 0.3f);
             Vector3 RGB = Math2.HSV2RGB(HSV);
@@ -112,7 +112,8 @@ namespace WorldGenerator
                     if (plateIdx != vertexToPlate[neighbourIndex] && !outerIndices.Contains(index))
                     {
                         outerIndices.Add(index);
-                        mesh.SetColor(index, ref color);
+                        if(recolor)
+                            mesh.SetColor(index, ref color);
                     }
                 }
             }

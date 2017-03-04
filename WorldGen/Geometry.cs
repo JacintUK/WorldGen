@@ -775,73 +775,80 @@ namespace WorldGenerator
         }
 
 
-        public Geometry<AltVertex> GenerateBorderGeometry<AltVertex>( Borders borders ) 
+        public Geometry<AltVertex> GenerateBorderGeometry<AltVertex>(Borders borders)
             where AltVertex : struct, IVertex
         {
-            centroids.Clear();
-            GenerateCentroids();
-            GenerateEdges();
-
-            List<AltVertex> vertices = new List<AltVertex>();
-            List<uint> newIndices = new List<uint>();
-
-            const float h = 0.1f;
-
-            foreach (var iter in borders)
+            if( borders == null || borders.Count == 0)
             {
-                Int64 borderKey = iter.Key;
-                int v1index = (int)(borderKey & 0xffffffff);
-                int v2index = (int)((borderKey >> 32) & 0xffffffff);
-                Tuple<int, int> border = iter.Value;
+                return null;
+            }
+            else
+            {
+                centroids.Clear();
+                GenerateCentroids();
+                GenerateEdges();
 
-                // The border lies along an edge in the dual geometry.
-                int plateIndex1 = border.Item1;
-                int plateIndex2 = border.Item2;
-                Int64 edgeKey = CreateEdgeKey((uint) v1index, (uint) v2index);
-                Edge edge;
-                if (edgeCache2.TryGetValue(edgeKey, out edge))
+                List<AltVertex> vertices = new List<AltVertex>();
+                List<uint> newIndices = new List<uint>();
+
+                const float h = 0.1f;
+
+                foreach (var iter in borders)
                 {
-                    Vector3 v1Pos = mesh.GetPosition(v1index);
-                    Vector3 v2Pos = mesh.GetPosition(v2index);
-                    Vector3 centroid1 = centroids[edge.triangle1 / 3];
-                    Vector3 centroid2 = centroids[edge.triangle2 / 3];
+                    Int64 borderKey = iter.Key;
+                    int v1index = (int)(borderKey & 0xffffffff);
+                    int v2index = (int)((borderKey >> 32) & 0xffffffff);
+                    Tuple<int, int> border = iter.Value;
 
-                    Vector3 v1g1prime = BaseProjection(v1Pos, centroid1, centroid2, h);
-                    Vector3 v1g2prime = BaseProjection(v1Pos, centroid2, centroid1, h);
-                    Vector3 v2g1prime = BaseProjection(v2Pos, centroid1, centroid2, h);
-                    Vector3 v2g2prime = BaseProjection(v2Pos, centroid2, centroid1, h);
-
-                    centroid1 *= 1.01f; // Project the centroids out of the sphere slightly
-                    centroid2 *= 1.01f;
-
-                    bool edgeOrderIsAnticlockwise = false;
-                    for (int i = 0; i < 3; i++)
+                    // The border lies along an edge in the dual geometry.
+                    int plateIndex1 = border.Item1;
+                    int plateIndex2 = border.Item2;
+                    Int64 edgeKey = CreateEdgeKey((uint)v1index, (uint)v2index);
+                    Edge edge;
+                    if (edgeCache2.TryGetValue(edgeKey, out edge))
                     {
-                        if (indices[edge.triangle1 + i] == v1index)
+                        Vector3 v1Pos = mesh.GetPosition(v1index);
+                        Vector3 v2Pos = mesh.GetPosition(v2index);
+                        Vector3 centroid1 = centroids[edge.triangle1 / 3];
+                        Vector3 centroid2 = centroids[edge.triangle2 / 3];
+
+                        Vector3 v1g1prime = BaseProjection(v1Pos, centroid1, centroid2, h);
+                        Vector3 v1g2prime = BaseProjection(v1Pos, centroid2, centroid1, h);
+                        Vector3 v2g1prime = BaseProjection(v2Pos, centroid1, centroid2, h);
+                        Vector3 v2g2prime = BaseProjection(v2Pos, centroid2, centroid1, h);
+
+                        centroid1 *= 1.01f; // Project the centroids out of the sphere slightly
+                        centroid2 *= 1.01f;
+
+                        bool edgeOrderIsAnticlockwise = false;
+                        for (int i = 0; i < 3; i++)
                         {
-                            if (indices[edge.triangle1 + (i + 1) % 3] == v2index)
+                            if (indices[edge.triangle1 + i] == v1index)
                             {
-                                edgeOrderIsAnticlockwise = true;
+                                if (indices[edge.triangle1 + (i + 1) % 3] == v2index)
+                                {
+                                    edgeOrderIsAnticlockwise = true;
+                                }
+                                break;
                             }
-                            break;
                         }
+
+                        AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid2, ref centroid1, edgeOrderIsAnticlockwise);
+                        AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid1, ref v1g1prime, edgeOrderIsAnticlockwise);
+                        AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid1, ref centroid2, edgeOrderIsAnticlockwise);
+                        AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid2, ref v2g2prime, edgeOrderIsAnticlockwise);
                     }
-
-                    AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid2, ref centroid1, edgeOrderIsAnticlockwise);
-                    AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid1, ref v1g1prime, edgeOrderIsAnticlockwise);
-                    AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid1, ref centroid2, edgeOrderIsAnticlockwise);
-                    AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid2, ref v2g2prime, edgeOrderIsAnticlockwise);
                 }
-            }
 
-            Vector4 borderColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-            AltVertex[] newVerts = vertices.ToArray();
-            for (int i = 0; i < newVerts.Length; ++i)
-            {
-                MeshAttr.SetColor<AltVertex>(ref newVerts[i], ref borderColor);
+                Vector4 borderColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                AltVertex[] newVerts = vertices.ToArray();
+                for (int i = 0; i < newVerts.Length; ++i)
+                {
+                    MeshAttr.SetColor<AltVertex>(ref newVerts[i], ref borderColor);
+                }
+                Mesh<AltVertex> newMesh = new Mesh<AltVertex>(newVerts);
+                return new Geometry<AltVertex>(newMesh, newIndices.ToArray());
             }
-            Mesh<AltVertex> newMesh = new Mesh<AltVertex>(newVerts);
-            return new Geometry<AltVertex>(newMesh, newIndices.ToArray());
         }
 
         // Given a triangle A, G1, G2

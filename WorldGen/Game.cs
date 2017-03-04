@@ -9,6 +9,7 @@ using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 using static OpenTK.MathHelper;
+using ImGuiNET;
 
 namespace WorldGenerator
 {
@@ -109,7 +110,6 @@ namespace WorldGenerator
             node.Add(worldCentroidDebugRenderer);
         }
 
-
         void UpdateRenderers()
         {
             worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
@@ -121,6 +121,14 @@ namespace WorldGenerator
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             worldCentroidDebugRenderer.Update(centroidGeom);
+        }
+
+        private bool _mainWindowOpened;
+        void DrawGUI()
+        {
+            //ImGui.BeginWindow("ImGUI.NET Sample Program", ref _mainWindowOpened, WindowFlags.NoResize | WindowFlags.NoTitleBar | WindowFlags.NoMove);
+            //ImGui.Text("Hello,");
+            //ImGui.EndWindow();
         }
 
         private void ResetSphere(bool down)
@@ -265,10 +273,13 @@ namespace WorldGenerator
             GL.ClearColor(backgroundColor);
             GL.ClearDepth(1);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
             Matrix4 view = Matrix4.LookAt(cameraPosition, Vector3.Zero, Vector3.UnitY);
             SetCameraProjection();
 
             node.Draw( ref view, ref projection);
+
+            DrawGUI();
             SwapBuffers();
         }
 
