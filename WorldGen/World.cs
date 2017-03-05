@@ -141,6 +141,7 @@ namespace WorldGenerator
             for (int i = 0; i < geometry.Mesh.Length; ++i)
                 vertexToPlate[i] = -1;
 
+            Neighbours neighbours = geometry.Neighbours;
             plates = new Plate[numPlates];
             int total = numPlates;
             for (int plateIndex = 0; plateIndex < numPlates; ++plateIndex)
@@ -153,7 +154,7 @@ namespace WorldGenerator
                     plate = vertexToPlate[vertexIndex];
                     if (plate == -1)
                     {
-                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, plateIndex, vertexIndex, geometry.Neighbours, ref rand);
+                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, plateIndex, vertexIndex, neighbours, ref rand);
                         break;
                     }
                 } while (plate != -1);
@@ -216,8 +217,8 @@ namespace WorldGenerator
                             {
                                 int c1Index;
                                 int c2Index;
-                                //geometry.GetCorners(borderTiles[borderTile], neighbourVertexIdx, out c1Index, out c2Index);
-                                borders.Add(borderKey, new Border(plateIdx, neighbourPlateIdx, -1, -1));//c1Index, c2Index));
+                                geometry.GetCorners(borderTiles[borderTile], neighbourVertexIdx, out c1Index, out c2Index);
+                                borders.Add(borderKey, new Border(plateIdx, neighbourPlateIdx, c1Index, c2Index));
                             }
                         }
                     }
