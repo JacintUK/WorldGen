@@ -92,7 +92,8 @@ namespace WorldGenerator
             borderGeometry.PrimitiveType = PrimitiveType.Triangles;
             borderRenderer = new Renderer(borderGeometry, borderShader);
             borderRenderer.DepthTestFlag = true;
-            borderRenderer.CullFaceFlag = false;
+            borderRenderer.CullFaceFlag = true;
+            borderRenderer.CullFaceMode = CullFaceMode.Back;
             node.Add(borderRenderer);
 
             worldVertsDebugRenderer = new Renderer(world.geometry, pointShader);
@@ -100,7 +101,7 @@ namespace WorldGenerator
             worldVertsDebugRenderer.AddUniform(new UniformProperty("pointSize", 3f));
             node.Add(worldVertsDebugRenderer);
 
-            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
+            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidPointMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             worldCentroidDebugRenderer = new Renderer(centroidGeom, pointShader);
             worldCentroidDebugRenderer.DepthTestFlag = false;
@@ -118,7 +119,7 @@ namespace WorldGenerator
             worldRenderer.Update(worldRenderGeometry);
             worldVertsDebugRenderer.Update(world.geometry);
 
-            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidMesh());
+            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidPointMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             worldCentroidDebugRenderer.Update(centroidGeom);
         }

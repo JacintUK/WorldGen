@@ -8,13 +8,31 @@ using OpenTK.Graphics.OpenGL;
 
 namespace WorldGenerator
 {
-    using Borders = Dictionary<Int64, Tuple<int, int>>;
+    using Borders = Dictionary<Int64, Border>;
+
+    struct Border
+    {
+        public int plate0;
+        public int plate1;
+        public int c1Index;
+        public int c2Index;
+
+        // c1 and c2 are indexes into the geometry's centroid array, and 
+        // represent the corners of the border.
+        public Border( int plate0, int plate1, int c1Index, int c2Index )
+        {
+            this.plate0 = plate0;
+            this.plate1 = plate1;
+            this.c1Index = c1Index;
+            this.c2Index = c2Index;
+        }
+    }
+
     class World
     {
         private float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
         private int worldSeed = 0;
         private int[] vertexToPlate;
-        private Neighbours neighbours;
         private Plate[] plates;
         private int numPlates = 20;
         private Random rand;
@@ -22,6 +40,7 @@ namespace WorldGenerator
 
         public IGeometry geometry;
         public Borders Borders { get { return borders; } }
+
 
         public World()
         {
@@ -101,7 +120,7 @@ namespace WorldGenerator
             {
                 for (int i = 0; i < numPlates; ++i)
                 {
-                    total += plates[i].Grow(1);
+                    total += plates[i].Grow(1); // todo: Consider interleaving growth loops.
                 }
             }
 
@@ -122,8 +141,6 @@ namespace WorldGenerator
             for (int i = 0; i < geometry.Mesh.Length; ++i)
                 vertexToPlate[i] = -1;
 
-            neighbours = geometry.GetNeighbours();
-
             plates = new Plate[numPlates];
             int total = numPlates;
             for (int plateIndex = 0; plateIndex < numPlates; ++plateIndex)
@@ -136,7 +153,7 @@ namespace WorldGenerator
                     plate = vertexToPlate[vertexIndex];
                     if (plate == -1)
                     {
-                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, plateIndex, vertexIndex, neighbours, ref rand);
+                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, plateIndex, vertexIndex, geometry.Neighbours, ref rand);
                         break;
                     }
                 } while (plate != -1);
@@ -160,21 +177,15 @@ namespace WorldGenerator
             //           mountain formation; folding;
             //        if heights opposite sign; subduct the lower under the higher.
             //           tilt upper plate (calc for all boundaries)
-
         }
-
 
         private void CalculatePlateBoundaries(bool recolor)
         {
             if(borders != null)
                 borders.Clear();
-            borders = new Dictionary<long, Tuple<int, int>>();
+            borders = new Borders();
 
-            if ( neighbours == null )
-            {
-                neighbours = geometry.GetNeighbours();
-            }
-
+            Neighbours neighbours = geometry.Neighbours;
             // Recalculate border tiles for each plate
             int totalBorderTiles = 0;
             for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
@@ -198,11 +209,15 @@ namespace WorldGenerator
                         if ( neighbourPlateIdx != plateIdx)
                         {
                             // It's not in the plate, so must be a bordering plate.
-                            // Index by key from plates; stores verts.
+                            // Index by key from verts, stores plate ids, corners
                             Int64 borderKey = CreateBorderKey((uint)neighbourVertexIdx, (uint)borderTiles[borderTile]);
+
                             if (!borders.ContainsKey(borderKey ))
                             {
-                                borders.Add(borderKey, new Tuple<int, int>(plateIdx, neighbourPlateIdx));
+                                int c1Index;
+                                int c2Index;
+                                //geometry.GetCorners(borderTiles[borderTile], neighbourVertexIdx, out c1Index, out c2Index);
+                                borders.Add(borderKey, new Border(plateIdx, neighbourPlateIdx, -1, -1));//c1Index, c2Index));
                             }
                         }
                     }
@@ -214,6 +229,12 @@ namespace WorldGenerator
             }
         }
 
+        /// <summary>
+        /// Key is generated from the vertex index of adjacent tiles
+        /// </summary>
+        /// <param name="a">vertex index of first tile</param>
+        /// <param name="b">vertex index of second tile</param>
+        /// <returns></returns>
         private static Int64 CreateBorderKey( uint a, uint b )
         {
             Int64 min = a < b ? a : b;

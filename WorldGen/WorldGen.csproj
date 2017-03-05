@@ -60,6 +60,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Centroid.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Geometry.cs" />
     <Compile Include="IColorVertex.cs" />
