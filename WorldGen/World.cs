@@ -27,6 +27,7 @@ namespace WorldGenerator
         {
             Initialize();
             Distort();
+            CreatePlates();
         }
 
         public void Initialize()
@@ -48,7 +49,6 @@ namespace WorldGenerator
             {
                 geometry.RelaxTriangles(0.5f);
             }
-            CreatePlates();
         }
 
         public void ResetSeed()
@@ -74,6 +74,11 @@ namespace WorldGenerator
 
         public void InitPlates()
         {
+            // Debugging plate growth
+            Vector4 blankColor = new Vector4(0.2f, 0.3f, 0.8f, 0.0f);
+            for (int i = 0; i < geometry.Mesh.Length; ++i)
+                geometry.Mesh.SetColor(i, ref blankColor);
+
             InitPlates(ref rand, numPlates);
             if (borders != null)
                 borders.Clear();
@@ -99,32 +104,42 @@ namespace WorldGenerator
                     total += plates[i].Grow(1);
                 }
             }
+
+            // Double check we have all tiles covered
+            for (int i = 0; i < vertexToPlate.Length; ++i)
+            {
+                if (vertexToPlate[i] == -1)
+                {
+                    throw new Exception();
+                }
+            }
         }
 
         private void InitPlates(ref Random rand, int numPlates)
         {
-            Vector4 blankColor = new Vector4(0.2f, 0.3f, 0.8f, 0.0f);
+            // Initialize vertexToPlate array to a value that isn't a valid plate index
+            vertexToPlate = new int[geometry.Mesh.Length];
             for (int i = 0; i < geometry.Mesh.Length; ++i)
-                geometry.Mesh.SetColor(i, ref blankColor);
+                vertexToPlate[i] = -1;
 
             neighbours = geometry.GetNeighbours();
 
             plates = new Plate[numPlates];
             int total = numPlates;
-            for (int i = 0; i < numPlates; ++i)
+            for (int plateIndex = 0; plateIndex < numPlates; ++plateIndex)
             {
-                Vector4 color = Vector4.Zero;
+                int plate = -1;
                 do
                 {
                     int vertexIndex = rand.Next(geometry.Mesh.Length);
                     // prevent 2 plates spawning at the same vertex.
-                    color = geometry.Mesh.GetColor(vertexIndex);
-                    if (color.W == 0.0f)
+                    plate = vertexToPlate[vertexIndex];
+                    if (plate == -1)
                     {
-                        plates[i] = new Plate(geometry.Mesh, vertexIndex, neighbours, ref rand);
+                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, plateIndex, vertexIndex, neighbours, ref rand);
                         break;
                     }
-                } while (color.W != 0.0f);
+                } while (plate != -1);
             }
         }
 
@@ -151,47 +166,32 @@ namespace WorldGenerator
 
         private void CalculatePlateBoundaries(bool recolor)
         {
-            // Find the boundaries between each plate.
-            // Each plate keeps it's outerIndices.
-            //   Can use this, plus world geometry's neighbours to work out
-            //   the neighbouring tile & plate.
-            // For each edge in boundary, 
-            //   store plate index and tile index 
             if(borders != null)
                 borders.Clear();
             borders = new Dictionary<long, Tuple<int, int>>();
 
-            vertexToPlate = new int[geometry.Mesh.Length];
-            for (int i = 0; i < geometry.Mesh.Length; ++i)
-                vertexToPlate[i] = -1;
-            for (int i = 0; i < numPlates; ++i)
-            {
-                List<int> indices = plates[i].AllIndices;
-                for( int j = 0; j < indices.Count; ++j )
-                {
-                    vertexToPlate[indices[j]] = i;
-                }
-            }
-
-            if( neighbours == null )
+            if ( neighbours == null )
             {
                 neighbours = geometry.GetNeighbours();
             }
 
+            // Recalculate border tiles for each plate
             int totalBorderTiles = 0;
             for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
             {
-                plates[plateIdx].CalculateBorderTiles(vertexToPlate, recolor);
-                totalBorderTiles += plates[plateIdx].OuterIndices.Count;
+                plates[plateIdx].CalculateBorderTiles(recolor);
+                totalBorderTiles += plates[plateIdx].BorderTiles.Count;
             }
 
+            // For each plate, check each border tile's neighbours
+            //   If a neighbour belongs to a different plate, create a border edge.
             for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
             {
-                List<int> outerIndices = plates[plateIdx].OuterIndices;
-                for( int outerVertexIndex = 0; outerVertexIndex< outerIndices.Count; ++outerVertexIndex )
+                List<int> borderTiles = plates[plateIdx].BorderTiles;
+                for( int borderTile = 0; borderTile < borderTiles.Count; ++borderTile )
                 {
-                    var outerNeighbours = neighbours.GetNeighbours(outerIndices[outerVertexIndex]);
-                    for( int neighbourIdx=0; neighbourIdx < outerNeighbours.Count; ++neighbourIdx)
+                    var outerNeighbours = neighbours.GetNeighbours( borderTiles[borderTile] );
+                    for( int neighbourIdx=0; neighbourIdx < outerNeighbours.Count; ++neighbourIdx )
                     {
                         int neighbourVertexIdx = outerNeighbours.Neighbours[neighbourIdx];
                         int neighbourPlateIdx = vertexToPlate[neighbourVertexIdx];
@@ -199,7 +199,7 @@ namespace WorldGenerator
                         {
                             // It's not in the plate, so must be a bordering plate.
                             // Index by key from plates; stores verts.
-                            Int64 borderKey = CreateBorderKey((uint)neighbourVertexIdx, (uint)outerIndices[outerVertexIndex]);
+                            Int64 borderKey = CreateBorderKey((uint)neighbourVertexIdx, (uint)borderTiles[borderTile]);
                             if (!borders.ContainsKey(borderKey ))
                             {
                                 borders.Add(borderKey, new Tuple<int, int>(plateIdx, neighbourPlateIdx));

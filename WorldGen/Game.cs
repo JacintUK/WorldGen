@@ -165,6 +165,7 @@ namespace WorldGenerator
             if(down)
             {
                 world.Distort();
+                world.CreatePlates();
                 UpdateRenderers();
             }
         }
