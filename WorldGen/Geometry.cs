@@ -10,7 +10,7 @@ namespace WorldGenerator
 
     class Geometry<TVertex> : IGeometry where TVertex : struct, IVertex
     {
-        struct Edge { public int triangle1; public int triangle2; } // triangle1 = 3 * triangle index
+        struct Edge { public int triangle1; public int triangle2; } 
 
         private Mesh<TVertex> mesh;
         private uint[] indices;
@@ -25,7 +25,7 @@ namespace WorldGenerator
         // Topology
         private Neighbours neighbours;
         private List<Centroid> centroids; // indexed by triangle.
-        public Neighbours Neighbours { get { GenerateNeighbours(); return neighbours; } } // Face neighbours
+        public Neighbours Neighbours { get { GenerateTopology(); return neighbours; } } // Face neighbours
         public List<Centroid> Centroids {  get { GenerateTopology();  return centroids; } }
         bool regenerateTopology = true;
 
@@ -171,20 +171,21 @@ namespace WorldGenerator
                 uint index3;
                 uint index4;
                 uint a = index1;
+
                 int cornerA = GetTriOffset(edge.triangle1, a);
                 // get the next coord in the triangle (in ccw order)
-                uint b = indices[edge.triangle1 + ((cornerA + 1) % 3)];
-                uint c = indices[edge.triangle1 + ((cornerA + 2) % 3)];
+                uint b = indices[edge.triangle1*3 + ((cornerA + 1) % 3)];
+                uint c = indices[edge.triangle1*3 + ((cornerA + 2) % 3)];
                 uint d = 0;
                 if (b == index2)
                 {
-                    d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 1) % 3)];
+                    d = indices[edge.triangle2*3 + ((GetTriOffset(edge.triangle2, a) + 1) % 3)];
                     index3 = c;
                     index4 = d;
                 }
                 else
                 {
-                    d = indices[edge.triangle2 + ((GetTriOffset(edge.triangle2, a) + 2) % 3)];
+                    d = indices[edge.triangle2*3 + ((GetTriOffset(edge.triangle2, a) + 2) % 3)];
                     index3 = b;
                     index4 = d;
                 }
@@ -218,24 +219,24 @@ namespace WorldGenerator
                     // order is a b c; c is the non-shared vertex.
                     // new tris are: ADC, DBC
                     // tri2 order is a d b
-                    indices[edge.triangle1] = a;
-                    indices[edge.triangle1 + 1] = d;
-                    indices[edge.triangle1 + 2] = c;
-                    indices[edge.triangle2] = d;
-                    indices[edge.triangle2 + 1] = b;
-                    indices[edge.triangle2 + 2] = c;
+                    indices[edge.triangle1*3] = a;
+                    indices[edge.triangle1*3 + 1] = d;
+                    indices[edge.triangle1*3 + 2] = c;
+                    indices[edge.triangle2*3] = d;
+                    indices[edge.triangle2*3 + 1] = b;
+                    indices[edge.triangle2*3 + 2] = c;
                 }
                 else
                 {
                     // order is a b c; b is the non-shared value
                     // new tris are ACD, CBD
                     // tri2 order is a b d 
-                    indices[edge.triangle1] = a;
-                    indices[edge.triangle1 + 1] = b;
-                    indices[edge.triangle1 + 2] = d;
-                    indices[edge.triangle2] = c;
-                    indices[edge.triangle2 + 1] = d;
-                    indices[edge.triangle2 + 2] = b;
+                    indices[edge.triangle1*3] = a;
+                    indices[edge.triangle1*3 + 1] = b;
+                    indices[edge.triangle1*3 + 2] = d;
+                    indices[edge.triangle2*3] = c;
+                    indices[edge.triangle2*3 + 1] = d;
+                    indices[edge.triangle2*3 + 2] = b;
                 }
             }
 
@@ -279,7 +280,7 @@ namespace WorldGenerator
             {
                 if (1 == 1)//TooThin(i))
                 {
-                    Vector3 centroid = CalculateCentroid(i);
+                    Vector3 centroid = CalculateCentroid(i/3);
                     centroid.Normalize();
 
                     // Compare each corner to the centroid
@@ -383,7 +384,7 @@ namespace WorldGenerator
 
             for (int i = 0; i < numIndices; i += 3)
             {
-                Vector3 centroid = CalculateCentroid(i);
+                Vector3 centroid = CalculateCentroid(i/3);
                 centroid.Normalize();
                 MeshAttr.SetPosition(ref centroidVertex, ref centroid);
 
@@ -497,12 +498,12 @@ namespace WorldGenerator
         public Mesh<Vertex3D> GenerateCentroidPointMesh()
         {
             // Doesn't rely on topology
-            int numIndices = indices.Length;
-            Vertex3D[] centroidVerts = new Vertex3D[numIndices / 3];
+            int numTriangles = indices.Length/3;
+            Vertex3D[] centroidVerts = new Vertex3D[numTriangles];
             Vertex3D centroidVertex = new Vertex3D();
             Mesh<Vertex3D> centroidMesh = new Mesh<Vertex3D>(centroidVerts);
             int triangleIndex = 0;
-            for (int i = 0; i < numIndices; i += 3)
+            for (int i = 0; i < numTriangles; ++i)
             {
                 Vector3 centroid = CalculateCentroid(i);
                 IPositionVertex ipv = centroidVertex as IPositionVertex;
@@ -538,8 +539,8 @@ namespace WorldGenerator
                 int index2 = (int)((key >> 32) & 0xffffffff);
                 Edge e = iter.Value;
 
-                Vector3 centroid1 = centroids[e.triangle1/3].position;
-                Vector3 centroid2 = centroids[e.triangle2/3].position;
+                Vector3 centroid1 = centroids[e.triangle1].position;
+                Vector3 centroid2 = centroids[e.triangle2].position;
 
                 // To find which order of vertices to use; 
                 // if triangle1 contains index1 followed by index2, 
@@ -549,9 +550,9 @@ namespace WorldGenerator
                 bool edgeOrderIsAnticlockwise = false;
                 for (int i = 0; i < 3; i++)
                 {
-                    if (indices[e.triangle1 + i] == index1)
+                    if (indices[e.triangle1*3 + i] == index1)
                     {
-                        if (indices[e.triangle1 + (i + 1) % 3] == index2)
+                        if (indices[e.triangle1*3 + (i + 1) % 3] == index2)
                         {
                             edgeOrderIsAnticlockwise = true;
                         }
@@ -607,8 +608,8 @@ namespace WorldGenerator
                     {
                         Vector3 v1Pos = mesh.GetPosition(v1index);
                         Vector3 v2Pos = mesh.GetPosition(v2index);
-                        Vector3 centroid1 = centroids[edge.triangle1 / 3].position;
-                        Vector3 centroid2 = centroids[edge.triangle2 / 3].position;
+                        Vector3 centroid1 = centroids[edge.triangle1].position;
+                        Vector3 centroid2 = centroids[edge.triangle2].position;
 
                         Vector3 v1g1prime = BaseProjection(v1Pos, centroid1, centroid2, h);
                         Vector3 v1g2prime = BaseProjection(v1Pos, centroid2, centroid1, h);
@@ -621,9 +622,9 @@ namespace WorldGenerator
                         bool edgeOrderIsAnticlockwise = false;
                         for (int i = 0; i < 3; i++)
                         {
-                            if (indices[edge.triangle1 + i] == v1index)
+                            if (indices[edge.triangle1*3 + i] == v1index)
                             {
-                                if (indices[edge.triangle1 + (i + 1) % 3] == v2index)
+                                if (indices[edge.triangle1*3 + (i + 1) % 3] == v2index)
                                 {
                                     edgeOrderIsAnticlockwise = true;
                                 }
@@ -747,8 +748,8 @@ namespace WorldGenerator
                     int index2 = (int)((key >> 32) & 0xffffffff);
                     Edge e = iter.Value;
 
-                    centroids[e.triangle1/3].AddNeighbour(e.triangle2/3);
-                    centroids[e.triangle2/3].AddNeighbour(e.triangle1/3);
+                    centroids[e.triangle1].AddNeighbour(e.triangle2);
+                    centroids[e.triangle2].AddNeighbour(e.triangle1);
                 }
 
                 GenerateNeighbours();
@@ -779,12 +780,12 @@ namespace WorldGenerator
             Edge edge;
             if (!edgeCache.TryGetValue(key, out edge))
             {
-                edge.triangle1 = a - (a % 3); // First vertex of the triangle
+                edge.triangle1 = a / 3;
                 edgeCache.Add(key, edge);
             }
             else
             {
-                edge.triangle2 = a - (a % 3);
+                edge.triangle2 = a / 3;
                 edgeCache[key] = edge;
             }
         }
@@ -812,29 +813,27 @@ namespace WorldGenerator
 
         private void GenerateCentroids()
         {
-            int numIndices = indices.Length;
+            int numTriangles = indices.Length/3;
 
-            centroids = new List<Centroid>(numIndices / 3);
-            for (int i = 0; i < numIndices; i += 3)
+            centroids = new List<Centroid>(numTriangles);
+            for (int i = 0; i < numTriangles; ++i)
             {
                 Vector3 centroidPos = CalculateCentroid(i);
                 centroidPos.Normalize();
 
                 Centroid centroid = new Centroid(centroidPos);
-                centroid.AddFace((int)indices[i]);
-                centroid.AddFace((int)indices[i + 1]);
-                centroid.AddFace((int)indices[i + 2]);
+                centroid.AddFace((int)indices[i*3]);
+                centroid.AddFace((int)indices[i*3 + 1]);
+                centroid.AddFace((int)indices[i*3 + 2]);
                 centroids.Add(centroid); // Index into list is triangle index
             }
         }
 
-        // triangle is the first index of the triangle vertices in the indices array,
-        // not the triangle index.
         private Vector3 CalculateCentroid(int triangle)
         {
-            TVertex v1 = mesh.vertices[indices[triangle]];
-            TVertex v2 = mesh.vertices[indices[triangle + 1]];
-            TVertex v3 = mesh.vertices[indices[triangle + 2]];
+            TVertex v1 = mesh.vertices[indices[triangle*3]];
+            TVertex v2 = mesh.vertices[indices[triangle*3 + 1]];
+            TVertex v3 = mesh.vertices[indices[triangle*3 + 2]];
             Vector3 v1Pos = MeshAttr.GetPosition(ref v1);
             Vector3 v2Pos = MeshAttr.GetPosition(ref v2);
             Vector3 v3Pos = MeshAttr.GetPosition(ref v3);
@@ -885,15 +884,16 @@ namespace WorldGenerator
 
         private int GetTriOffset(int triangle, uint corner)
         {
-            if (indices[triangle] == corner) return 0;
-            if (indices[triangle + 1] == corner) return 1;
-            if (indices[triangle + 2] == corner) return 2;
+            int index = triangle * 3;
+            if (indices[index++] == corner) return 0;
+            if (indices[index++] == corner) return 1;
+            if (indices[index] == corner) return 2;
             return -1;
         }
 
         private bool IsObtuse(int triangle)
         {
-            int index = triangle;// * 3;
+            int index = triangle * 3;
 
             TVertex v1 = mesh.vertices[indices[index++]];
             TVertex v2 = mesh.vertices[indices[index++]];
@@ -913,9 +913,10 @@ namespace WorldGenerator
 
         private bool TooThin(int triangle)
         {
-            TVertex v1 = mesh.vertices[indices[triangle]];
-            TVertex v2 = mesh.vertices[indices[triangle + 1]];
-            TVertex v3 = mesh.vertices[indices[triangle + 2]];
+            int index = triangle * 3;
+            TVertex v1 = mesh.vertices[indices[index++]];
+            TVertex v2 = mesh.vertices[indices[index++]];
+            TVertex v3 = mesh.vertices[indices[index]];
             Vector3 e1 = MeshAttr.GetPosition(ref v2) - MeshAttr.GetPosition(ref v1);
             Vector3 e2 = MeshAttr.GetPosition(ref v3) - MeshAttr.GetPosition(ref v1);
             Vector3 e3 = MeshAttr.GetPosition(ref v3) - MeshAttr.GetPosition(ref v2);
