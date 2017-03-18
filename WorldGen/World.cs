@@ -98,7 +98,7 @@ namespace WorldGenerator
         public void CreatePlates()
         {
             CreatePlates(ref rand, numPlates);
-            CalculatePlateBoundaries(true);
+            CalculatePlateBoundaries(false);
         }
 
         public void InitPlates()
@@ -142,6 +142,27 @@ namespace WorldGenerator
                     throw new Exception();
                 }
             }
+
+            // Determine elevations of plates
+            for( int i=0; i < numPlates; ++i)
+            {
+                // Earth: crust is 5-70km thick, radius of planet is 6,371km, i.e. 0.1% -> 1.0%
+                // deepest ocean is ~8km; tallest mountain is ~9km; i.e. +/- 10km
+
+                bool oceanic = rand.Next(100) / 100.0f < 0.65f;
+                if ( oceanic )
+                {
+                    // Oceanic plates range from -8km to -3km
+                    plates[i].Traits.Elevation = rand.Next(100) / 200.0f - 0.8f;
+                    plates[i].Recolor(new Vector4(0, 0, 0.5f, 1));
+                }
+                else
+                {
+                    // Continental plates range from 1km to 9km
+                    plates[i].Traits.Elevation = rand.Next(800) / 1000.0f + 0.1f;
+                    plates[i].Recolor(new Vector4(0, 0.5f, 0, 1));
+                }
+            }
         }
 
         private void InitPlates(ref Random rand, int numPlates)
@@ -164,7 +185,15 @@ namespace WorldGenerator
                     plate = vertexToPlate[vertexIndex];
                     if (plate == -1)
                     {
-                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, plateIndex, vertexIndex, neighbours, ref rand);
+                        var traits = new PlatePhysicsTraits();
+                        traits.Pivot = new Vector3(rand.Next(100), rand.Next(100), rand.Next(100));
+                        traits.Pivot.Normalize();
+                        traits.Center = geometry.Mesh.GetPosition(vertexIndex);
+                        traits.CenterRotation = (rand.Next(200) - 100) * (float)Math.PI / 3000.0f; // -6 -> 6 degrees
+                        traits.PivotRotation = (rand.Next(200) - 100) * (float)Math.PI / 3000.0f;
+                        traits.Elevation = 0.0f;
+
+                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, traits, plateIndex, vertexIndex, neighbours, ref rand);
                         break;
                     }
                 } while (plate != -1);

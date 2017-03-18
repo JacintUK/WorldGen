@@ -7,6 +7,16 @@ using OpenTK;
 
 namespace WorldGenerator
 {
+    class PlatePhysicsTraits
+    {
+        public Vector3 Pivot { set; get;  }
+        public Vector3 Center { set; get; }
+        public float CenterRotation { set; get; }
+        public float PivotRotation { set; get; }
+        public float Elevation { set; get; }
+        public float Thickness { set; get; }
+    }
+
     class Plate
     {
         private IMesh mesh;
@@ -17,37 +27,20 @@ namespace WorldGenerator
         int cycleNum = 0;
         int plateIndex = -1;
         float hue;
-
-        Vector3 center;
-        Vector3 pivot;
-        float centerRotation;
-        float pivotRotation;
-        float elevation;
-        float thickness;
         int[] vertexToPlate;
 
+        public PlatePhysicsTraits Traits { get; set; }
         public List<int> BorderTiles { get { return outerIndices; } }
         public List<int> Tiles { get { return allIndices; } }
-        private List<float> distancesToCenter;
 
-        public Plate(int[] vertexToPlate, IMesh mesh, int plateIndex, int startIndex, Neighbours neighbours, ref Random rand)
+        public Plate(int[] vertexToPlate, IMesh mesh, PlatePhysicsTraits traits, int plateIndex, int startIndex, Neighbours neighbours, ref Random rand)
         {
             this.mesh = mesh;
             this.startIndex = startIndex;
             this.neighbours = neighbours;
             this.vertexToPlate = vertexToPlate;
             this.plateIndex = plateIndex;
-
-            // Todo: move 'physical' trait generation to World, and pass in.
-            center = mesh.GetPosition(startIndex);
-            pivot = new Vector3(rand.Next(100), rand.Next(100), rand.Next(100));
-            pivot.Normalize();
-            centerRotation = (rand.Next(200)-100)*(float)Math.PI/3000.0f; // -6 -> 6 degrees
-            pivotRotation = (rand.Next(200)-100)*(float)Math.PI/3000.0f;
-            // Earth: crust is 5-70km thick, radius of planet is 6,371km, i.e. 0.1% -> 1.0%
-            // deepest ocean is ~8km; tallest mountain is ~9km; i.e. +/- 10km
-            elevation = rand.Next(200)/100.0f - 0.5f; // -10 -> +10   
-            thickness = 0.001f+(rand.Next(100))/10000.0f ; //0.001 -> 0.011
+            this.Traits = traits;
 
             allIndices = new List<int>(6);
             allIndices.Add(startIndex);
@@ -134,8 +127,14 @@ namespace WorldGenerator
             // For each vertex on boundary, 
             //   motion due to rotation about pivot (drift)
             //   + motion due to rotation about plate center (spin)
+        }
 
-
+        public void Recolor(Vector4 color)
+        {
+            foreach (int index in allIndices)
+            {
+                mesh.SetColor(index, ref color);
+            }
         }
     }
 }
