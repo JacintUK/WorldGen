@@ -10,6 +10,14 @@ namespace WorldGenerator
 {
     class Math2
     {
+        public static Vector3 ProjectOnVector( Vector3 lhs, Vector3 rhs )
+        {
+            Vector3 rhsN = rhs;
+            rhsN.Normalize();
+            float length = Vector3.Dot(lhs, rhsN);
+            return rhsN * length;
+        }
+
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t)
         {
             return (1.0f - t) * a + t * b;

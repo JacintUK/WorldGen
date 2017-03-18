@@ -27,6 +27,16 @@ namespace WorldGenerator
             this.c2Index = c2Index;
         }
     }
+    struct Stress
+    {
+        public float pressure;
+        public float shear;
+        public Stress(float p, float s)
+        {
+            pressure = p;
+            shear = s;
+        }
+    }
 
     class World
     {
@@ -163,12 +173,7 @@ namespace WorldGenerator
 
         private void PlateCalculations()
         {
-            for (int i = 0; i < numPlates; ++i)
-            {
-                int vertexIndex = rand.Next(geometry.Mesh.Length);
-                plates[i].CalculateMovement();
-            }
-            // for each edge in plate boundaries,
+            // for each vertex in plate boundaries,
             //   calculate relative motion between tiles
             //     both parallel to (shear) and perpendicular to (pressure) edge.
             //     if perpendicular motion is +ve, it's a collision.
@@ -178,6 +183,45 @@ namespace WorldGenerator
             //           mountain formation; folding;
             //        if heights opposite sign; subduct the lower under the higher.
             //           tilt upper plate (calc for all boundaries)
+
+            Dictionary<int, int> cornerIndices = new Dictionary<int, int>();
+            foreach (var iter in borders)
+            {
+                Int64 key = iter.Key;
+                Border border = iter.Value;
+                ClearOrIncrement(cornerIndices, border.c1Index);
+                ClearOrIncrement(cornerIndices, border.c2Index);
+            }
+            foreach ( int cornerIndex in cornerIndices.Keys)
+            {
+                if(cornerIndices[cornerIndex] == 3)
+                {
+                    // 3 separate plates. Find movement from each plate at this corner and average it
+                }
+                else // Border between only 2 plates.
+                {
+                    // generate average vector, calculate movement once.
+
+                }
+            }
+        }
+        static Stress calculateStress(Vector3 movement0, Vector3 movement1, Vector3 boundaryVector, Vector3 boundaryNormal)
+        {
+            var relativeMovement = movement0 - movement1;
+            var pressureVector = Math2.ProjectOnVector(relativeMovement, boundaryNormal);
+            var pressure = pressureVector.Length;
+            if (Vector3.Dot(pressureVector, boundaryNormal) > 0) pressure = -pressure;
+            var shear = Math2.ProjectOnVector(relativeMovement, boundaryVector).Length;
+            return new Stress( 2.0f / (1.0f + (float)Math.Exp(-pressure / 30.0f)) - 1.0f, 
+                                2.0f / (1.0f + (float)Math.Exp(-shear / 30.0f)) - 1.0f );
+        }
+
+        static void ClearOrIncrement(Dictionary<int,int>dict, int key)
+        {
+            if (!dict.ContainsKey(key))
+                dict[key] = 0;
+            else
+                dict[key]++;
         }
 
         private void CalculatePlateBoundaries(bool recolor)

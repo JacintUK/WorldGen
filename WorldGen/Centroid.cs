@@ -4,23 +4,50 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OpenTK;
+using System.Collections;
 
 namespace WorldGenerator
 {
     class Centroid
     {
+        public class DelimIntArrayEnum : IEnumerable
+        {
+            public int[] array;
+            public DelimIntArrayEnum(int size)
+            {
+                array = new int[size];
+                for (int i = 0; i < size; ++i)
+                {
+                    array[i] = -1;
+                }
+            }
+            public IEnumerator GetEnumerator()
+            {
+                for (int index = 0; index < array.Length && array[index] != -1; ++index)
+                {
+                    yield return array[index];
+                }
+            }
+            public int this[int index]
+            {
+                get { return array[index]; }
+                set { array[index] = value; }
+            }
+        }
+
         public Vector3 position;
-        public int[] faces;
-        public int[] neighbours;
+        private DelimIntArrayEnum faces;
+        private DelimIntArrayEnum neighbours;
+        public DelimIntArrayEnum Faces {  get { return faces; } }
+        public DelimIntArrayEnum Neighbours { get { return neighbours; } }
 
         public Centroid(Vector3 position)
         {
             this.position = position;
-            faces = new int[3]; // face index in dual is equ. to vertex index in this mesh.
-            neighbours = new int[3]; // neighbouring centroids
-            faces[0] = faces[1] = faces[2] = -1;
-            neighbours[0] = neighbours[1] = neighbours[2] = -1;
+            faces = new DelimIntArrayEnum(3); // face index in dual is equ. to vertex index in this mesh.
+            neighbours = new DelimIntArrayEnum(3); // neighbouring centroids
         }
+
         public void AddFace(int face)
         {
             for (int i = 0; i < 3; ++i)
@@ -32,6 +59,7 @@ namespace WorldGenerator
                 }
             }
         }
+
         public void AddNeighbour(int neighbour)
         {
             for (int i = 0; i < 3; ++i)

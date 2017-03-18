@@ -38,6 +38,7 @@ namespace WorldGenerator
             this.vertexToPlate = vertexToPlate;
             this.plateIndex = plateIndex;
 
+            // Todo: move 'physical' trait generation to World, and pass in.
             center = mesh.GetPosition(startIndex);
             pivot = new Vector3(rand.Next(100), rand.Next(100), rand.Next(100));
             pivot.Normalize();
@@ -130,19 +131,11 @@ namespace WorldGenerator
 
         public void CalculateMovement()
         {
-            // For each vertex, 
+            // For each vertex on boundary, 
             //   motion due to rotation about pivot (drift)
             //   + motion due to rotation about plate center (spin)
-            if( distancesToCenter == null )
-            {
-                distancesToCenter = new List<float>();
 
-                for(int i=0; i<allIndices.Count; ++i)
-                {
-                    Vector3 dist=mesh.GetPosition(allIndices[i]) - center;
-                    distancesToCenter.Add( dist.Length );
-                }
-            }
+
         }
     }
 }

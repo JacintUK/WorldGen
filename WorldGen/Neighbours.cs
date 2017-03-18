@@ -9,45 +9,9 @@ namespace WorldGenerator
 {
     class Neighbours
     {
-        public class VertexEnum : IEnumerator
-        {
-            List<int> neighbours;
-            int currentIdx;
-            public VertexEnum( List<int> neighbours)
-            {
-                this.neighbours = neighbours;
-                currentIdx = -1;
-            }
-            public object Current
-            {
-                get
-                {
-                    try
-                    {
-                        return neighbours[currentIdx];
-                    }
-                    catch (IndexOutOfRangeException)
-                    {
-                        throw new InvalidOperationException();
-                    }
-                }
-            }
-
-            public bool MoveNext()
-            {
-                currentIdx++;
-                return currentIdx < neighbours.Count;
-            }
-
-            public void Reset()
-            {
-                currentIdx = -1;
-            }
-        }
-
         public class VertexNeighbours : IEnumerable
         {
-            List<int> neighbours;
+            private List<int> neighbours;
             public List<int> Neighbours { get { return neighbours; } }
             public int Count { get { return neighbours.Count; } }
 
@@ -55,14 +19,12 @@ namespace WorldGenerator
             {
                 this.neighbours = new List<int>();
             }
-            IEnumerator IEnumerable.GetEnumerator()
+            public IEnumerator GetEnumerator()
             {
-                return (IEnumerator)GetEnumerator();
-            }
-
-            public VertexEnum GetEnumerator()
-            {
-                return new VertexEnum(neighbours);
+                for(int index=0; index < neighbours.Count; ++index)
+                {
+                    yield return neighbours[index];
+                }
             }
         }
         private VertexNeighbours[] neighbours;
