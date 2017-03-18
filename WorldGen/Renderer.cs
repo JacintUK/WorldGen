@@ -19,6 +19,8 @@ namespace WorldGenerator
         public bool DepthTestFlag { set; get; }
         public CullFaceMode CullFaceMode { set; get; }
         public bool CullFaceFlag { set; get; }
+        public bool BlendingFlag { set; get; }
+
         private List<UniformProperty> uniforms;
         
         public Renderer(IGeometry geometry, Shader shader)
@@ -26,6 +28,7 @@ namespace WorldGenerator
             this.DepthTestFlag = true;
             this.CullFaceMode = CullFaceMode.Back;
             this.CullFaceFlag = true;
+            this.BlendingFlag = false;
             this.shader = shader;
             this.geometry = geometry;
             this.vertexBuffer = geometry.CreateVertexBuffer();
@@ -86,7 +89,16 @@ namespace WorldGenerator
                 {
                     GL.Disable(EnableCap.CullFace);
                 }
-
+                if( BlendingFlag )
+                {
+                    GL.Enable(EnableCap.Blend);
+                    GL.BlendFuncSeparate(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha, BlendingFactorSrc.One, BlendingFactorDest.OneMinusSrcAlpha);
+                    GL.BlendEquationSeparate(BlendEquationMode.FuncAdd, BlendEquationMode.FuncAdd);
+                }
+                else
+                {
+                    GL.Disable(EnableCap.Blend);
+                }
                 if (shader != null)
                 {
                     shader.Use();

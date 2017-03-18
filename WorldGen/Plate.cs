@@ -122,11 +122,33 @@ namespace WorldGenerator
             }
         }
 
-        public void CalculateMovement()
+        public Vector3 CalculateSpin(Vector3 position)
         {
-            // For each vertex on boundary, 
-            //   motion due to rotation about pivot (drift)
-            //   + motion due to rotation about plate center (spin)
+            // Combine transverse movement about center and pivot.
+            // First project center onto position vector to get an orthogonal spin vector.
+            Vector3 spin = Math2.ProjectOnVector(Traits.Center, position) - Traits.Center;
+            if (spin.Length > 0.0001f)
+            {
+                Vector3 tangent = Vector3.Cross(spin, position);
+                tangent.Normalize();
+                tangent *= spin.Length * (float)Math.Tan(Traits.CenterRotation);
+                return tangent;
+            }
+            return Vector3.Zero;
+        }
+
+        public Vector3 CalculateDrift(Vector3 position)
+        {
+            Vector3 drift = Math2.ProjectOnVector(Traits.Pivot, position ) - Traits.Pivot;
+            if (drift.Length > 0.0001f)
+            {
+                Vector3 tangent = Vector3.Cross(drift, position);
+                tangent.Normalize();
+                float transverseDrift = Math2.Clamp(drift.Length * (float)Math.Tan(Traits.PivotRotation), -0.01f, .01f);
+                tangent *= transverseDrift;
+                return tangent;
+            }
+            return Vector3.Zero;
         }
 
         public void Recolor(Vector4 color)

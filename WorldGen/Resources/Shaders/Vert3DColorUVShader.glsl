@@ -53,5 +53,9 @@ void main()
 
 	intensity = clamp( dot( normalC, lightDirection ), 0, 1 );
 	vColor = aColor;
+	if(posW.z < -2.8)
+	{
+	  vColor.a = 0;// *= 0.5;
+	}
 	vAmbientColor = ambientColor;
 }

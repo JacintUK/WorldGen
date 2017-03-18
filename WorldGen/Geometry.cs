@@ -62,7 +62,9 @@ namespace WorldGenerator
                 index++;
             }
             Mesh<TVertex2> newMesh = new Mesh<TVertex2>(newVerts);
-            uint[] newIndices = (uint[])indices.Clone();
+            uint[] newIndices=null;
+            if (indices != null)
+                newIndices = (uint[])indices.Clone();
             Geometry<TVertex2> newGeom = new Geometry<TVertex2>(newMesh, newIndices);
             return newGeom;
         }
@@ -254,9 +256,6 @@ namespace WorldGenerator
         //        moving edges towards symmetry.
         //        generate new point for each tri vert
         // for each vert, calc average of all new verts, normalise and apply
-
-
-
         // Algorithm is nearly there, but on some triangles, there is a potential that converging on
         // centroid tilts through random moves away from centroidal radius, and they become thin / start overlapping.
         public float RelaxTriangles1(float multiplier)

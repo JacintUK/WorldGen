@@ -17,7 +17,7 @@ namespace WorldGenerator
     {
         List<MouseButton> pressedButtons = new List<MouseButton>();
         List<KeyHandler> keyHandlers = new List<KeyHandler>();
-        Node node;
+        List<Node> nodes = new List<Node>();
         Color backgroundColor = Color.Aquamarine;
         Matrix4 projection;
 
@@ -26,6 +26,9 @@ namespace WorldGenerator
         Renderer worldRenderer;
         Renderer worldCentroidDebugRenderer;
         Renderer worldVertsDebugRenderer;
+        Renderer worldPlateSpinDebugRenderer;
+        Renderer worldPlateDriftDebugRenderer;
+
         Renderer borderRenderer;
         Quaternion rotation = new Quaternion(Vector3.UnitY, 0.0f);
         Vector3 worldPosition;
@@ -68,15 +71,19 @@ namespace WorldGenerator
             InitializeGL();
             SetCameraProjection();
 
-            Shader texShader = new Shader(SHADER_PATH+"quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
+            Shader quadShader = new Shader(SHADER_PATH + "quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
             Shader shader = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
             Shader pointShader = new Shader(SHADER_PATH + "pointVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
+            Shader texShader2 = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "texFragShader.glsl");
             Shader borderShader = new Shader(SHADER_PATH + "Vert3DColorShader.glsl", SHADER_PATH + "pointFragShader.glsl");
             Texture cellTexture = new Texture("Edge.png");
+            Texture arrowTexture = new Texture("Arrow.png");
+
             world = new World();
             worldPosition = new Vector3(0, 0, -3);
 
-            node = new Node();
+            var node = new Node();
+            nodes.Add(node);
             node.Model = Matrix4.CreateTranslation(worldPosition);
 
             worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
@@ -99,7 +106,7 @@ namespace WorldGenerator
             worldVertsDebugRenderer = new Renderer(world.geometry, pointShader);
             worldVertsDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
             worldVertsDebugRenderer.AddUniform(new UniformProperty("pointSize", 3f));
-            node.Add(worldVertsDebugRenderer);
+            //node.Add(worldVertsDebugRenderer);
 
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidPointMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
@@ -108,7 +115,25 @@ namespace WorldGenerator
             worldCentroidDebugRenderer.CullFaceFlag = false;
             worldCentroidDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0, 0.5f, 1)));
             worldCentroidDebugRenderer.AddUniform(new UniformProperty("pointSize", 3f));
-            node.Add(worldCentroidDebugRenderer);
+            //node.Add(worldCentroidDebugRenderer);
+
+            var spinGeom = world.GenerateSpinDriftDebugGeom(true);
+            worldPlateSpinDebugRenderer = new Renderer(spinGeom, texShader2);
+            worldPlateSpinDebugRenderer.DepthTestFlag = false;
+            worldPlateSpinDebugRenderer.CullFaceFlag = false;
+            worldPlateSpinDebugRenderer.BlendingFlag = true;
+            worldPlateSpinDebugRenderer.AddTexture(arrowTexture);
+            worldPlateSpinDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
+            node.Add(worldPlateSpinDebugRenderer);
+
+            var driftGeom = world.GenerateSpinDriftDebugGeom(false);
+            worldPlateDriftDebugRenderer = new Renderer(driftGeom, texShader2);
+            worldPlateDriftDebugRenderer.DepthTestFlag = false;
+            worldPlateDriftDebugRenderer.CullFaceFlag = false;
+            worldPlateDriftDebugRenderer.BlendingFlag = true;
+            worldPlateDriftDebugRenderer.AddTexture(arrowTexture);
+            worldPlateDriftDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(.75f, 0.75f, 0.0f, 1.0f)));
+            node.Add(worldPlateDriftDebugRenderer);
         }
 
         void UpdateRenderers()
@@ -122,6 +147,10 @@ namespace WorldGenerator
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidPointMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             worldCentroidDebugRenderer.Update(centroidGeom);
+            var spinGeom = world.GenerateSpinDriftDebugGeom(true);
+            worldPlateSpinDebugRenderer.Update(spinGeom);
+            spinGeom = world.GenerateSpinDriftDebugGeom(false);
+            worldPlateDriftDebugRenderer.Update(spinGeom);
         }
 
         //private bool _mainWindowOpened;
@@ -214,7 +243,7 @@ namespace WorldGenerator
             {
                 // drag up and down to change camera Z.
                 cameraPosition.Z += button.YDelta / 100.0f;
-                cameraPosition.Z = Clamp(cameraPosition.Z, -1, 2);
+                cameraPosition.Z = Clamp(cameraPosition.Z, -1, 10);
             }
         }
 
@@ -237,7 +266,7 @@ namespace WorldGenerator
                 Quaternion rotation = equatorRot * polarAxisRot;
                 Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
                 Matrix4 tr = Matrix4.CreateTranslation(worldPosition);
-                node.Model = rotationMatrix * tr;
+                nodes[0].Model = rotationMatrix * tr;
             }
         }
 
@@ -279,7 +308,10 @@ namespace WorldGenerator
             Matrix4 view = Matrix4.LookAt(cameraPosition, Vector3.Zero, Vector3.UnitY);
             SetCameraProjection();
 
-            node.Draw( ref view, ref projection);
+            foreach (var node in nodes)
+            {
+                node.Draw(ref view, ref projection);
+            }
 
             DrawGUI();
             SwapBuffers();

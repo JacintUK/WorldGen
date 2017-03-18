@@ -122,6 +122,74 @@ namespace WorldGenerator
             CalculatePlateBoundaries(false);
         }
 
+        public Geometry<Vertex3DColorUV> GenerateSpinDriftDebugGeom(bool spin)
+        {
+            List<Vertex3DColorUV> vertices = new List<Vertex3DColorUV>(geometry.Mesh.Length*4);
+            List<uint> indices = new List<uint>();
+            const float epsilon = 1e-8f;
+            float sqrt2by2 = (float)Math.Sqrt(2.0)*0.5f;
+            foreach ( var plate in plates )
+            {
+                foreach( int tileIndex in plate.Tiles )
+                {
+                    Vector3 pos = geometry.Mesh.GetPosition(tileIndex);
+                    Vector3 tangent;
+                    if (spin)
+                        tangent = plate.CalculateSpin(pos);
+                    else
+                        tangent = plate.CalculateDrift(pos);
+
+                    pos *= 1.01f;
+                    float side = tangent.Length;
+                    if (side > epsilon)
+                    {
+                        tangent.Normalize();
+                        Vector3 w = Vector3.Cross(tangent, pos);
+                        tangent *= side;
+                        w.Normalize();
+                        w *= side;
+
+                        // Construct 4 verts around this position:
+                        Vector3 A = pos + tangent + w;
+                        Vector3 B = pos - tangent + w;
+                        Vector3 C = pos - tangent - w;
+                        Vector3 D = pos + tangent - w;
+
+                        int index = vertices.Count;
+                        var vertex = new Vertex3DColorUV();
+                        vertex.SetPosition(A);
+                        vertex.SetTextureCoordinates(new Vector2(1, 1));
+                        vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertices.Add(vertex);
+                        vertex = new Vertex3DColorUV();
+                        vertex.SetPosition(B);
+                        vertex.SetTextureCoordinates(new Vector2(0, 1));
+                        vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertices.Add(vertex);
+                        vertex = new Vertex3DColorUV();
+                        vertex.SetPosition(C);
+                        vertex.SetTextureCoordinates(new Vector2(0, 0));
+                        vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertices.Add(vertex);
+                        vertex = new Vertex3DColorUV();
+                        vertex.SetPosition(D);
+                        vertex.SetTextureCoordinates(new Vector2(1, 0));
+                        vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertices.Add(vertex);
+                        indices.Add((uint)index);
+                        indices.Add((uint)index + 2);
+                        indices.Add((uint)index + 1);
+                        indices.Add((uint)index + 3);
+                        indices.Add((uint)index + 2);
+                        indices.Add((uint)index);
+                    }
+                }
+            }
+            var mesh = new Mesh<Vertex3DColorUV>(vertices.ToArray());
+            var spinGeometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
+            return spinGeometry;
+        }
+
         private void CreatePlates(ref Random rand, int numPlates)
         {
             InitPlates(ref rand, numPlates);
@@ -154,13 +222,13 @@ namespace WorldGenerator
                 {
                     // Oceanic plates range from -8km to -3km
                     plates[i].Traits.Elevation = rand.Next(100) / 200.0f - 0.8f;
-                    plates[i].Recolor(new Vector4(0, 0, 0.5f, 1));
+                    //plates[i].Recolor(new Vector4(0, 0, 0.5f, 1));
                 }
                 else
                 {
                     // Continental plates range from 1km to 9km
                     plates[i].Traits.Elevation = rand.Next(800) / 1000.0f + 0.1f;
-                    plates[i].Recolor(new Vector4(0, 0.5f, 0, 1));
+                    //plates[i].Recolor(new Vector4(0, 0.5f, 0, 1));
                 }
             }
         }
@@ -186,11 +254,15 @@ namespace WorldGenerator
                     if (plate == -1)
                     {
                         var traits = new PlatePhysicsTraits();
-                        traits.Pivot = new Vector3(rand.Next(100), rand.Next(100), rand.Next(100));
+                        traits.Pivot = new Vector3(rand.Next(100)-50, rand.Next(100)-50, rand.Next(100)-50);
                         traits.Pivot.Normalize();
                         traits.Center = geometry.Mesh.GetPosition(vertexIndex);
-                        traits.CenterRotation = (rand.Next(200) - 100) * (float)Math.PI / 3000.0f; // -6 -> 6 degrees
-                        traits.PivotRotation = (rand.Next(200) - 100) * (float)Math.PI / 3000.0f;
+                        if (Vector3.Dot(traits.Center, traits.Pivot) < 0)
+                        {
+                            traits.Pivot *= -1.0f; // Ensure pivot is at least in the same hemisphere as the plate center.
+                        }
+                        traits.CenterRotation = (rand.Next(200) - 100) * (float)Math.PI / 6000.0f; // -3 -> 3 degrees
+                        traits.PivotRotation = (rand.Next(200) - 100) * (float)Math.PI / 6000.0f;
                         traits.Elevation = 0.0f;
 
                         plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, traits, plateIndex, vertexIndex, neighbours, ref rand);
@@ -316,5 +388,6 @@ namespace WorldGenerator
             Int64 key = min << 32 | max;
             return key;
         }
+
     }
 }
