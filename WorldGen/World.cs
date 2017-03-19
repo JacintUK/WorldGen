@@ -8,17 +8,6 @@ using OpenTK.Graphics.OpenGL;
 
 namespace WorldGenerator
 {
-    struct Stress
-    {
-        public float pressure;
-        public float shear;
-        public Stress(float p, float s)
-        {
-            pressure = p;
-            shear = s;
-        }
-    }
-
     class World
     {
         private float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
@@ -74,8 +63,10 @@ namespace WorldGenerator
         {
             plates = new Plates (ref rand, numPlates, geometry);
             plates.CalculatePlateBoundaries(false);
+            plates.CalculateStresses();
         }
 
+        // Debug method
         public void InitPlates()
         {
             // Debugging plate growth
