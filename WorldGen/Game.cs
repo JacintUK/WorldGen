@@ -95,7 +95,7 @@ namespace WorldGenerator
             worldRenderer.CullFaceFlag = true;
             node.Add(worldRenderer);
 
-            borderGeometry = world.geometry.GenerateBorderGeometry<Vertex3DColor>(world.Borders);
+            borderGeometry = world.plates.GenerateBorderGeometry<Vertex3DColor>();
             borderGeometry.PrimitiveType = PrimitiveType.Triangles;
             borderRenderer = new Renderer(borderGeometry, borderShader);
             borderRenderer.DepthTestFlag = true;
@@ -117,7 +117,7 @@ namespace WorldGenerator
             worldCentroidDebugRenderer.AddUniform(new UniformProperty("pointSize", 3f));
             //node.Add(worldCentroidDebugRenderer);
 
-            var spinGeom = world.GenerateSpinDriftDebugGeom(true);
+            var spinGeom = world.plates.GenerateSpinDriftDebugGeom(true);
             worldPlateSpinDebugRenderer = new Renderer(spinGeom, texShader2);
             worldPlateSpinDebugRenderer.DepthTestFlag = false;
             worldPlateSpinDebugRenderer.CullFaceFlag = false;
@@ -126,7 +126,7 @@ namespace WorldGenerator
             worldPlateSpinDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
             node.Add(worldPlateSpinDebugRenderer);
 
-            var driftGeom = world.GenerateSpinDriftDebugGeom(false);
+            var driftGeom = world.plates.GenerateSpinDriftDebugGeom(false);
             worldPlateDriftDebugRenderer = new Renderer(driftGeom, texShader2);
             worldPlateDriftDebugRenderer.DepthTestFlag = false;
             worldPlateDriftDebugRenderer.CullFaceFlag = false;
@@ -139,7 +139,7 @@ namespace WorldGenerator
         void UpdateRenderers()
         {
             worldRenderGeometry = world.geometry.GenerateDualMesh<Vertex3DColorUV>();
-            borderGeometry = world.geometry.GenerateBorderGeometry<Vertex3DColor>(world.Borders);
+            borderGeometry = world.plates.GenerateBorderGeometry<Vertex3DColor>();
             borderRenderer.Update(borderGeometry);
             worldRenderer.Update(worldRenderGeometry);
             worldVertsDebugRenderer.Update(world.geometry);
@@ -147,9 +147,9 @@ namespace WorldGenerator
             Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidPointMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             worldCentroidDebugRenderer.Update(centroidGeom);
-            var spinGeom = world.GenerateSpinDriftDebugGeom(true);
+            var spinGeom = world.plates.GenerateSpinDriftDebugGeom(true);
             worldPlateSpinDebugRenderer.Update(spinGeom);
-            spinGeom = world.GenerateSpinDriftDebugGeom(false);
+            spinGeom = world.plates.GenerateSpinDriftDebugGeom(false);
             worldPlateDriftDebugRenderer.Update(spinGeom);
         }
 

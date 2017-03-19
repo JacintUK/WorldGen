@@ -87,5 +87,37 @@ namespace WorldGenerator
         {
             return new Vector3(value.R / 255.0f, value.G / 255.0f, value.B / 255.0f);
         }
+
+        // Given a triangle A, G1, G2
+        // Projects a line parallel to the base (G1-G2) of the triangle a distance h upwards,
+        // and returns a point A' which is the intersection of this line and edge A-G1.
+        public static Vector3 BaseProjection(Vector3 A, Vector3 G1, Vector3 G2, float h)
+        {
+            // Want 1 line parallel to G2-G1 that are x pixels away and lie on tri A,G1,G2
+            // a' = h / cos(90-theta)
+            // a' lies on A-G1
+            // cos(theta) = (G1-A).(G1-G2)
+            // cos(90-theta)= cos(90)cos(theta)+sin(90)sin(theta) = sin(theta) = sqrt(1-cos^2(theta))
+            // a' = h / sqrt(1-cos^2(theta))
+            Vector3 AG1 = (G1 - A);
+            Vector3 AG1N = AG1;
+            AG1N.Normalize();
+            Vector3 b = (G1 - G2);
+            b.Normalize();
+            float cosTheta = Vector3.Dot(AG1N, b);
+            float aPrime = h / (float)Math.Sqrt(1.0f - cosTheta * cosTheta);
+            Vector3 APrime = A + AG1 * (1.0f - aPrime);
+            return APrime;
+        }
+
+        public static Vector3 GetCentroid( Vector3 v1, Vector3 v2, Vector3 v3 )
+        {
+            Vector3 e1 = v2 - v1;
+            Vector3 midPt = v1 + e1 * 0.5f;
+            Vector3 centroid = midPt + (v3 - midPt) / 3.0f;
+            return centroid;
+        }
+
     }
 }
+

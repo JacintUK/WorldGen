@@ -6,45 +6,84 @@ using System.Linq;
 
 namespace WorldGenerator
 {
-    using Borders = Dictionary<Int64, Border>;
+    sealed class Indices : IIndices
+    {
+        private uint[] indices;
+        public uint this[int i]{ get { return indices[i]; } set { indices[i] = value; } }
+        public int Length {  get { return indices.Length; } }
+        
+        public Indices( uint[] indices )
+        {
+            this.indices = indices;
+        }
+
+        public Indices Clone()
+        {
+            uint[] newIndices = null;
+            if (indices != null)
+            {
+               newIndices = (uint[])indices.Clone();
+            }
+            return new Indices(newIndices);
+        }
+
+        public IndexBuffer NewIndexBuffer()
+        {
+            return new IndexBuffer(indices);
+        }
+
+        public void Upload( IndexBuffer ibo )
+        {
+            ibo.Upload(indices);
+        }
+    }
 
     class Geometry<TVertex> : IGeometry where TVertex : struct, IVertex
     {
-        struct Edge { public int triangle1; public int triangle2; } 
-
         private Mesh<TVertex> mesh;
-        private uint[] indices;
-        private PrimitiveType primType = PrimitiveType.Triangles;
-        private Dictionary<Int64, Edge> edgeCache;
-        private int[] vertCounts;
-
-        public PrimitiveType PrimitiveType { get { return primType; } set { primType = value; } }
+        public PrimitiveType PrimitiveType { get; set; } = PrimitiveType.Triangles;
+        private Indices indices;
         public bool NeedsUpdate { set; get; }
         public IMesh Mesh { get { return mesh; } }
+        public int NumVertices { get { return mesh.Length; } }
+        public int NumIndices { get { return indices.Length; } }
+        public IIndices Indices { get { return indices; } }
 
-        // Topology
-        private Neighbours neighbours;
-        private List<Centroid> centroids; // indexed by triangle.
-        public Neighbours Neighbours { get { GenerateTopology(); return neighbours; } } // Face neighbours
-        public List<Centroid> Centroids {  get { GenerateTopology();  return centroids; } }
-        bool regenerateTopology = true;
+        public uint this[int i]
+        {
+            get
+            {
+                return indices[i];
+            }
+        }
+        public Topology Topology { get; set; }
+
 
         public Geometry(Mesh<TVertex> mesh, uint[] indices)
         {
             this.mesh = mesh;
-            this.indices = indices;
+            this.indices = new Indices(indices);
+            this.Topology = new Topology(this);
         }
+        public Geometry(Mesh<TVertex> mesh, Indices indices)
+        {
+            this.mesh = mesh;
+            this.indices = indices;
+            this.Topology = new Topology(this);
+        }
+
 
         public Geometry(Mesh<TVertex> mesh)
         {
             this.mesh = mesh;
             this.indices = null;
+            this.Topology = new Topology(this);
         }
 
         public IGeometry Clone()
         {
             Mesh<TVertex> newMesh = new Mesh<TVertex>(mesh.vertices);
-            uint[] newIndices = (uint[])indices.Clone();
+            Indices newIndices = indices.Clone();
             Geometry<TVertex> newGeom = new Geometry<TVertex>(newMesh, newIndices);
             return newGeom;
         }
@@ -62,13 +101,13 @@ namespace WorldGenerator
                 index++;
             }
             Mesh<TVertex2> newMesh = new Mesh<TVertex2>(newVerts);
-            uint[] newIndices=null;
+            Indices newIndices=null;
             if (indices != null)
-                newIndices = (uint[])indices.Clone();
+                newIndices = indices.Clone();
             Geometry<TVertex2> newGeom = new Geometry<TVertex2>(newMesh, newIndices);
             return newGeom;
         }
-
+        
         // key is hash of vertex index of each vertex.
         // value is index of new midpoint vertex
         private Dictionary<Int64, uint> subDivideEdgeCache = new Dictionary<long, uint>();
@@ -103,7 +142,7 @@ namespace WorldGenerator
                     newIndices.Add(pt1); newIndices.Add(pt2); newIndices.Add(pt3);
                 }
                 mesh.vertices = newVerts.ToArray();
-                indices = newIndices.ToArray();
+                indices = new Indices(newIndices.ToArray());
             }
             subDivideEdgeCache.Clear();
             return numVerts;
@@ -111,7 +150,7 @@ namespace WorldGenerator
 
         private uint GenerateVertex(ref List<TVertex> verts, int a, int b)
         {
-            Int64 key1 = CreateEdgeKey(indices[a], indices[b]);
+            Int64 key1 = Topology.CreateEdgeKey(indices[a], indices[b]);
             uint middlePt;
             if (!subDivideEdgeCache.TryGetValue(key1, out middlePt))
             {
@@ -132,21 +171,21 @@ namespace WorldGenerator
             NeedsUpdate = true;
 
             // Assumptions: minimised mesh. Shared edges won't work without shared verts.
-            GenerateEdges();
+            Topology.GenerateEdges();
 
             // How many edges do we have? exchange some percentage of them...
-            int numPerturbations = (int)((float)edgeCache.Count * ratio);
+            int numPerturbations = (int)((float)Topology.Edges.Count * ratio);
             int numTriangles = mesh.vertices.Length;
-            List<Int64> keys = new List<Int64>(edgeCache.Keys);
+            List<Int64> keys = new List<Int64>(Topology.Edges.Keys);
 
             List<int> visitedTris = new List<int>();
             for (int i = 0; i < numPerturbations; ++i)
             {
                 // Choose a random edge:
-                int edgeIndex = rand.Next(edgeCache.Count);
+                int edgeIndex = rand.Next(Topology.Edges.Count);
                 // Check out the tris around the edge.
                 Int64 key = keys[edgeIndex];
-                Edge edge = edgeCache[key];
+                Topology.Edge edge = Topology.Edges[key];
 
                 // TODO - add flag to triangle to avoid n2/2 lookup.
                 bool r = false;
@@ -192,8 +231,8 @@ namespace WorldGenerator
                     index4 = d;
                 }
 
-                if (vertCounts[index1] <= 5 || vertCounts[index2] <= 5 ||
-                    vertCounts[index3] >= 7 || vertCounts[index4] >= 7)
+                if (Topology.trianglesPerVertex[index1] <= 5 || Topology.trianglesPerVertex[index2] <= 5 ||
+                    Topology.trianglesPerVertex[index3] >= 7 || Topology.trianglesPerVertex[index4] >= 7)
                 {
                     continue;
                 }
@@ -210,10 +249,10 @@ namespace WorldGenerator
                     continue;
                 }
 
-                vertCounts[index1]--;
-                vertCounts[index2]--;
-                vertCounts[index3]++;
-                vertCounts[index4]++;
+                Topology.trianglesPerVertex[index1]--;
+                Topology.trianglesPerVertex[index2]--;
+                Topology.trianglesPerVertex[index3]++;
+                Topology.trianglesPerVertex[index4]++;
 
                 // Need to keep tris in CCW order.
                 if (b == index2)
@@ -242,10 +281,7 @@ namespace WorldGenerator
                 }
             }
 
-            edgeCache.Clear();
-            if (centroids != null)
-                centroids.Clear();
-            regenerateTopology = true;
+            Topology.Regenerate();
         }
 
         // Alternative algorithm
@@ -279,7 +315,7 @@ namespace WorldGenerator
             {
                 if (1 == 1)//TooThin(i))
                 {
-                    Vector3 centroid = CalculateCentroid(i/3);
+                    Vector3 centroid = Topology.CalculateCentroid(i/3);
                     centroid.Normalize();
 
                     // Compare each corner to the centroid
@@ -355,10 +391,7 @@ namespace WorldGenerator
                 totalShift += delta.Length;
             }
 
-            if (centroids != null)
-                centroids.Clear();
-            regenerateTopology = true;
-
+            Topology.Regenerate();
             return totalShift;
         }
 
@@ -383,7 +416,7 @@ namespace WorldGenerator
 
             for (int i = 0; i < numIndices; i += 3)
             {
-                Vector3 centroid = CalculateCentroid(i/3);
+                Vector3 centroid = Topology.CalculateCentroid(i/3);
                 centroid.Normalize();
                 MeshAttr.SetPosition(ref centroidVertex, ref centroid);
 
@@ -418,12 +451,11 @@ namespace WorldGenerator
             float[] rotationSuppressions = new float[mesh.vertices.Length];
             rotationSuppressions.Initialize();
 
-            edgeCache.Clear();
-            GenerateEdges();
+            Topology.GenerateEdges();
             float minEdgeLength = (float)idealEdgeLength * 0.8f;
             float maxEdgeLength = (float)idealEdgeLength * 1.2f;
 
-            foreach (var iter in edgeCache)
+            foreach (var iter in Topology.Edges)
             {
                 Int64 key = iter.Key;
                 int index1 = (int)(key & 0xffffffff);
@@ -479,9 +511,7 @@ namespace WorldGenerator
                 totalShift += delta.Length;
             }
 
-            if(centroids != null)
-                centroids.Clear();
-            regenerateTopology = true;
+            Topology.Regenerate();
 
             return totalShift;
         }
@@ -504,7 +534,7 @@ namespace WorldGenerator
             int triangleIndex = 0;
             for (int i = 0; i < numTriangles; ++i)
             {
-                Vector3 centroid = CalculateCentroid(i);
+                Vector3 centroid = Topology.CalculateCentroid(i);
                 IPositionVertex ipv = centroidVertex as IPositionVertex;
                 if (ipv != null)
                 {
@@ -517,13 +547,11 @@ namespace WorldGenerator
 
         public Geometry<AltVertex> GenerateDualMesh<AltVertex>() where AltVertex : struct, IVertex
         {
-            GenerateTopology();
-
             // For each edge, 
             //   get centroids of triangles each side
             //   make 2 new triangles from verts of edge + centroids
 
-            List<AltVertex> newVerts = new List<AltVertex>(mesh.vertices.Length + edgeCache.Count * 2);
+            List<AltVertex> newVerts = new List<AltVertex>(mesh.vertices.Length + Topology.Edges.Count * 2);
             // Initialize the first V verts
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
@@ -531,15 +559,15 @@ namespace WorldGenerator
             }
 
             List<uint> newIndices = new List<uint>();
-            foreach (var iter in edgeCache)
+            foreach (var iter in Topology.Edges)
             {
                 Int64 key = iter.Key;
                 int index1 = (int)(key & 0xffffffff);
                 int index2 = (int)((key >> 32) & 0xffffffff);
-                Edge e = iter.Value;
+                Topology.Edge e = iter.Value;
 
-                Vector3 centroid1 = centroids[e.triangle1].position;
-                Vector3 centroid2 = centroids[e.triangle2].position;
+                Vector3 centroid1 = Topology.Centroids[e.triangle1].position;
+                Vector3 centroid2 = Topology.Centroids[e.triangle2].position;
 
                 // To find which order of vertices to use; 
                 // if triangle1 contains index1 followed by index2, 
@@ -575,81 +603,7 @@ namespace WorldGenerator
             return newGeom;
         }
 
-        public Geometry<AltVertex> GenerateBorderGeometry<AltVertex>(Borders borders)
-            where AltVertex : struct, IVertex
-        {
-            if (borders == null || borders.Count == 0)
-            {
-                return null;
-            }
-            else
-            {
-                GenerateTopology();
-
-                List<AltVertex> vertices = new List<AltVertex>();
-                List<uint> newIndices = new List<uint>();
-
-                const float h = 0.1f;
-
-                foreach (var iter in borders)
-                {
-                    Int64 borderKey = iter.Key;
-                    int v1index = (int)(borderKey & 0xffffffff);
-                    int v2index = (int)((borderKey >> 32) & 0xffffffff);
-                    Border border = iter.Value;
-
-                    // The border lies along an edge in the dual geometry.
-                    int plateIndex1 = border.plate0;
-                    int plateIndex2 = border.plate1;
-                    Int64 edgeKey = CreateEdgeKey((uint)v1index, (uint)v2index);
-                    Edge edge;
-                    if (edgeCache.TryGetValue(edgeKey, out edge))
-                    {
-                        Vector3 v1Pos = mesh.GetPosition(v1index);
-                        Vector3 v2Pos = mesh.GetPosition(v2index);
-                        Vector3 centroid1 = centroids[edge.triangle1].position;
-                        Vector3 centroid2 = centroids[edge.triangle2].position;
-
-                        Vector3 v1g1prime = BaseProjection(v1Pos, centroid1, centroid2, h);
-                        Vector3 v1g2prime = BaseProjection(v1Pos, centroid2, centroid1, h);
-                        Vector3 v2g1prime = BaseProjection(v2Pos, centroid1, centroid2, h);
-                        Vector3 v2g2prime = BaseProjection(v2Pos, centroid2, centroid1, h);
-
-                        centroid1 *= 1.01f; // Project the centroids out of the sphere slightly
-                        centroid2 *= 1.01f;
-
-                        bool edgeOrderIsAnticlockwise = false;
-                        for (int i = 0; i < 3; i++)
-                        {
-                            if (indices[edge.triangle1*3 + i] == v1index)
-                            {
-                                if (indices[edge.triangle1*3 + (i + 1) % 3] == v2index)
-                                {
-                                    edgeOrderIsAnticlockwise = true;
-                                }
-                                break;
-                            }
-                        }
-
-                        AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid2, ref centroid1, edgeOrderIsAnticlockwise);
-                        AddTriangle(ref vertices, ref newIndices, ref v1g2prime, ref centroid1, ref v1g1prime, edgeOrderIsAnticlockwise);
-                        AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid1, ref centroid2, edgeOrderIsAnticlockwise);
-                        AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid2, ref v2g2prime, edgeOrderIsAnticlockwise);
-                    }
-                }
-
-                Vector4 borderColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-                AltVertex[] newVerts = vertices.ToArray();
-                for (int i = 0; i < newVerts.Length; ++i)
-                {
-                    MeshAttr.SetColor<AltVertex>(ref newVerts[i], ref borderColor);
-                }
-                Mesh<AltVertex> newMesh = new Mesh<AltVertex>(newVerts);
-                return new Geometry<AltVertex>(newMesh, newIndices.ToArray());
-            }
-        }
-
-        private void AddTriangle<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3, bool isAnticlockwise)
+        public void AddTriangle<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3, bool isAnticlockwise)
             where AltVertex : struct, IVertex
         {
             AltVertex[] triVerts = new AltVertex[3];
@@ -689,7 +643,7 @@ namespace WorldGenerator
             }
         }
 
-        private void AddTriangle2<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, int v1index, ref Vector3 v2, ref Vector3 v3)
+        public void AddTriangle2<AltVertex>(ref List<AltVertex> newVerts, ref List<uint> newIndices, int v1index, ref Vector3 v2, ref Vector3 v3)
             where AltVertex : struct, IVertex
         {
             AltVertex[] triVerts = new AltVertex[3];
@@ -731,154 +685,6 @@ namespace WorldGenerator
             newIndices.Add((uint)v1index);
             newIndices.Add((uint)index++);
             newIndices.Add((uint)index++);
-        }
-        
-        private void GenerateTopology()
-        {
-            if (regenerateTopology)
-            {
-                GenerateEdges();
-                GenerateCentroids();
-
-                foreach (var iter in edgeCache)
-                {
-                    Int64 key = iter.Key;
-                    int index1 = (int)(key & 0xffffffff);
-                    int index2 = (int)((key >> 32) & 0xffffffff);
-                    Edge e = iter.Value;
-
-                    centroids[e.triangle1].AddNeighbour(e.triangle2);
-                    centroids[e.triangle2].AddNeighbour(e.triangle1);
-                }
-
-                GenerateNeighbours();
-
-                regenerateTopology = false;
-            }
-        }
-
-        private void GenerateEdges()
-        {
-            edgeCache = new Dictionary<long, Edge>();
-            vertCounts = new int[mesh.vertices.Length];
-            int numIndices = indices.Length;
-            for (int i = 0; i < numIndices; i += 3)
-            {
-                RegisterEdge(i, i + 1);
-                RegisterEdge(i + 1, i + 2);
-                RegisterEdge(i, i + 2);
-                vertCounts[indices[i]]++;
-                vertCounts[indices[i + 1]]++;
-                vertCounts[indices[i + 2]]++;
-            }
-        }
-
-        private void RegisterEdge(int a, int b)
-        {
-            Int64 key = CreateEdgeKey(indices[a], indices[b]);
-            Edge edge;
-            if (!edgeCache.TryGetValue(key, out edge))
-            {
-                edge.triangle1 = a / 3;
-                edgeCache.Add(key, edge);
-            }
-            else
-            {
-                edge.triangle2 = a / 3;
-                edgeCache[key] = edge;
-            }
-        }
-
-        static Int64 CreateEdgeKey(uint a, uint b)
-        {
-            Int64 min = a < b ? a : b;
-            Int64 max = a >= b ? a : b;
-            Int64 key = min << 32 | max;
-            return key;
-        }
-
-        private void GenerateNeighbours()
-        {
-            neighbours = new Neighbours(mesh.vertices.Length);
-
-            for (int i = 0; i < indices.Length; i += 3)
-            {
-                int v0 = (int)indices[i];
-                int v1 = (int)indices[i + 1];
-                int v2 = (int)indices[i + 2];
-                neighbours.AddTriangle(v0, v1, v2);
-            }
-        }
-
-        private void GenerateCentroids()
-        {
-            int numTriangles = indices.Length/3;
-
-            centroids = new List<Centroid>(numTriangles);
-            for (int i = 0; i < numTriangles; ++i)
-            {
-                Vector3 centroidPos = CalculateCentroid(i);
-                centroidPos.Normalize();
-
-                Centroid centroid = new Centroid(centroidPos);
-                centroid.AddFace((int)indices[i*3]);
-                centroid.AddFace((int)indices[i*3 + 1]);
-                centroid.AddFace((int)indices[i*3 + 2]);
-                centroids.Add(centroid); // Index into list is triangle index
-            }
-        }
-
-        private Vector3 CalculateCentroid(int triangle)
-        {
-            TVertex v1 = mesh.vertices[indices[triangle*3]];
-            TVertex v2 = mesh.vertices[indices[triangle*3 + 1]];
-            TVertex v3 = mesh.vertices[indices[triangle*3 + 2]];
-            Vector3 v1Pos = MeshAttr.GetPosition(ref v1);
-            Vector3 v2Pos = MeshAttr.GetPosition(ref v2);
-            Vector3 v3Pos = MeshAttr.GetPosition(ref v3);
-            Vector3 e1 = v2Pos - v1Pos;
-            Vector3 midPt = v1Pos + e1 * 0.5f;
-            Vector3 centroid = midPt + (v3Pos - midPt) / 3.0f;
-            return centroid;
-        }
-
-        public void GetCorners(int v1Index, int v2Index, out int c1Index, out int c2Index )
-        {
-            Int64 edgeKey = CreateEdgeKey((uint)v1Index, (uint)v2Index);
-            Edge edge;
-
-            if (edgeCache.TryGetValue(edgeKey, out edge))
-            {
-                c1Index = edge.triangle1;
-                c2Index = edge.triangle2;
-            }
-            else
-            {
-                c1Index = -1;
-                c2Index = -1;
-            }
-        }
-
-        // Given a triangle A, G1, G2
-        // Projects a line parallel to the base (G1-G2) of the triangle a distance h upwards,
-        // and returns a point A' which is the intersection of this line and edge A-G1.
-        private Vector3 BaseProjection(Vector3 A, Vector3 G1, Vector3 G2, float h)
-        {
-            // Want 1 line parallel to G2-G1 that are x pixels away and lie on tri A,G1,G2
-            // a' = h / cos(90-theta)
-            // a' lies on A-G1
-            // cos(theta) = (G1-A).(G1-G2)
-            // cos(90-theta)= cos(90)cos(theta)+sin(90)sin(theta) = sin(theta) = sqrt(1-cos^2(theta))
-            // a' = h / sqrt(1-cos^2(theta))
-            Vector3 AG1 = (G1 - A);
-            Vector3 AG1N = AG1;
-            AG1N.Normalize();
-            Vector3 b = (G1 - G2);
-            b.Normalize();
-            float cosTheta = Vector3.Dot(AG1N, b);
-            float aPrime = h / (float)Math.Sqrt(1.0f - cosTheta * cosTheta);
-            Vector3 APrime = A + AG1 * (1.0f - aPrime);
-            return APrime;
         }
 
         private int GetTriOffset(int triangle, uint corner)
@@ -951,7 +757,7 @@ namespace WorldGenerator
                 newIndices.Add(newIndex++);
             }
             mesh = new Mesh<TVertex>(newVertices.ToArray());
-            indices = newIndices.ToArray();
+            indices = new Indices(newIndices.ToArray());
         }
 
         public void AddNormals()
@@ -994,23 +800,25 @@ namespace WorldGenerator
         {
             return new VertexBuffer<TVertex>(mesh);
         }
+
         public IndexBuffer CreateIndexBuffer()
         {
             if (indices != null)
             {
-                return new IndexBuffer(indices);
+                return indices.NewIndexBuffer();
             }
             else
             {
                 return null;
             }
         }
+
         public void Upload( IVertexBuffer vbo, IndexBuffer ibo)
         {
             vbo.Upload(mesh);
             if (indices != null && ibo != null)
             {
-                ibo.Upload(indices);
+                indices.Upload(ibo);
             }
             NeedsUpdate = false;
         }

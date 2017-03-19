@@ -10,6 +10,7 @@ namespace WorldGenerator
     interface IMesh
     {
         int Length { get; }
+
         void SetColor(int index, ref Vector4 color);
         Vector4 GetColor(int index);
         void SetPosition(int index, ref Vector3 position);
