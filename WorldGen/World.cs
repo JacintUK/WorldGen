@@ -14,7 +14,7 @@ namespace WorldGenerator
         private int worldSeed = 0;
         private Random rand;
         private int numPlates = 20;
-        public IGeometry geometry;
+        public IComplexGeometry geometry;
         public Plates plates;
 
         public World()

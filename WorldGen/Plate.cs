@@ -19,11 +19,10 @@ namespace WorldGenerator
 
     class Plate
     {
-        private IMesh mesh;
+        private IComplexGeometry geometry;
         private int startIndex;
         List<int> allIndices; // Tiles
         List<int> outerIndices; // BorderTiles. During growth, it's the last set of grown tiles
-        Neighbours neighbours;
         int cycleNum = 0;
         int plateIndex = -1;
         float hue;
@@ -32,15 +31,16 @@ namespace WorldGenerator
         public PlatePhysicsTraits Traits { get; set; }
         public List<int> BorderTiles { get { return outerIndices; } }
         public List<int> Tiles { get { return allIndices; } }
+        public List<int> Corners { get; } // centroid indices, sorted by distance from center
 
-        public Plate(int[] vertexToPlate, IMesh mesh, PlatePhysicsTraits traits, int plateIndex, int startIndex, Neighbours neighbours, ref Random rand)
+        public Plate(int[] vertexToPlate, IComplexGeometry geometry, PlatePhysicsTraits traits, int plateIndex, int startIndex, ref Random rand)
         {
-            this.mesh = mesh;
+            this.geometry = geometry;
             this.startIndex = startIndex;
-            this.neighbours = neighbours;
             this.vertexToPlate = vertexToPlate;
             this.plateIndex = plateIndex;
             this.Traits = traits;
+            Corners = new List<int>();
 
             allIndices = new List<int>(6);
             allIndices.Add(startIndex);
@@ -48,19 +48,10 @@ namespace WorldGenerator
             outerIndices.Add(startIndex);
             hue = rand.Next(500) / 500.0f;
             Vector4 color = NextColor(0);
-            mesh.SetColor(startIndex, ref color);
+            geometry.Mesh.SetColor(startIndex, ref color);
             vertexToPlate[startIndex] = plateIndex;
         }
-
-        private Vector4 NextColor(int cycleNum)
-        {
-            float value = Math2.Clamp(0.2f + cycleNum / 20.0f, 0.0f, 1.0f);
-            Vector3 HSV = new Vector3(hue, 0.5f, value);
-            Vector3 RGB = Math2.HSV2RGB(HSV);
-            Vector4 color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
-            return color;
-        }
-
+        
         public int Grow(int numCycles)
         {
             int growth = 0;
@@ -70,9 +61,9 @@ namespace WorldGenerator
                 var newOuterIndices = new List<int>();
                 foreach (int index in outerIndices)
                 {
-                    var neighbour = neighbours.GetNeighbours(index);
+                    var vertexNeighbours = geometry.Topology.VertexNeighbours.GetNeighbours(index);
 
-                    foreach (int neighbourIndex in neighbour)
+                    foreach (int neighbourIndex in vertexNeighbours)
                     {
                         int neighbourPlateIdx = vertexToPlate[neighbourIndex];
                         if ( neighbourPlateIdx == -1 )
@@ -80,7 +71,7 @@ namespace WorldGenerator
                             // It's not been claimed yet.
                             newOuterIndices.Add(neighbourIndex);
                             vertexToPlate[neighbourIndex] = plateIndex;
-                            mesh.SetColor(neighbourIndex, ref cycleColor);//debug
+                            geometry.Mesh.SetColor(neighbourIndex, ref cycleColor);//debug
                         }
                     }
                 }
@@ -108,15 +99,14 @@ namespace WorldGenerator
             int plateIdx = vertexToPlate[allIndices[0]];
             foreach (int index in allIndices)
             {
-                var neighbourTiles = neighbours.GetNeighbours(index);
-
-                foreach (int neighbourIndex in neighbourTiles)
+                var vertexNeighbours = geometry.Topology.VertexNeighbours.GetNeighbours(index);
+                foreach (int neighbourIndex in vertexNeighbours)
                 {
                     if (plateIdx != vertexToPlate[neighbourIndex] && !outerIndices.Contains(index))
                     {
                         outerIndices.Add(index);
                         if(recolor)
-                            mesh.SetColor(index, ref color);
+                            geometry.Mesh.SetColor(index, ref color);
                     }
                 }
             }
@@ -155,8 +145,17 @@ namespace WorldGenerator
         {
             foreach (int index in allIndices)
             {
-                mesh.SetColor(index, ref color);
+                geometry.Mesh.SetColor(index, ref color);
             }
+        }
+
+        private Vector4 NextColor(int cycleNum)
+        {
+            float value = Math2.Clamp(0.2f + cycleNum / 20.0f, 0.0f, 1.0f);
+            Vector3 HSV = new Vector3(hue, 0.5f, value);
+            Vector3 RGB = Math2.HSV2RGB(HSV);
+            Vector4 color = new Vector4(RGB.X, RGB.Y, RGB.Z, 1.0f);
+            return color;
         }
     }
 }

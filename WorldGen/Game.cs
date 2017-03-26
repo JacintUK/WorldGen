@@ -74,6 +74,7 @@ namespace WorldGenerator
             Shader quadShader = new Shader(SHADER_PATH + "quadVertShader.glsl", SHADER_PATH + "texFragShader.glsl");
             Shader shader = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "shadedFragShader.glsl");
             Shader pointShader = new Shader(SHADER_PATH + "pointVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
+            Shader lineShader = new Shader(SHADER_PATH + "pointColorVertShader.glsl", SHADER_PATH + "pointFragShader.glsl");
             Shader texShader2 = new Shader(SHADER_PATH + "Vert3DColorUVShader.glsl", SHADER_PATH + "texFragShader.glsl");
             Shader borderShader = new Shader(SHADER_PATH + "Vert3DColorShader.glsl", SHADER_PATH + "pointFragShader.glsl");
             Texture cellTexture = new Texture("Edge.png");
@@ -124,7 +125,7 @@ namespace WorldGenerator
             worldPlateSpinDebugRenderer.BlendingFlag = true;
             worldPlateSpinDebugRenderer.AddTexture(arrowTexture);
             worldPlateSpinDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
-            node.Add(worldPlateSpinDebugRenderer);
+            //node.Add(worldPlateSpinDebugRenderer);
 
             var driftGeom = world.plates.GenerateSpinDriftDebugGeom(false);
             worldPlateDriftDebugRenderer = new Renderer(driftGeom, texShader2);
@@ -133,7 +134,18 @@ namespace WorldGenerator
             worldPlateDriftDebugRenderer.BlendingFlag = true;
             worldPlateDriftDebugRenderer.AddTexture(arrowTexture);
             worldPlateDriftDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(.75f, 0.75f, 0.0f, 1.0f)));
-            node.Add(worldPlateDriftDebugRenderer);
+            //node.Add(worldPlateDriftDebugRenderer);
+
+            var equatorGeom = GeometryFactory.GenerateCircle(Vector3.Zero, Vector3.UnitY, 1.001f, new Vector4(1.0f, 0, 0, 1.0f));
+            var equatorRenderer = new Renderer(equatorGeom, lineShader);
+            equatorRenderer.AddUniform(new UniformProperty("zCutoff", -2.8f));
+            node.Add(equatorRenderer);
+
+            //var plateDistanceGeom = world.plates.GenerateDistanceDebugGeom();
+            //var plateDistanceRenderer = new Renderer(plateDistanceGeom, lineShader);
+            //plateDistanceRenderer.DepthTestFlag = true;
+            //plateDistanceRenderer.AddUniform(new UniformProperty("zCutoff", -2.8f));
+            //node.Add(plateDistanceRenderer);
         }
 
         void UpdateRenderers()
@@ -144,7 +156,7 @@ namespace WorldGenerator
             worldRenderer.Update(worldRenderGeometry);
             worldVertsDebugRenderer.Update(world.geometry);
 
-            Geometry<Vertex3D> centroidGeom = new Geometry<Vertex3D>(world.geometry.GenerateCentroidPointMesh());
+            ComplexGeometry<Vertex3D> centroidGeom = new ComplexGeometry<Vertex3D>(world.geometry.GenerateCentroidPointMesh());
             centroidGeom.PrimitiveType = PrimitiveType.Points;
             worldCentroidDebugRenderer.Update(centroidGeom);
             var spinGeom = world.plates.GenerateSpinDriftDebugGeom(true);

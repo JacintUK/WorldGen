@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace WorldGenerator
 {
-    class Neighbours
+    class VertexNeighbours
     {
-        public class VertexNeighbours : IEnumerable
+        public class PerVertexNeighbours : IEnumerable
         {
             private List<int> neighbours;
             public List<int> Neighbours { get { return neighbours; } }
             public int Count { get { return neighbours.Count; } }
 
-            public VertexNeighbours()
+            public PerVertexNeighbours()
             {
                 this.neighbours = new List<int>();
             }
@@ -27,19 +27,19 @@ namespace WorldGenerator
                 }
             }
         }
-        private VertexNeighbours[] neighbours;
+        private PerVertexNeighbours[] neighbours;
 
         public int Count { get { return neighbours.Length; } }
-        public VertexNeighbours GetNeighbours(int vertex)
+        public PerVertexNeighbours GetNeighbours(int vertex)
         {
             return neighbours[vertex];
         }
 
-        public Neighbours(int size)
+        public VertexNeighbours(int size)
         {
-            neighbours = new VertexNeighbours[size];
+            neighbours = new PerVertexNeighbours[size];
             for (int i = 0; i < size; ++i)
-                neighbours[i] = new VertexNeighbours();
+                neighbours[i] = new PerVertexNeighbours();
         }
         public void AddTriangle(int v0, int v1, int v2)
         {

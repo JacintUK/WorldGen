@@ -5,30 +5,30 @@ using OpenTK;
 
 namespace WorldGenerator
 {
-    // Topology of a geometry
+    // Topology of a (triangular face) geometry
     class Topology
     {
         // Topology
         public struct Edge { public int triangle1; public int triangle2; }
 
         private Dictionary<Int64, Edge> edgeCache;
-        private Neighbours neighbours;
+        private VertexNeighbours vertexNeighbours;
         private List<Centroid> centroids; // indexed by triangle.
         public int[] trianglesPerVertex;
 
-        public Neighbours Neighbours { get { GenerateTopology(); return neighbours; } } // Face neighbours
+        public VertexNeighbours VertexNeighbours { get { GenerateTopology(); return vertexNeighbours; } } // Face neighbours
         public List<Centroid> Centroids { get { GenerateTopology(); return centroids; } }
         public Dictionary<Int64, Edge> Edges { get { GenerateTopology();  return edgeCache; } }
 
         private bool regenerateTopology = true;
-        private readonly IGeometry geometry;
+        private readonly IComplexGeometry geometry;
 
-        public Topology(IGeometry geometry) 
+        public Topology(IComplexGeometry geometry) 
         {
-            this.geometry = geometry;
+            this.geometry = geometry; // Warning: circular reference will keep geom/topo alive.
             edgeCache = new Dictionary<long, Edge>();
             centroids = new List<Centroid>();
-            neighbours = null;
+            vertexNeighbours = null;
         }
 
         public void Regenerate()
@@ -102,14 +102,14 @@ namespace WorldGenerator
 
         public void GenerateNeighbours()
         {
-            neighbours = new Neighbours(geometry.NumVertices);
+            vertexNeighbours = new VertexNeighbours(geometry.NumVertices);
 
             for (int i = 0; i < geometry.NumIndices; i += 3)
             {
                 int v0 = (int)geometry.Indices[i];
                 int v1 = (int)geometry.Indices[i + 1];
                 int v2 = (int)geometry.Indices[i + 2];
-                neighbours.AddTriangle(v0, v1, v2);
+                vertexNeighbours.AddTriangle(v0, v1, v2);
             }
         }
 

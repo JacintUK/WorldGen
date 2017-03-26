@@ -36,16 +36,18 @@ namespace WorldGenerator
         }
 
         public Vector3 position;
-        private DelimIntArrayEnum faces;
-        private DelimIntArrayEnum neighbours;
-        public DelimIntArrayEnum Faces {  get { return faces; } }
+        private DelimIntArrayEnum faces; // vertex index of this triangle's corners === adjacent face index in dual
+        private DelimIntArrayEnum neighbours; // neighbouring centroids
+        public DelimIntArrayEnum Faces { get { return faces; } }
         public DelimIntArrayEnum Neighbours { get { return neighbours; } }
+        public Dictionary<int, float> PlateDistances { get; }
 
         public Centroid(Vector3 position)
         {
             this.position = position;
             faces = new DelimIntArrayEnum(3); // face index in dual is equ. to vertex index in this mesh.
             neighbours = new DelimIntArrayEnum(3); // neighbouring centroids
+            PlateDistances = new Dictionary<int, float>(3); // distances to unique plates in faces
         }
 
         public void AddFace(int face)

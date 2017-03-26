@@ -9,7 +9,6 @@ namespace WorldGenerator
     {
         private int[] vertexToPlate;
         private Plate[] plates;
-        private int numPlates = 20;
         public int Length { get { return plates.Length; } }
         public int[] VertexToPlates {  get { return vertexToPlate; } }
 
@@ -54,14 +53,15 @@ namespace WorldGenerator
         {
             public List<Int64> borderIndices = new List<Int64>();
             public Stress stress = new Stress();
+            public float elevation=0;
         }
         Dictionary<int, BorderCorner> borderCorners;
 
         private Dictionary<Int64, Border> borders;
         Random rand;
-        IGeometry geometry;
+        IComplexGeometry geometry;
 
-        public Plates(ref Random rand, int numPlates, IGeometry geometry )
+        public Plates(ref Random rand, int numPlates, IComplexGeometry geometry )
         {
             this.plates = new Plate[numPlates];
             this.borders = new Dictionary<long, Border>();
@@ -70,48 +70,9 @@ namespace WorldGenerator
             CreatePlates();
         }
 
-        private void CreatePlates()
+        public void InitPlates()
         {
-            InitPlates();
-
-            int total = numPlates;
-            while (total < geometry.Mesh.Length)
-            {
-                for (int i = 0; i < numPlates; ++i)
-                {
-                    total += plates[i].Grow(1); // todo: Consider interleaving growth loops.
-                }
-            }
-
-            // Double check we have all tiles covered
-            for (int i = 0; i < vertexToPlate.Length; ++i)
-            {
-                if (vertexToPlate[i] == -1)
-                {
-                    throw new Exception();
-                }
-            }
-
-            // Determine elevations of plates
-            for (int i = 0; i < numPlates; ++i)
-            {
-                // Earth: crust is 5-70km thick, radius of planet is 6,371km, i.e. 0.1% -> 1.0%
-                // deepest ocean is ~8km; tallest mountain is ~9km; i.e. +/- 10km
-
-                bool oceanic = rand.Next(100) / 100.0f < 0.65f;
-                if (oceanic)
-                {
-                    // Oceanic plates range from -8km to -3km
-                    plates[i].Traits.Elevation = rand.Next(100) / 200.0f - 0.8f;
-                    //plates[i].Recolor(new Vector4(0, 0, 0.5f, 1));
-                }
-                else
-                {
-                    // Continental plates range from 1km to 9km
-                    plates[i].Traits.Elevation = rand.Next(800) / 1000.0f + 0.1f;
-                    //plates[i].Recolor(new Vector4(0, 0.5f, 0, 1));
-                }
-            }
+            InitializePlates();
         }
 
         // Debug method
@@ -123,7 +84,15 @@ namespace WorldGenerator
             }
         }
 
-        public void InitPlates()
+        private void CreatePlates()
+        {
+            InitializePlates();
+            GrowAllPlates();
+            GenerateCornerPlateRelationships();
+            DeterminePlateElevation();
+        }
+
+        private void InitializePlates()
         {
             // Initialize vertexToPlate array to a value that isn't a valid plate index
             vertexToPlate = new int[geometry.Mesh.Length];
@@ -131,10 +100,7 @@ namespace WorldGenerator
                 vertexToPlate[i] = -1;
             borders.Clear();
 
-            Neighbours neighbours = geometry.Topology.Neighbours;
-
-            int total = numPlates;
-            for (int plateIndex = 0; plateIndex < numPlates; ++plateIndex)
+            for (int plateIndex = 0; plateIndex < plates.Length; ++plateIndex)
             {
                 int plate = -1;
                 do
@@ -156,10 +122,102 @@ namespace WorldGenerator
                         traits.PivotRotation = (rand.Next(200) - 100) * (float)Math.PI / 6000.0f;
                         traits.Elevation = 0.0f;
 
-                        plates[plateIndex] = new Plate(vertexToPlate, geometry.Mesh, traits, plateIndex, vertexIndex, neighbours, ref rand);
+                        plates[plateIndex] = new Plate(vertexToPlate, geometry, traits, plateIndex, vertexIndex, ref rand);
                         break;
                     }
                 } while (plate != -1);
+            }
+        }
+
+        private void GrowAllPlates()
+        {
+            int total = plates.Length;
+            while (total < geometry.Mesh.Length)
+            {
+                for (int i = 0; i < plates.Length; ++i)
+                {
+                    total += plates[i].Grow(1); // todo: Consider interleaving growth loops.
+                }
+            }
+
+            // Double check we have all tiles covered
+            for (int i = 0; i < vertexToPlate.Length; ++i)
+            {
+                if (vertexToPlate[i] == -1)
+                {
+                    throw new Exception();
+                }
+            }
+        }
+
+        private void GenerateCornerPlateRelationships()
+        {
+            // Create corner / plate relationships
+            int centroidIndex = 0;
+            foreach (var centroid in geometry.Topology.Centroids)
+            {
+
+                foreach (int faceIndex in centroid.Faces)
+                {
+                    int plateIndex = vertexToPlate[faceIndex];
+                    float plateDistance = 0;
+                    // ensure we only add corner<->plate once.
+                    if (!centroid.PlateDistances.TryGetValue(plateIndex, out plateDistance))
+                    {
+                        // Great circle distance to plate center:
+                        Vector3 center = plates[plateIndex].Traits.Center;
+                        // Both centroid.pos and plate center are unit length; so dot product = cos theta.
+                        // unit sphere, so great cicle distance is theta
+                        float distance = (float) Math.Acos(Vector3.Dot(center, centroid.position));
+                        centroid.PlateDistances.Add(plateIndex, distance);
+                        plates[plateIndex].Corners.Add(centroidIndex);
+                    }
+                }
+                ++centroidIndex;
+            }
+
+            // Sort corners in plates by distance from center of plate.
+            {
+                for (int plateIndex = 0; plateIndex < plates.Length; ++plateIndex)
+                {
+                    plates[plateIndex].Corners.Sort(delegate (int a, int b)
+                    {
+                        float diff = geometry.Topology.Centroids[a].PlateDistances[plateIndex] -
+                                        geometry.Topology.Centroids[b].PlateDistances[plateIndex];
+                        if (diff < 0)
+                            return -1;
+                        else if (diff > 0)
+                            return 1;
+                        return 0;
+                    });
+                }
+            }
+        }
+
+        private void DeterminePlateElevation()
+        {
+            // Determine elevations of plates
+            for (int i = 0; i < plates.Length; ++i)
+            {
+                // Earth: crust is 5-70km thick, radius of planet is 6,371km, i.e. 0.1% -> 1.0%
+                // deepest ocean is ~8km; tallest mountain is ~9km; i.e. +/- 10km
+
+                bool oceanic = rand.Next(100) < 65; // percentage of world covered by water
+                if (oceanic)
+                {
+                    // Oceanic plates range from -8km to -3km
+                    float height = rand.Next(100) / 200.0f;
+                    plates[i].Traits.Elevation = height - 0.8f;
+                    plates[i].Traits.Thickness = 0.5f + height;
+                    //plates[i].Recolor(new Vector4(0, 0, 0.5f, 1));
+                }
+                else
+                {
+                    // Continental plates range from 1km to 5km above sea level; from 20-70km thick
+                    plates[i].Traits.Elevation = rand.Next(400) / 1000.0f + 0.1f;
+                    plates[i].Traits.Thickness = 2.0f + (plates[i].Traits.Elevation - 0.1f) * 12.5f;
+                    //plates[i].Recolor(new Vector4(0, 0.5f, 0, 1));
+                }
             }
         }
 
@@ -170,7 +228,7 @@ namespace WorldGenerator
 
             // Recalculate border tiles for each plate
             int totalBorderTiles = 0;
-            for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
+            for (int plateIdx = 0; plateIdx < plates.Length; ++plateIdx)
             {
                 plates[plateIdx].CalculateBorderTiles(recolor);
                 totalBorderTiles += plates[plateIdx].BorderTiles.Count;
@@ -178,12 +236,12 @@ namespace WorldGenerator
 
             // For each plate, check each border tile's neighbours
             //   If a neighbour belongs to a different plate, create a border edge.
-            for (int plateIdx = 0; plateIdx < numPlates; ++plateIdx)
+            for (int plateIdx = 0; plateIdx < plates.Length; ++plateIdx)
             {
                 List<int> borderTiles = plates[plateIdx].BorderTiles;
                 for (int borderTile = 0; borderTile < borderTiles.Count; ++borderTile)
                 {
-                    var outerNeighbours = geometry.Topology.Neighbours.GetNeighbours(borderTiles[borderTile]);
+                    var outerNeighbours = geometry.Topology.VertexNeighbours.GetNeighbours(borderTiles[borderTile]);
                     for (int neighbourIdx = 0; neighbourIdx < outerNeighbours.Count; ++neighbourIdx)
                     {
                         int neighbourVertexIdx = outerNeighbours.Neighbours[neighbourIdx];
@@ -214,7 +272,7 @@ namespace WorldGenerator
             }
         }
 
-        public void AddBorderCorner(int cornerIndex, Int64 borderKey)
+        private void AddBorderCorner(int cornerIndex, Int64 borderKey)
         {
             BorderCorner bc;
             if( ! borderCorners.TryGetValue(cornerIndex, out bc) )
@@ -229,15 +287,7 @@ namespace WorldGenerator
             // for each vertex in plate boundaries,
             //   calculate relative motion between tiles
             //     both parallel to (shear) and perpendicular to (pressure) edge.
-            //     if perpendicular motion is +ve, it's a collision.
-            //                                -ve, it's a rift (which would form basaltic volcanoes)
-            //     If collision, then
-            //        if heights sufficiently close & same sign, treat as height increase
-            //           mountain formation; folding;
-            //        if heights opposite sign; subduct the lower under the higher.
-            //           tilt upper plate (calc for all boundaries)
 
-            int index = 0;
             foreach (int borderCornerKey in borderCorners.Keys)
             {
                 List<Int64> borderIndices = borderCorners[borderCornerKey].borderIndices;
@@ -296,7 +346,127 @@ namespace WorldGenerator
                     borderCorners[borderCornerKey].stress = calculateStress(plateMovement[plate0], plateMovement[plate1], boundary, boundaryNormal);
                 }
             }
-            index++;
+        }
+
+        enum ElevationCalculation
+        {
+            COLLIDING,
+            SUBDUCTING,
+            SUPERDUCTING,
+            DIVERGING,
+            SHEARING,
+            DORMANT
+        };
+
+        public void CalculateBorderTileHeights()
+        {
+            //     if perpendicular motion is +ve, it's a collision.
+            //                                -ve, it's a rift (which would form basaltic volcanoes)
+            //     If collision, then
+            //        if heights sufficiently close & same sign, treat as height increase
+            //           mountain formation; folding;
+            //        if heights opposite sign; subduct the lower under the higher.
+            //           tilt upper plate (calc for all boundaries)
+            foreach (int borderCornerKey in borderCorners.Keys)
+            {
+                List<Int64> borderIndices = borderCorners[borderCornerKey].borderIndices;
+                if (borderIndices.Count == 3)
+                {
+                    // At 3 plate boundaries, just take some maxima / averages:
+                    Plate plate0 = plates[vertexToPlate[geometry.Topology.Centroids[borderCornerKey].Faces[0]]];
+                    Plate plate1 = plates[vertexToPlate[geometry.Topology.Centroids[borderCornerKey].Faces[1]]];
+                    Plate plate2 = plates[vertexToPlate[geometry.Topology.Centroids[borderCornerKey].Faces[2]]];
+                    Stress stress = borderCorners[borderCornerKey].stress;
+                    if(stress.pressure > 0.3)
+                    {
+                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.pressure;
+                    }
+                    else if(stress.pressure < -0.3)
+                    {
+                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.pressure / 4;
+                    }
+                    else if(stress.shear > 0.3)
+                    {
+                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.shear / 8;
+                    }
+                    else
+                    {
+                        borderCorners[borderCornerKey].elevation = (plate0.Traits.Elevation + plate1.Traits.Elevation + plate2.Traits.Elevation) / 3.0f;
+                    }
+                }
+                else
+                {
+                    Border border0 = borders[borderIndices[0]];
+                    Border border1 = borders[borderIndices[1]];
+                    int plateIndex0 = border0.plate0;
+                    int plateIndex1 = border1.plate0 == plateIndex0 ? border1.plate1 : border0.plate1;
+                    Plate plate0 = plates[plateIndex0];
+                    Plate plate1 = plates[plateIndex1];
+
+                    ElevationCalculation elevationCalculation = ElevationCalculation.DORMANT;
+                    Stress stress = borderCorners[borderCornerKey].stress;
+                    if (stress.pressure > 0.3)
+                    {
+                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, plate1.Traits.Elevation) + stress.pressure;
+
+                        if(plate0.Traits.Elevation < 0 && plate0.Traits.Elevation < 0)
+                        {
+                            elevationCalculation = ElevationCalculation.COLLIDING;
+                        }
+                        else if(plate0.Traits.Elevation < 0)
+                        {
+                            elevationCalculation = ElevationCalculation.SUBDUCTING;
+                        }
+                        else if(plate1.Traits.Elevation < 0)
+                        {
+                            elevationCalculation = ElevationCalculation.SUPERDUCTING;
+                        }
+                        else
+                        {
+                            elevationCalculation = ElevationCalculation.COLLIDING;
+                        }
+                    }
+                    else if (stress.pressure < -0.3)
+                    {
+                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, plate1.Traits.Elevation) + stress.pressure / 4;
+                        elevationCalculation = ElevationCalculation.DIVERGING;
+                    }
+                    else if (stress.shear > 0.3)
+                    {
+                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, plate1.Traits.Elevation) + stress.shear / 8;
+                        elevationCalculation = ElevationCalculation.SHEARING;
+                    }
+                    else
+                    {
+                        borderCorners[borderCornerKey].elevation = (plate0.Traits.Elevation + plate1.Traits.Elevation ) / 2.0f;
+                        elevationCalculation = ElevationCalculation.DORMANT;
+                    }
+
+                    // Queue up:
+                    //   next corner: Inner corner: the corner that isn't the opposite corner of border0 and border1
+                    //     (i.e. remove the opposite corners from Centroid neighbours, and it's the remaining one).
+                    //   origin: { this corner, stress, plate, elevationType }
+                    //   border: inner border 
+                    //   corner: this corner
+                    //   distanceToPlateBoundary: inner border length, i.e. of next corner.
+                }
+            }
+        }
+
+        class ElevationElement
+        {
+            int cornerIndex;
+            int nextCornerIndex;
+            struct Origin
+            {
+                int cornerIndex;
+                Stress stress;
+                int plateIndex;
+                ElevationCalculation elevationCalculation;
+            };
+            Origin origin;
+            float distanceToBoundary; // (of next corner)
+            Border edge; // Query - do we really need this border? We have centroid neighbours...
         }
 
         static Stress calculateStress(Vector3 movement0, Vector3 movement1, Vector3 boundaryVector, Vector3 boundaryNormal)
@@ -460,6 +630,44 @@ namespace WorldGenerator
             var mesh = new Mesh<Vertex3DColorUV>(vertices.ToArray());
             var spinGeometry = new Geometry<Vertex3DColorUV>(mesh, indices.ToArray());
             return spinGeometry;
+        }
+
+        public Geometry<Vertex3DColor> GenerateDistanceDebugGeom()
+        {
+            List<Vertex3DColor> verts = new List<Vertex3DColor>();
+            List<uint> indices = new List<uint>();
+            for( int plateIndex=0; plateIndex < plates.Length; ++plateIndex)
+            {
+                Vector3 center = plates[plateIndex].Traits.Center;
+                int cornerIndex = 0;
+                foreach( int corner in plates[plateIndex].Corners )
+                {
+                    float hue = (float)cornerIndex / (float)plates[plateIndex].Corners.Count;
+                    Vector3 color3 = Math2.HSV2RGB(new Vector3(hue, 0.7f, 0.5f));
+                    Vector4 color = new Vector4(color3.X, color3.Y, color3.Z, 1.0f);
+                    Centroid centroid = geometry.Topology.Centroids[corner];
+                    Vector3 cornerPos = centroid.position;
+                    Vector3 direction = cornerPos - center;
+                    direction.Normalize();
+                    float theta = centroid.PlateDistances[plateIndex];
+                    float distance = 2.0f * (float)Math.Sin(theta * 0.5f);
+                    direction *= distance;
+                    cornerPos = center + direction;
+                    cornerPos.Normalize();
+                    int vertexStart = verts.Count;
+                    GeometryFactory.AddArcVerts(verts, center, cornerPos, 1.001f, color);
+                    for(int vertexIndex = vertexStart; vertexIndex < verts.Count-1; ++vertexIndex )
+                    {
+                        indices.Add((uint)vertexIndex);
+                        indices.Add((uint)vertexIndex+1);
+                    }
+                    ++cornerIndex;
+                }
+            }
+            Mesh<Vertex3DColor> mesh = new Mesh<Vertex3DColor>(verts.ToArray());
+            Geometry<Vertex3DColor> geom = new Geometry<Vertex3DColor>(mesh, indices.ToArray());
+            geom.PrimitiveType = OpenTK.Graphics.OpenGL.PrimitiveType.Lines;
+            return geom;
         }
     }
 }

@@ -10,6 +10,15 @@ namespace WorldGenerator
 {
     class Math2
     {
+        public const float FloatEpsilon1 = 1e-7f;
+
+        public static bool IsZero( Vector3 value )
+        {
+            return ( Math.Abs(value.X) < FloatEpsilon1 &&
+                     Math.Abs(value.Y) < FloatEpsilon1 &&
+                     Math.Abs(value.Z) < FloatEpsilon1 );
+        }
+
         public static Vector3 ProjectOnVector( Vector3 lhs, Vector3 rhs )
         {
             Vector3 rhsN = rhs;
@@ -29,15 +38,18 @@ namespace WorldGenerator
             Vector3 p = Abs(Fract(Fill(hsv.X) + K.Xyz) * 6.0f - Fill(K.W));
             return hsv.Z * Mix(Fill(K.X), Vector3.Clamp(p - Fill(K.X), Fill(0.0f), Fill(1.0f)), hsv.Y);
         }
+
         public static Vector3 Mix(Vector3 a, Vector3 b, float t)
         {
             Vector3 c = a + t * (b - a);
             return c;
         }
+
         public static float Fract(float a)
         {
             return (float)(a - Math.Floor(a));
         }
+
         public static Vector3 Fract(Vector3 a)
         {
             Vector3 b;
@@ -46,6 +58,7 @@ namespace WorldGenerator
             b.Z = Fract(a.Z);
             return b;
         }
+
         public static Vector3 Abs(Vector3 a)
         {
             Vector3 b;
@@ -54,14 +67,17 @@ namespace WorldGenerator
             b.Z = Math.Abs(a.Z);
             return b;
         }
+
         public static Vector3 Fill(float a)
         {
             return new Vector3(a, a, a);
         }
+
         public static float Clamp( float value, float minimum, float maximum )
         {
             return Math.Min(Math.Max(value, minimum), maximum);
         }
+
         public static Quaternion FromEuler(float pitch, float yaw, float roll)
         {
             yaw *= 0.5f * (float)Math.PI / 180.0f;

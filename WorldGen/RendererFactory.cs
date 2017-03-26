@@ -17,7 +17,7 @@ namespace WorldGenerator
                 new Vertex(new Vector3( 0.0f, -1.0f, 0.0f), new Vector2(1,1), Color.Purple),
             };
             var mesh = new Mesh<Vertex>(verts);
-            Renderer renderer = new Renderer(new Geometry<Vertex>(mesh), shader);
+            Renderer renderer = new Renderer(new ComplexGeometry<Vertex>(mesh), shader);
             return renderer;
         }
 
@@ -36,7 +36,7 @@ namespace WorldGenerator
                 0, 1, 2, 1, 2, 3
             };
 
-            Renderer quadRenderer = new Renderer(new Geometry<Vertex>(new Mesh<Vertex>(quad), indices), shader);
+            Renderer quadRenderer = new Renderer(new ComplexGeometry<Vertex>(new Mesh<Vertex>(quad), indices), shader);
             return quadRenderer;
         }
 
@@ -44,11 +44,11 @@ namespace WorldGenerator
         {
             var vertexBuffer = new VertexBuffer<TVertex>(mesh);
             var indexBuffer = new IndexBuffer(indices);
-            var renderer = new Renderer(new Geometry<TVertex>(mesh, indices), shader);
+            var renderer = new Renderer(new ComplexGeometry<TVertex>(mesh, indices), shader);
             return renderer;
         }
 
-        static public IGeometry CreateIcosphere(int subDivisions)
+        static public IComplexGeometry CreateIcosphere(int subDivisions)
         {
             Vertex3DColor[] verts = new Vertex3DColor[12];
             Vector4 color = new Vector4(0.2f, 0.2f, 1.0f, 1.0f);
@@ -57,10 +57,10 @@ namespace WorldGenerator
 
             const float t = 1.61803398875f;// approximation of golden ratio
 
-            verts[0] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, t, 0)),color2);
+            verts[0] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, t, 0)),color2); // Subdivision generates Sierpinski triangle at pole
             verts[1] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, t, 0)), color);
             verts[2] = new Vertex3DColor(Vector3.Normalize(new Vector3(-1, -t, 0)), color);
-            verts[3] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, -t, 0)), color3);
+            verts[3] = new Vertex3DColor(Vector3.Normalize(new Vector3(1, -t, 0)), color3); // Subdivision generates Sierpinski triangle at other pole
 
             verts[4] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, -1, t)), color);
             verts[5] = new Vertex3DColor(Vector3.Normalize(new Vector3(0, 1, t)), color);
@@ -98,7 +98,7 @@ namespace WorldGenerator
             AddIndices(ref indices, 3, 8, 9);
             AddIndices(ref indices, 3, 9, 4);
 
-            var geometry = new Geometry<Vertex3DColor>(mesh, indices.ToArray());
+            var geometry = new ComplexGeometry<Vertex3DColor>(mesh, indices.ToArray());
             int vertCount = geometry.SubDivide(subDivisions);
 
             return geometry;
