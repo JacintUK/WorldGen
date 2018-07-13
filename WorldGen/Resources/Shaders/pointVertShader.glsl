@@ -6,8 +6,9 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform float pointSize;
-in vec3 aPosition;
+uniform float zCutoff;
 
+in vec3 aPosition;
 out vec4 vColor;
 
 void main()
@@ -17,9 +18,10 @@ void main()
 	vec4 world = model * vec4(aPosition, 1.0);
 	gl_Position = projection * view * world;
 	
-	vColor=color;
-	if(world.z < -2.8)
+	vec4 newColor=color;
+	if( world.z < zCutoff )
 	{
-	  vColor.a = 0;// *= 0.5;
+	  newColor.a = 0;
 	}
+	vColor=newColor;
 }

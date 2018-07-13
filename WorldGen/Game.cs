@@ -114,8 +114,9 @@ namespace WorldGenerator
             worldCentroidDebugRenderer = new Renderer(centroidGeom, pointShader);
             worldCentroidDebugRenderer.DepthTestFlag = false;
             worldCentroidDebugRenderer.CullFaceFlag = false;
-            worldCentroidDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0, 0.5f, 1)));
+            worldCentroidDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0.5f, 0.5f, 1)));
             worldCentroidDebugRenderer.AddUniform(new UniformProperty("pointSize", 3f));
+            worldCentroidDebugRenderer.AddUniform(new UniformProperty("zCutoff", -2.8f));
             //node.Add(worldCentroidDebugRenderer);
 
             var spinGeom = world.plates.GenerateSpinDriftDebugGeom(true);
@@ -125,7 +126,7 @@ namespace WorldGenerator
             worldPlateSpinDebugRenderer.BlendingFlag = true;
             worldPlateSpinDebugRenderer.AddTexture(arrowTexture);
             worldPlateSpinDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
-            //node.Add(worldPlateSpinDebugRenderer);
+            node.Add(worldPlateSpinDebugRenderer);
 
             var driftGeom = world.plates.GenerateSpinDriftDebugGeom(false);
             worldPlateDriftDebugRenderer = new Renderer(driftGeom, texShader2);
@@ -134,7 +135,7 @@ namespace WorldGenerator
             worldPlateDriftDebugRenderer.BlendingFlag = true;
             worldPlateDriftDebugRenderer.AddTexture(arrowTexture);
             worldPlateDriftDebugRenderer.AddUniform(new UniformProperty("color", new Vector4(.75f, 0.75f, 0.0f, 1.0f)));
-            //node.Add(worldPlateDriftDebugRenderer);
+            node.Add(worldPlateDriftDebugRenderer);
 
             var equatorGeom = GeometryFactory.GenerateCircle(Vector3.Zero, Vector3.UnitY, 1.001f, new Vector4(1.0f, 0, 0, 1.0f));
             var equatorRenderer = new Renderer(equatorGeom, lineShader);
