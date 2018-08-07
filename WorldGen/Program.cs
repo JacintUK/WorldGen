@@ -26,7 +26,7 @@ namespace WorldGenerator
     {
         static void Main(string[] args)
         {
-            Game window = new Game(800, 600);
+            GameWindow window = new GameWindow(800, 600);
             window.Run(30.0);
         }
     }

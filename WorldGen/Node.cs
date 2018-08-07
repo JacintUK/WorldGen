@@ -26,6 +26,8 @@ namespace WorldGenerator
     class Node
     {
         private List<Renderer> renderers = new List<Renderer>();
+
+        public Vector3 Position { get; set; }
         public Matrix4 Model { get; set; }
 
         public void Add(Renderer renderer)

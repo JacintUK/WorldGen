@@ -60,8 +60,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Camera.cs" />
     <Compile Include="Centroid.cs" />
-    <Compile Include="Game.cs" />
+    <Compile Include="EventHandler.cs" />
+    <Compile Include="GameWindow.cs" />
     <Compile Include="ComplexGeometry.cs" />
     <Compile Include="Geometry.cs" />
     <Compile Include="GeometryFactory.cs" />
@@ -80,6 +82,7 @@
     <Compile Include="Math2.cs" />
     <Compile Include="Mesh.cs" />
     <Compile Include="MouseButton.cs" />
+    <Compile Include="Scene.cs" />
     <Compile Include="VertexNeighbours.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="Plane.cs" />
