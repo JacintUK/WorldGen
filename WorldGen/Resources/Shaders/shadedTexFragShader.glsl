@@ -16,17 +16,26 @@
  * limitations under the License.
  */
 
-in vec3 aPosition;
-in vec2 aTexCoords;
-in vec4 aColor;
-out vec4 vColor;
-out vec2 vTexCoords;
-uniform mat4 modelView;
-uniform mat4 projection;
+in vec4 vColor;
+in vec3 vAmbientColor;
+in vec3 eyeDirC;
+in vec3 posC;
+in vec3 posW;
+in vec3 lightDirection;
+in float intensity;
+in float distanceSq;
+in float power;
+in float specular;
+in vec2 vTexCoords;
+uniform sampler2D sTexture;
+out vec4 outputColor;
 
 void main()
 {
-	gl_Position = projection * (modelView * vec4(aPosition,1.0));
-	vColor = aColor;
-	vTexCoords = aTexCoords;
+	vec3 texColor = vColor.rgb * texture2D(sTexture,vTexCoords).xyz;
+	
+	vec3 litColor =  vAmbientColor + 
+		texColor * intensity *power/distanceSq +
+		vec3(1,1,1) * specular * power / distanceSq;
+	outputColor = vec4( litColor, vColor.a );
 }

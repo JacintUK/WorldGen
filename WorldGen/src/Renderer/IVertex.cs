@@ -1,6 +1,4 @@
-﻿#version 130
-
-/*
+﻿/*
  * Copyright 2018 David Ian Steele
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +14,10 @@
  * limitations under the License.
  */
 
-in vec3 aPosition;
-in vec2 aTexCoords;
-in vec4 aColor;
-out vec4 vColor;
-out vec2 vTexCoords;
-uniform mat4 modelView;
-uniform mat4 projection;
-
-void main()
+namespace WorldGen
 {
-	gl_Position = projection * (modelView * vec4(aPosition,1.0));
-	vColor = aColor;
-	vTexCoords = aTexCoords;
+    interface IVertex
+    {
+        VertexFormat GetVertexFormat();
+    }
 }

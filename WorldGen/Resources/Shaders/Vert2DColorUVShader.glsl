@@ -1,7 +1,7 @@
 ﻿#version 130
 
 /*
- * Copyright 2018 David Ian Steele
+ * Copyright 2019 David Ian Steele
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,20 @@
  * limitations under the License.
  */
 
-in vec3 aPosition;
+in vec2 aPosition;
 in vec2 aTexCoords;
 in vec4 aColor;
-out vec4 vColor;
+
 out vec2 vTexCoords;
+out vec4 vColor;
+
 uniform mat4 modelView;
 uniform mat4 projection;
 
 void main()
 {
-	gl_Position = projection * (modelView * vec4(aPosition,1.0));
-	vColor = aColor;
+	vec4 vertexPos = vec4(aPosition,0.0,1.0);
 	vTexCoords = aTexCoords;
+	vColor = aColor;
+	gl_Position = projection * (modelView * vertexPos);
 }
