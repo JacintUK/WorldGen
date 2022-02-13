@@ -6,7 +6,7 @@ A first stab at a world generator based on rough and ready plate tectonics.
 
 ### Prerequisites
 
-This C# project is based solely on OpenTK. You will first need to install this library (version 1.1)
+This C# project is based on OpenTK and IMGui.NET.
 
 ### Installing
 
