@@ -46,7 +46,7 @@ namespace WorldGen
             return geometry;
         }
 
-        public static IGeometry GenerateCircle(Vector3 origin, Vector3 axis, float radius, Vector4 color)
+        public static Geometry<Vertex3DColor> GenerateCircle(Vector3 origin, Vector3 axis, float radius, Vector4 color)
         {
             List<Vertex3DColor> verts = new List<Vertex3DColor>();
             // iterate along circular arc, generating points each 0.2 degrees

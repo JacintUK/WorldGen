@@ -37,6 +37,7 @@ namespace WorldGen
         GeometryRenderer<Vertex3DColorUV> worldPlateSpinDebugRenderer;
         GeometryRenderer<Vertex3DColorUV> worldPlateDriftDebugRenderer;
         GeometryRenderer<Vertex3DColor> borderRenderer;
+        GeometryRenderer<Vertex3DColor> equatorRenderer;
 
         Quaternion rotation = new Quaternion(Vector3.UnitY, 0.0f);
 
@@ -141,9 +142,9 @@ namespace WorldGen
             node.Add(worldPlateDriftDebugRenderer.renderer);
 
             var equatorGeom = GeometryFactory.GenerateCircle(Vector3.Zero, Vector3.UnitY, 1.001f, new Vector4(1.0f, 0, 0, 1.0f));
-            var equatorRenderer = NewRenderer<Vertex3DColor>(equatorGeom, lineShader);
-            equatorRenderer.AddUniform(new UniformProperty("zCutoff", -2.8f));
-            node.Add(equatorRenderer);
+            equatorRenderer = new GeometryRenderer<Vertex3DColor>(equatorGeom, lineShader);
+            equatorRenderer.renderer.AddUniform(new UniformProperty("zCutoff", -2.8f));
+            node.Add(equatorRenderer.renderer);
         }
 
         
@@ -250,6 +251,8 @@ namespace WorldGen
         private bool debugRenderDrift = true;
         private bool debugCentroid = false;
         private bool debugVertex = false;
+        private bool debugEquator = true;
+
         void RenderGui(object sender, EventArgs e)
         {
             // Do IMGui layout here.
@@ -309,6 +312,10 @@ namespace WorldGen
                 if (ImGui.Checkbox("Plate Drift", ref debugRenderDrift))
                 {
                     worldPlateDriftDebugRenderer.renderer.Visible = debugRenderDrift;
+                }
+                if(ImGui.Checkbox("Equator", ref debugEquator))
+                {
+                    equatorRenderer.renderer.Visible = debugEquator;
                 }
             }
 
