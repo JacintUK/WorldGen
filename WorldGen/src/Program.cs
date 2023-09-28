@@ -40,7 +40,6 @@ namespace WorldGen
         GeometryRenderer<Vertex3DColor> equatorRenderer;
 
         Quaternion rotation = new Quaternion(Vector3.UnitY, 0.0f);
-
         Vector3 lightPosition = new Vector3(-2, 2, 2);
         Vector3 ambientColor;
 
@@ -50,6 +49,8 @@ namespace WorldGen
         {
             world = new World();
             colorMap = (int)world.WorldColor;
+            numSubdivisions = world.NumSubDivisions;
+            numPlates = world.NumPlates;
 
             scene = e.scene;
             scene.SceneUpdatedEvent += UpdateScene;
@@ -237,14 +238,6 @@ namespace WorldGen
             }
         }
 
-        Renderer NewRenderer<TVertex>(IGeometry geometry, Shader shader) where TVertex : struct, IVertex
-        {
-            var geom = geometry as Geometry<TVertex>;
-            VertexBuffer<TVertex> vbo = new VertexBuffer<TVertex>();
-            IndexBuffer ibo = new IndexBuffer();
-            geom.Upload(vbo, ibo);
-            return new Renderer(vbo, ibo, shader);
-        }
 
         private bool debugRenderBorder = true;
         private bool debugRenderSpin = true;
@@ -252,6 +245,8 @@ namespace WorldGen
         private bool debugCentroid = false;
         private bool debugVertex = false;
         private bool debugEquator = true;
+        private int numSubdivisions;
+        private int numPlates;
 
         void RenderGui(object sender, EventArgs e)
         {
@@ -351,13 +346,10 @@ namespace WorldGen
             }
         }
 
-        int numSubdivisions = 4;
-        int numPlates = 20;
-
         static void Main(string[] args)
         {
             var program = new Program();
-            GameWindow window = new GameWindow(800, 600);
+            GameWindow window = new GameWindow(1200, 800);
             window.SceneCreatedEvent += program.CreateScene;
             window.ImGuiRenderEvent += program.RenderGui;
             window.ImGuiMouseUpEvent += program.ImGuiMouseUp;

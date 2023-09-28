@@ -24,18 +24,18 @@ namespace WorldGen
 
         private bool keyDown;
         private Keys key;
-        private Handler h;
+        private Handler handler;
         public KeyHandler(Keys key, Handler h)
         {
             this.key = key;
-            this.h = h;
+            this.handler = h;
         }
         public void OnKeyDown(Keys k)
         {
             if( keyDown == false && k == key)
             {
                 keyDown = true;
-                h(true);
+                handler(true);
             }
         }
         public void OnKeyUp(Keys k)
@@ -43,7 +43,7 @@ namespace WorldGen
             if( k == key )
             {
                 keyDown = false;
-                h(false);
+                handler(false);
             }
         }
     }

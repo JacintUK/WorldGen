@@ -35,7 +35,7 @@ namespace WorldGen
         private IGeometry geometry;
         private int startIndex;
         List<int> allIndices; // Tiles
-        List<int> outerIndices; // BorderTiles. During growth, it's the last set of grown tiles
+        List<int> outerIndices; // BorderTiles. 
         int cycleNum = 0;
         int plateIndex = -1;
         float hue;

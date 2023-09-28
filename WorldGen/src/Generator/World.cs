@@ -69,14 +69,14 @@ namespace WorldGen
 
         public void Initialize()
         {
-            InitializeSphere(NumSubDivisions);
+            InitializeSphere(NumSubDivisions); // Generate sphere with unit radius.
             Distort();
             CreatePlates(NumPlates);
         }
 
         public void InitializeSphere(int subDivisions)
         {
-            rand = new Random(0);
+            rand = new Random(worldSeed);
             geometry = GeometryFactory.CreateIcosphere(subDivisions);
             geometry.PrimitiveType = PrimitiveType.Points;
             meshColorProvider = new MeshColorProvider(geometry.Mesh);

@@ -97,7 +97,13 @@ namespace WorldGen
                 }
             }
         }
-               
+        
+        /// <summary>
+        /// Create a unit icosphere (radius 1) from an icosahedron with the given number
+        /// of subdivisions.
+        /// </summary>
+        /// <param name="subDivisions"></param>
+        /// <returns>icosphere geometry.</returns>
         static public IGeometry CreateIcosphere(int subDivisions)
         {
             Vertex3DColor[] verts = new Vertex3DColor[12];

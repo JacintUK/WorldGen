@@ -51,7 +51,7 @@ namespace WorldGen
                 this.c2Index = c2Index;
             }
 
-            public int OppositeCorner( int corner )
+            public int OppositeCorner(int corner)
             {
                 if (c1Index == corner)
                     return c2Index;
@@ -75,7 +75,7 @@ namespace WorldGen
         {
             public List<Int64> borderIndices = new List<Int64>();
             public Stress stress = new Stress();
-            public float elevation=0;
+            public float elevation = 0;
         }
         Dictionary<int, BorderCorner> borderCorners;
 
@@ -83,7 +83,7 @@ namespace WorldGen
         Random rand;
         IGeometry geometry;
 
-        public Plates(ref Random rand, int numPlates, IGeometry geometry )
+        public Plates(ref Random rand, int numPlates, IGeometry geometry)
         {
             this.plates = (new Plate[numPlates]);
             this.borders = new Dictionary<long, Border>();
@@ -114,6 +114,12 @@ namespace WorldGen
             DeterminePlateElevation();
         }
 
+        /// <summary>
+        /// Initialize plates.
+        /// Randomly choose a vertex on the icosphere as the center of the plate.
+        /// For each plate, choose a random pivot that's in the same hemisphere as the mesh,
+        /// and set pivot/center rotations to +/- 3 degrees.
+        /// </summary>
         private void InitializePlates()
         {
             // Initialize vertexToPlate array to a value that isn't a valid plate index
@@ -151,6 +157,10 @@ namespace WorldGen
             }
         }
 
+        /// <summary>
+        /// Perform a flood fill for each plate, flooding by 1 face each until all verts are covered.
+        /// </summary>
+        /// <exception cref="Exception">Remove this check.</exception>
         private void GrowAllPlates()
         {
             int total = GetPlates().Length;
@@ -172,13 +182,16 @@ namespace WorldGen
             }
         }
 
+        /// <summary>
+        /// Each centroid is a corner between tiles of a plate or plates.
+        /// 
+        /// </summary>
         private void GenerateCornerPlateRelationships()
         {
             // Create corner / plate relationships
             int centroidIndex = 0;
             foreach (var centroid in geometry.Topology.Centroids)
             {
-
                 foreach (int faceIndex in centroid.Faces)
                 {
                     int plateIndex = VertexToPlates[faceIndex];
@@ -190,7 +203,7 @@ namespace WorldGen
                         Vector3 center = GetPlates()[plateIndex].Traits.Center;
                         // Both centroid.pos and plate center are unit length; so dot product = cos theta.
                         // unit sphere, so great cicle distance is theta
-                        float distance = (float) Math.Acos(Vector3.Dot(center, centroid.position));
+                        float distance = (float)Math.Acos(Vector3.Dot(center, centroid.position));
                         centroid.PlateDistances.Add(plateIndex, distance);
                         GetPlates()[plateIndex].Corners.Add(centroidIndex);
                     }
@@ -216,6 +229,9 @@ namespace WorldGen
             }
         }
 
+        /// <summary>
+        /// Generate initial plate elevations. Units are 10km. (Different to mesh units)
+        /// </summary>
         private void DeterminePlateElevation()
         {
             // Determine elevations of plates
@@ -230,7 +246,7 @@ namespace WorldGen
                     // Oceanic plates range from -8km to -3km
                     float height = rand.Next(100) / 200.0f;
                     GetPlates()[i].Traits.Elevation = height - 0.8f;
-                    GetPlates()[i].Traits.Thickness = 0.5f + height;                   
+                    GetPlates()[i].Traits.Thickness = 0.5f + height;
                 }
                 else
                 {
@@ -270,7 +286,7 @@ namespace WorldGen
                         {
                             // It's not in the plate, so must be a bordering plate.
                             // Index by key from verts, stores plate ids, corners
-                            Int64 borderKey = Topology.CreateBorderKey((uint)neighbourVertexIdx, (uint)borderTiles[borderTile]);
+                            Int64 borderKey = Geometry.Topology.CreateBorderKey((uint)neighbourVertexIdx, (uint)borderTiles[borderTile]);
 
                             if (!borders.ContainsKey(borderKey))
                             {
@@ -295,7 +311,7 @@ namespace WorldGen
         private void AddBorderCorner(int cornerIndex, Int64 borderKey)
         {
             BorderCorner bc;
-            if( ! borderCorners.TryGetValue(cornerIndex, out bc) )
+            if (!borderCorners.TryGetValue(cornerIndex, out bc))
             {
                 borderCorners[cornerIndex] = new BorderCorner();
             }
@@ -380,6 +396,8 @@ namespace WorldGen
 
         public void CalculateBorderTileHeights()
         {
+            List<ElevationElement> elevationBorderQueue = new List<ElevationElement>();
+
             //     if perpendicular motion is +ve, it's a collision.
             //                                -ve, it's a rift (which would form basaltic volcanoes)
             //     If collision, then
@@ -397,15 +415,15 @@ namespace WorldGen
                     Plate plate1 = GetPlates()[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[1]]];
                     Plate plate2 = GetPlates()[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[2]]];
                     Stress stress = borderCorners[borderCornerKey].stress;
-                    if(stress.pressure > 0.3)
+                    if (stress.pressure > 0.3)
                     {
                         borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.pressure;
                     }
-                    else if(stress.pressure < -0.3)
+                    else if (stress.pressure < -0.3)
                     {
                         borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.pressure / 4;
                     }
-                    else if(stress.shear > 0.3)
+                    else if (stress.shear > 0.3)
                     {
                         borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.shear / 8;
                     }
@@ -429,15 +447,15 @@ namespace WorldGen
                     {
                         borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, plate1.Traits.Elevation) + stress.pressure;
 
-                        if(plate0.Traits.Elevation < 0 && plate0.Traits.Elevation < 0)
+                        if (plate0.Traits.Elevation < 0 && plate0.Traits.Elevation < 0)
                         {
                             elevationCalculation = ElevationCalculation.COLLIDING;
                         }
-                        else if(plate0.Traits.Elevation < 0)
+                        else if (plate0.Traits.Elevation < 0)
                         {
                             elevationCalculation = ElevationCalculation.SUBDUCTING;
                         }
-                        else if(plate1.Traits.Elevation < 0)
+                        else if (plate1.Traits.Elevation < 0)
                         {
                             elevationCalculation = ElevationCalculation.SUPERDUCTING;
                         }
@@ -458,7 +476,7 @@ namespace WorldGen
                     }
                     else
                     {
-                        borderCorners[borderCornerKey].elevation = (plate0.Traits.Elevation + plate1.Traits.Elevation ) / 2.0f;
+                        borderCorners[borderCornerKey].elevation = (plate0.Traits.Elevation + plate1.Traits.Elevation) / 2.0f;
                         elevationCalculation = ElevationCalculation.DORMANT;
                     }
 
@@ -469,24 +487,132 @@ namespace WorldGen
                     //   border: inner border 
                     //   corner: this corner
                     //   distanceToPlateBoundary: inner border length, i.e. of next corner.
+                    ElevationElement e = new ElevationElement
+                    {
+                        CornerIndex = borderCornerKey,
+                        NextCornerIndex = 0, // TODO
+                        DistanceToBoundary = 0, // TODO
+                        Edge = border0,
+                        Origin1 = new ElevationElement.Origin
+                        {
+                            CornerIndex = borderCornerKey,
+                            Stress = stress,
+                            PlateIndex = plateIndex0,
+                            ElevationCalculation = elevationCalculation
+                        }
+                    };
+                    elevationElements.Add(e);
                 }
             }
         }
 
-        class ElevationElement
+
+        float CalculateCollidingElevation(float distanceToPlateBoundary, float distanceToPlateRoot, float boundaryElevation, 
+            float plateElevation, float pressure, float shear)
         {
-            int cornerIndex;
-            int nextCornerIndex;
-            struct Origin
+            var t = distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot);
+            if (t < 0.5)
             {
-                int cornerIndex;
-                Stress stress;
-                int plateIndex;
-                ElevationCalculation elevationCalculation;
+                t = t / 0.5f;
+                return plateElevation + (float)Math.Pow(t - 1, 2) * (boundaryElevation - plateElevation);
+            }
+            else
+            {
+                return plateElevation;
+            }
+        }
+
+        float CalculateSuperductingElevation(float distanceToPlateBoundary, float distanceToPlateRoot, float boundaryElevation,
+            float plateElevation, float pressure, float shear)
+        {
+            var t = distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot);
+            if (t < 0.2f)
+            {
+                t = t / 0.2f;
+                return boundaryElevation + t * (plateElevation - boundaryElevation + pressure / 2);
+            }
+            else if (t < 0.5)
+            {
+                t = (t - 0.2f) / 0.3f;
+                return plateElevation + (float)Math.Pow(t - 1, 2.0f) * pressure / 2.0f;
+            }
+            else
+            {
+                return plateElevation;
+            }
+        }
+
+        float CalculateSubductingElevation(float distanceToPlateBoundary, float distanceToPlateRoot, float boundaryElevation,
+            float plateElevation, float pressure, float shear)
+        {
+            var t = distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot);
+            return plateElevation + (float)Math.Pow(t - 1, 2) * (boundaryElevation - plateElevation);
+        }
+
+        float CalculateDivergingElevation(float distanceToPlateBoundary, float distanceToPlateRoot, float boundaryElevation,
+            float plateElevation, float pressure, float shear)
+        {
+            var t = distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot);
+            if (t < 0.3)
+            {
+                t = t / 0.3f;
+                return plateElevation + (float)Math.Pow(t - 1, 2) * (boundaryElevation - plateElevation);
+            }
+            else
+            {
+                return plateElevation;
+            }
+        }
+
+        float CalculateShearingElevation(float distanceToPlateBoundary, float distanceToPlateRoot, float boundaryElevation,
+            float plateElevation, float pressure, float shear)
+        {
+            var t = distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot);
+            if (t < 0.2)
+            {
+                t = t / 0.2f;
+                return plateElevation + (float)Math.Pow(t - 1, 2) * (boundaryElevation - plateElevation);
+            }
+            else
+            {
+                return plateElevation;
+            }
+        }
+
+        float CalculateDormantElevation(float distanceToPlateBoundary, float distanceToPlateRoot, float boundaryElevation,
+            float plateElevation, float pressure, float shear)
+        {
+            var t = distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot);
+            var elevationDifference = boundaryElevation - plateElevation;
+            var a = 2 * elevationDifference;
+            var b = -3 * elevationDifference;
+            return t * t * elevationDifference * (2 * t - 3) + boundaryElevation;
+        }
+
+        struct ElevationElement
+        {
+            public struct Origin
+            {
+                public int CornerIndex { get; set; }
+                public Stress Stress { get; set; }
+                public int PlateIndex { get; set; }
+                public ElevationCalculation ElevationCalculation { get; set; }
             };
-            Origin origin;
-            float distanceToBoundary; // (of next corner)
-            Border edge; // Query - do we really need this border? We have centroid neighbours...
+
+            public int CornerIndex { get; set; }
+            public int NextCornerIndex { get; set; }
+            public Border Edge { get; set; }
+            public float DistanceToBoundary { get; set; }
+            public Origin Origin1 { get; set; }
+        }
+        List<ElevationElement> elevationElements = new List<ElevationElement>();
+
+        void ProcessElevationElements()
+        {
+            foreach( ElevationElement elevationElement in elevationElements )
+            {
+
+            }
         }
 
         static Stress calculateStress(Vector3 movement0, Vector3 movement1, Vector3 boundaryVector, Vector3 boundaryNormal)
@@ -500,6 +626,7 @@ namespace WorldGen
                                 2.0f / (1.0f + (float)Math.Exp(-shear / 30.0f)) - 1.0f);
         }
 
+        #region Debug renderers
         public Geometry<AltVertex> GenerateBorderGeometry<AltVertex>()
             where AltVertex : struct, IVertex
         {
@@ -689,5 +816,6 @@ namespace WorldGen
             geom.PrimitiveType = OpenTK.Graphics.OpenGL.PrimitiveType.Lines;
             return geom;
         }
+        #endregion
     }
 }
