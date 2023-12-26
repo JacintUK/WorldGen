@@ -15,6 +15,7 @@
  */
 
 using System.Collections.Generic;
+using System.Data;
 using OpenTK.Mathematics;
 
 namespace WorldGen
@@ -27,8 +28,23 @@ namespace WorldGen
         private List<Renderer> renderers = new List<Renderer>();
 
         public Vector3 Position { get; set; }
-        public Matrix4 Model { get; set; }
+        public Quaternion Rotation { get; set; }
+        public Vector3 Scale { get; set; }
+        public Matrix4 Model { get; private set; }
+        
+        public Node()
+        {
+        }
 
+        /// <summary>
+        /// Update the model matrix from the current position/rotation/scale.
+        /// </summary>
+        public void Update()
+        {
+            Matrix4 tr = Matrix4.CreateTranslation(Position);
+            Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(Rotation);
+            Model = rotationMatrix * tr;
+        }
         public List<Renderer> Renderers { get; }
 
         public void Add(Renderer renderer)

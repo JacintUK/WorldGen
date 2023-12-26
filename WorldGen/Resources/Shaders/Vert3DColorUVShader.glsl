@@ -36,6 +36,7 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 lightPosition;
 uniform vec3 ambientColor;
+uniform float zCutoff;
 
 void main()
 {
@@ -65,11 +66,11 @@ void main()
 
 	// For Debugging normals	
 	//intensity=1;
-	//vColor = vec4(vec3(0.5)+(0.5*aNormal),1);g
+	//vColor = vec4(vec3(0.5)+(0.5*aNormal),1);
 
-	intensity = clamp( dot( normalC, lightDirection ), 0, 1 );
+	intensity = clamp( dot( normalC, lightDirection ), 0.15, 1 );
 	vColor = aColor;
-	if(posW.z < -2.8)
+	if(posW.z < zCutoff)
 	{
 	  vColor.a = 0;// *= 0.5;
 	}

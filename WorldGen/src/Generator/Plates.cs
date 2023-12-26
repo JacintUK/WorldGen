@@ -24,7 +24,6 @@ namespace WorldGen
 {
     class Plates
     {
-        public int Length { get { return GetPlates().Length; } }
         public int[] VertexToPlates { get; private set; }
 
         private readonly Plate[] plates;
@@ -73,31 +72,28 @@ namespace WorldGen
 
         class BorderCorner
         {
-            public List<Int64> borderIndices = new List<Int64>();
-            public Stress stress = new Stress();
+            public List<Int64> borderIndices = new();
+            public Stress stress = new();
             public float elevation = 0;
         }
         Dictionary<int, BorderCorner> borderCorners;
 
-        private Dictionary<Int64, Border> borders;
+        private readonly Dictionary<Int64, Border> borders;
         Random rand;
-        IGeometry geometry;
+        readonly IGeometry geometry;
 
         public Plates(ref Random rand, int numPlates, IGeometry geometry)
         {
-            this.plates = (new Plate[numPlates]);
+            this.plates = new Plate[numPlates];
             this.borders = new Dictionary<long, Border>();
             this.rand = rand;
             this.geometry = geometry;
             CreatePlates();
         }
 
-        public void InitPlates()
-        {
-            InitializePlates();
-        }
-
-        // Debug method
+        /// <summary>
+        /// Debug method
+        /// </summary>
         public void GrowPlates()
         {
             for (int i = 0; i < GetPlates().Length; ++i)
@@ -111,7 +107,7 @@ namespace WorldGen
             InitializePlates();
             GrowAllPlates();
             GenerateCornerPlateRelationships();
-            DeterminePlateElevation();
+            GenerateInitialPlateElevations();
         }
 
         /// <summary>
@@ -232,7 +228,7 @@ namespace WorldGen
         /// <summary>
         /// Generate initial plate elevations. Units are 10km. (Different to mesh units)
         /// </summary>
-        private void DeterminePlateElevation()
+        private void GenerateInitialPlateElevations()
         {
             // Determine elevations of plates
             for (int i = 0; i < GetPlates().Length; ++i)
@@ -257,6 +253,11 @@ namespace WorldGen
             }
         }
 
+        /// <summary>
+        /// Generates borders and borderCorners attributes
+        /// </summary>
+        /// <param name="recolor"></param>
+        /// <exception cref="Exception"></exception>
         public void CalculatePlateBoundaries(bool recolor)
         {
             borders.Clear();
@@ -318,6 +319,9 @@ namespace WorldGen
             borderCorners[cornerIndex].borderIndices.Add(borderKey);
         }
 
+        /// <summary>
+        /// Compute stresses at each border and update "borderCorners" attribute
+        /// </summary>
         public void CalculateStresses()
         {
             // for each vertex in plate boundaries,
@@ -374,14 +378,25 @@ namespace WorldGen
                     int plate0 = border0.plate0;
                     int plate1 = border1.plate0 == plate0 ? border1.plate1 : border0.plate1;
                     int oppositeCornerIndex0 = border0.OppositeCorner(borderCornerKey);
-                    int oppositeCornerIndex1 = border0.OppositeCorner(borderCornerKey);
+                    int oppositeCornerIndex1 = border1.OppositeCorner(borderCornerKey);
                     var oppositeCornerPosition0 = geometry.Topology.Centroids[oppositeCornerIndex0].position;
                     var oppositeCornerPosition1 = geometry.Topology.Centroids[oppositeCornerIndex1].position;
-                    Vector3 boundary = oppositeCornerPosition1 = oppositeCornerPosition0;
+                    Vector3 boundary = oppositeCornerPosition1 - oppositeCornerPosition0;
                     Vector3 boundaryNormal = Vector3.Cross(boundary, pos);
                     borderCorners[borderCornerKey].stress = calculateStress(plateMovement[plate0], plateMovement[plate1], boundary, boundaryNormal);
                 }
             }
+        }
+
+        static Stress calculateStress(Vector3 movement0, Vector3 movement1, Vector3 boundaryVector, Vector3 boundaryNormal)
+        {
+            var relativeMovement = movement0 - movement1;
+            var pressureVector = Math2.ProjectOnVector(relativeMovement, boundaryNormal);
+            var pressure = pressureVector.Length;
+            if (Vector3.Dot(pressureVector, boundaryNormal) > 0) pressure = -pressure;
+            var shear = Math2.ProjectOnVector(relativeMovement, boundaryVector).Length;
+            return new Stress(2.0f / (1.0f + (float)Math.Exp(-pressure / 30.0f)) - 1.0f,
+                                2.0f / (1.0f + (float)Math.Exp(-shear / 30.0f)) - 1.0f);
         }
 
         enum ElevationCalculation
@@ -605,26 +620,27 @@ namespace WorldGen
             public float DistanceToBoundary { get; set; }
             public Origin Origin1 { get; set; }
         }
+
         List<ElevationElement> elevationElements = new List<ElevationElement>();
 
         void ProcessElevationElements()
         {
             foreach( ElevationElement elevationElement in elevationElements )
             {
-
+                switch(elevationElement.Origin1.ElevationCalculation)
+                {
+                    case ElevationCalculation.COLLIDING:
+                    case ElevationCalculation.SUBDUCTING:
+                    case ElevationCalculation.SUPERDUCTING:
+                    case ElevationCalculation.DIVERGING:
+                    case ElevationCalculation.SHEARING:
+                    case ElevationCalculation.DORMANT:
+                        break;
+                }
             }
         }
 
-        static Stress calculateStress(Vector3 movement0, Vector3 movement1, Vector3 boundaryVector, Vector3 boundaryNormal)
-        {
-            var relativeMovement = movement0 - movement1;
-            var pressureVector = Math2.ProjectOnVector(relativeMovement, boundaryNormal);
-            var pressure = pressureVector.Length;
-            if (Vector3.Dot(pressureVector, boundaryNormal) > 0) pressure = -pressure;
-            var shear = Math2.ProjectOnVector(relativeMovement, boundaryVector).Length;
-            return new Stress(2.0f / (1.0f + (float)Math.Exp(-pressure / 30.0f)) - 1.0f,
-                                2.0f / (1.0f + (float)Math.Exp(-shear / 30.0f)) - 1.0f);
-        }
+
 
         #region Debug renderers
         public Geometry<AltVertex> GenerateBorderGeometry<AltVertex>()

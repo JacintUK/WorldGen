@@ -99,7 +99,7 @@ namespace WorldGen
             Shader shader = new Shader(GameWindow.SHADER_PATH + "Vert2DColorUVShader.glsl", GameWindow.SHADER_PATH + "4channelFragShader.glsl");
             var texture = new Texture("CellCorner.png");
             var node = new Node { Position = new Vector3(0, 0, -3) };
-            node.Model = Matrix4.CreateTranslation(node.Position);
+            node.Update();
 
             Vertex2DColorUV[] quad = new Vertex2DColorUV[4]
             {
@@ -201,7 +201,7 @@ namespace WorldGen
             Shader shader = new Shader(GameWindow.SHADER_PATH + "Vert2DColorUVShader.glsl", GameWindow.SHADER_PATH + "pointTexFragShader.glsl");
             var texture = new Texture("Arrow.png");
             var node = new Node { Position = new Vector3(0, 0, -3) };
-            node.Model = Matrix4.CreateTranslation(node.Position);
+            node.Update();
 
             VTest2 quad = new VTest2();
             quad.PX1 = -0.5f; quad.PY1 = -0.5f; quad.U1 = 0f; quad.V1 = 1f; quad.r1 = 0xff; quad.g1 = 0xff; quad.b1 = 0xff; quad.a1 = 0xff;

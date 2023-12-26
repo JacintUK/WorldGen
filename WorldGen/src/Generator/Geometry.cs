@@ -249,6 +249,8 @@ namespace WorldGen
                     continue;
                 }
 
+                // Swap the shared edge of the 2 triangles from 1 pair of opposite verts to the other pair.
+             
                 Topology.TrianglesPerVertex[index1]--;
                 Topology.TrianglesPerVertex[index2]--;
                 Topology.TrianglesPerVertex[index3]++;
@@ -765,8 +767,8 @@ namespace WorldGen
             angles[0] = (float)Math.Acos((e2.LengthSquared + e3.LengthSquared - e1.LengthSquared) / (2.0f * e2.Length * e3.Length));
             angles[1] = (float)Math.Acos((e1.LengthSquared + e3.LengthSquared - e2.LengthSquared) / (2.0f * e1.Length * e3.Length));
             angles[2] = (float)Math.PI - (angles[0] + angles[1]);
-            const float LOWER = (float)Math.PI * 35.0f / 180.0f;
-            const float UPPER = (float)Math.PI * 80.0f / 180.0f;
+            const float LOWER = (float)Math.PI * 25.0f / 180.0f;
+            const float UPPER = (float)Math.PI * 130.0f / 180.0f;
             bool tooThin = false;
             for (int i = 0; i < 3; ++i)
             {

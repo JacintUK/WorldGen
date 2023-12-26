@@ -72,7 +72,17 @@ namespace WorldGen
         {
             uniforms.Add(uniform);
         }
-
+        public void SetUniform(string name, object value)
+        {
+            foreach( var uniform in uniforms)
+            {
+                if( uniform.Name == name)
+                {
+                    uniform.Value = value;
+                    break;
+                }
+            }
+        }
         public void Draw(Matrix4 model, Matrix4 view, Matrix4 projection)
         {
             if (!Visible)

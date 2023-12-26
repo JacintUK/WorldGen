@@ -46,7 +46,16 @@ namespace WorldGen
         }
     }
 
-
+    /// <summary>
+    /// The world class contains the geometry for the world. This is NOT the rendered geometry. It is a 
+    /// triangle mesh, based on an subdivided icosahedron that is tweaked and relaxed repeatedly to remove uniformity.
+    /// The dual of this mesh (vertices -> faces) is what is rendered. 
+    /// 
+    /// Each vertex in this geometry represents the center of a tile (face) of side 5, 6 or 7.
+    /// Each centroid of a triangle in this geometry represents a vertex of the dual.
+    /// 
+    /// Each tile is assigned to a plate, by using a simultaneous flood fill for the given number of plates.
+    /// </summary>
     class World
     {
         private float tweakRatio = 0.25f; // Percentage of total triangles to attempt to tweak
@@ -133,17 +142,6 @@ namespace WorldGen
                     break;
             }
             return geometry.GenerateDual<Vertex3DColorUV>(provider);
-        }
-
-        // Debug method
-        private void InitPlates()
-        {
-            // Debugging plate growth
-            Vector4 blankColor = new Vector4(0.2f, 0.3f, 0.8f, 0.0f);
-            for (int i = 0; i < geometry.Mesh.Length; ++i)
-                geometry.Mesh.SetColor(i, ref blankColor);
-
-            plates.InitPlates();
         }
 
         // Debug method

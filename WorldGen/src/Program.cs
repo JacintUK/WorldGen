@@ -38,10 +38,17 @@ namespace WorldGen
         GeometryRenderer<Vertex3DColorUV> worldPlateDriftDebugRenderer;
         GeometryRenderer<Vertex3DColor> borderRenderer;
         GeometryRenderer<Vertex3DColor> equatorRenderer;
+        GeometryRenderer<Vertex3DColor> meridianRenderer;
 
         Quaternion rotation = new Quaternion(Vector3.UnitY, 0.0f);
         Vector3 lightPosition = new Vector3(-2, 2, 2);
         Vector3 ambientColor;
+        System.Numerics.Vector3 centroidDebugColor = new System.Numerics.Vector3(0.5f, 0.5f, 0.5f);
+        static float INITIAL_NODE_Z = 0.0f;//-3.0f;
+        static float RENDERER_Z_CUTOFF = INITIAL_NODE_Z + 0.1f;
+
+        float zCutoff = RENDERER_Z_CUTOFF; 
+        float centroidAlpha = 1.0f;
 
         int colorMap;
 
@@ -55,7 +62,7 @@ namespace WorldGen
             scene = e.scene;
             scene.SceneUpdatedEvent += UpdateScene;
 
-            ambientColor = Math2.ToVec3(Color4.Aquamarine) * 0.25f;
+            ambientColor = Math2.ToVec3(Color4.Aquamarine);// * 0.25f;
 
             eventHandler = new EventHandler(world, scene);
             var window = sender as GameWindow;
@@ -83,9 +90,11 @@ namespace WorldGen
 
             var node = new Node
             {
-                Position = new Vector3(0, 0, -3)
+                Position = new Vector3(0, 0, INITIAL_NODE_Z),
+                Rotation = new Quaternion(Vector3.UnitY, 0.0f),
+                Scale = new Vector3(1.0f, 1.0f, 1.0f)
             };
-            node.Model = Matrix4.CreateTranslation(node.Position);
+            node.Update();
             scene.Add(node);
 
             worldRenderGeometry = world.RegenerateMesh();
@@ -105,9 +114,9 @@ namespace WorldGen
             node.Add(borderRenderer.renderer);
 
             worldVertsDebugRenderer = new GeometryRenderer<Vertex3DColor>(world.geometry as Geometry<Vertex3DColor>, pointShader);
-            worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(0, 0.2f, 0.7f, 1)));
+            worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(1, 0.2f, 0.7f, 1)));
             worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("pointSize", 3f));
-            worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("zCutoff", -2.0f));
+            worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             worldVertsDebugRenderer.renderer.Visible = false;
             node.Add(worldVertsDebugRenderer.renderer);
 
@@ -118,9 +127,10 @@ namespace WorldGen
             worldCentroidDebugRenderer = new GeometryRenderer<Vertex3D>(centroidGeom, pointShader);
             worldCentroidDebugRenderer.renderer.DepthTestFlag = false;
             worldCentroidDebugRenderer.renderer.CullFaceFlag = false;
-            worldCentroidDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0.5f, 0.5f, 1)));
+            worldCentroidDebugRenderer.renderer.BlendingFlag = true;
+            worldCentroidDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(0.5f, 0.5f, 0.5f, 1.0f)));
             worldCentroidDebugRenderer.renderer.AddUniform(new UniformProperty("pointSize", 3f));
-            worldCentroidDebugRenderer.renderer.AddUniform(new UniformProperty("zCutoff", -2.0f));
+            worldCentroidDebugRenderer.renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             worldCentroidDebugRenderer.renderer.Visible = false;
             node.Add(worldCentroidDebugRenderer.renderer);
 
@@ -131,6 +141,7 @@ namespace WorldGen
             worldPlateSpinDebugRenderer.renderer.BlendingFlag = true;
             worldPlateSpinDebugRenderer.renderer.AddTexture(arrowTexture);
             worldPlateSpinDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
+            worldPlateSpinDebugRenderer.renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             node.Add(worldPlateSpinDebugRenderer.renderer);
 
             var driftGeom = world.plates.GenerateSpinDriftDebugGeom(false);
@@ -140,12 +151,18 @@ namespace WorldGen
             worldPlateDriftDebugRenderer.renderer.BlendingFlag = true;
             worldPlateDriftDebugRenderer.renderer.AddTexture(arrowTexture);
             worldPlateDriftDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(.75f, 0.75f, 0.0f, 1.0f)));
+            worldPlateDriftDebugRenderer.renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             node.Add(worldPlateDriftDebugRenderer.renderer);
 
             var equatorGeom = GeometryFactory.GenerateCircle(Vector3.Zero, Vector3.UnitY, 1.001f, new Vector4(1.0f, 0, 0, 1.0f));
             equatorRenderer = new GeometryRenderer<Vertex3DColor>(equatorGeom, lineShader);
-            equatorRenderer.renderer.AddUniform(new UniformProperty("zCutoff", -2.8f));
+            equatorRenderer.renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             node.Add(equatorRenderer.renderer);
+
+            var meridianGeom = GeometryFactory.GenerateCircle(Vector3.Zero, Vector3.UnitZ, 1.001f, new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
+            meridianRenderer = new GeometryRenderer<Vertex3DColor>(meridianGeom, lineShader);
+            meridianRenderer.renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
+            node.Add(meridianRenderer.renderer);
         }
 
         
@@ -245,6 +262,7 @@ namespace WorldGen
         private bool debugCentroid = false;
         private bool debugVertex = false;
         private bool debugEquator = true;
+        private bool debugMeridian = true;
         private int numSubdivisions;
         private int numPlates;
 
@@ -296,6 +314,20 @@ namespace WorldGen
                 {
                     worldCentroidDebugRenderer.renderer.Visible = debugCentroid;
                 }
+                if(debugCentroid)
+                {
+                    if (ImGui.CollapsingHeader("Centroid detail"))
+                    {
+                        if (ImGui.SliderFloat("Alpha", ref centroidAlpha, 0.0f, 1.0f))
+                        {
+                            worldCentroidDebugRenderer.renderer.SetUniform("color", new Vector4(centroidDebugColor.X, centroidDebugColor.Y, centroidDebugColor.Z, centroidAlpha));
+                        }
+                        if (ImGui.ColorPicker3("Centroid", ref centroidDebugColor))
+                        {
+                            worldCentroidDebugRenderer.renderer.SetUniform("color", new Vector4(centroidDebugColor.X, centroidDebugColor.Y, centroidDebugColor.Z, centroidAlpha));
+                        }
+                    }
+                }
                 if( ImGui.Checkbox("Border", ref debugRenderBorder) )
                 {
                     borderRenderer.renderer.Visible = debugRenderBorder;
@@ -308,13 +340,21 @@ namespace WorldGen
                 {
                     worldPlateDriftDebugRenderer.renderer.Visible = debugRenderDrift;
                 }
-                if(ImGui.Checkbox("Equator", ref debugEquator))
+                if (ImGui.Checkbox("Equator", ref debugEquator))
                 {
                     equatorRenderer.renderer.Visible = debugEquator;
                 }
+                if (ImGui.Checkbox("Meridian", ref debugMeridian))
+                {
+                    meridianRenderer.renderer.Visible = debugMeridian;
+                }
+                if (ImGui.SliderFloat("Z Cutoff", ref zCutoff, -10.0f, 10.0f))
+                {
+                    SetDebugRendererZcutoff();
+                }
             }
 
-            if( ImGui.CollapsingHeader("Color Map"))
+            if ( ImGui.CollapsingHeader("Color Map"))
             {
                 if( ImGui.RadioButton("Terrain", ref colorMap, (int)World.WorldColorE.Height) )
                 {
@@ -327,9 +367,31 @@ namespace WorldGen
                     scene.Update();
                 }
             }
+            if (ImGui.CollapsingHeader("World Node"))
+            {
+                Vector3 nodePos = scene.GetRootNode().Position;
+                float zPos = nodePos.Z;
+                if (ImGui.SliderFloat("Z", ref zPos, -10.0f, 10.0f))                {
+                    nodePos.Z = zPos;
+                    zCutoff = zPos;// - 0.2f;
+                    SetDebugRendererZcutoff();
+                    scene.GetRootNode().Position = nodePos;
+                    scene.Update();
+                }
+            }
 
             ImGui.End();
         }
+
+        private void SetDebugRendererZcutoff()
+        {
+            worldCentroidDebugRenderer.renderer.SetUniform("zCutoff", zCutoff);
+            worldPlateDriftDebugRenderer.renderer.SetUniform("zCutoff", zCutoff);
+            worldPlateSpinDebugRenderer.renderer.SetUniform("zCutoff", zCutoff);
+            meridianRenderer.renderer.SetUniform("zCutoff", zCutoff);
+            equatorRenderer.renderer.SetUniform("zCutoff", zCutoff);
+        }
+
         void ImGuiMouseUp(object sender, OpenTK.Windowing.Common.MouseButtonEventArgs e)
         {
             if(world.NumPlates != numPlates)

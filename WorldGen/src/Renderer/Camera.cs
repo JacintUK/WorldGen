@@ -13,8 +13,8 @@ namespace WorldGen
         }
         public Mode mode = Mode.Perspective;
         public Vector3 Position { get { return position; } set { position = value; } }
-        public Matrix4 View { get; set; }
-        public Matrix4 Projection { get; set; }
+        public Matrix4 View { get; private set; }
+        public Matrix4 Projection { get; private set; }
         public float fieldOfView = (float)Math.PI / 4.0f;
         public float Width { get; set; }
         public float Height { get; set; }

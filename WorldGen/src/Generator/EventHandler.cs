@@ -15,7 +15,8 @@ namespace WorldGen
         public List<KeyHandler> keyHandlers = new List<KeyHandler>();
         World world;
         Scene scene;
-        float longitude, attitude;
+        float longitude = 0.0f;
+        float attitude = 0.0f;
         public bool Grabbed { get; private set; } = false;
 
         public EventHandler(World world, Scene scene)
@@ -23,7 +24,7 @@ namespace WorldGen
             this.world = world;
             this.scene = scene;
             pressedButtons.Add(new MouseButton(OTKMouseButton.Left, UpdateIco));
-            pressedButtons.Add(new MouseButton(OTKMouseButton.Middle, UpdateZoom));
+            pressedButtons.Add(new MouseButton(OTKMouseButton.Middle, UpdateFOV));
             pressedButtons.Add(new MouseButton(OTKMouseButton.Right, UpdateCameraPos));
         }
 
@@ -78,7 +79,7 @@ namespace WorldGen
             return true;
         }
 
-        bool UpdateZoom(MouseButton button)
+        bool UpdateFOV(MouseButton button)
         {
             bool handled = false;
             if (button.IsDown)
@@ -95,8 +96,8 @@ namespace WorldGen
             bool handled = false;
             if (button.IsDown)
             {
-                // drag left and right to change camera Z.
-                scene.camera.ChangeZoom(button.XDelta);
+                // drag up and down to change camera Z.
+                scene.camera.ChangeZoom(button.YDelta);
                 handled = true;
             }
             return handled;
@@ -106,9 +107,7 @@ namespace WorldGen
         {
             if (button.IsDown)
             {
-                // Actually, what you really want to do, is to unproject the mouse pointer onto the sphere, 
-                // before and after movement, then slerp to new rotation.
-
+                // TODO: Update to move the camera around the world, rather than moving the world...
                 // Rotate around Y axis
                 longitude += button.XDelta / 4.0f;
                 longitude %= 360;
@@ -118,11 +117,12 @@ namespace WorldGen
 
                 Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
                 Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI * attitude / 180.0f);
-                Quaternion rotation = equatorRot * polarAxisRot;
-                Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(rotation);
+                Quaternion rotation = equatorRot;// * polarAxisRot;
+
                 var rootNode = scene.GetRootNode();
-                Matrix4 tr = Matrix4.CreateTranslation(rootNode.Position);
-                rootNode.Model = rotationMatrix * tr;
+                rootNode.Rotation = rotation;
+                rootNode.Update();
+
                 return true;
             }
             return false;

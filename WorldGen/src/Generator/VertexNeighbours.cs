@@ -23,6 +23,10 @@ using System.Threading.Tasks;
 
 namespace WorldGen
 {
+    /// <summary>
+    /// A class that for each registered vertex index, stores all the neighbouring
+    /// vertex indices that are "attached" by triangle.
+    /// </summary>
     class VertexNeighbours
     {
         public class PerVertexNeighbours : IEnumerable

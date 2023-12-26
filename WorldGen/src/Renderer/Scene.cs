@@ -24,7 +24,7 @@ namespace WorldGen
         {
             camera = new Camera
             {
-                Position = Vector3.UnitZ * 2.0f,
+                Position = new Vector3(0.0f, 0.0f, 3.0f),
                 Width = width,
                 Height = height
             };
@@ -49,6 +49,10 @@ namespace WorldGen
 
         public void Update()
         {
+            foreach(Node node in nodes)
+            {
+                node.Update();
+            }
             camera.Update();
             RaiseSceneUpdatedEvent();
         }
