@@ -52,6 +52,9 @@ namespace WorldGen
 
         int colorMap;
 
+        static int DEFAULT_WINDOW_WIDTH = 1200;
+        static int DEFAULT_WINDOW_HEIGHT = 800;
+
         void CreateScene(object sender, GameWindow.SceneCreatedEventArgs e)
         {
             world = new World();
@@ -61,6 +64,7 @@ namespace WorldGen
 
             scene = e.scene;
             scene.SceneUpdatedEvent += UpdateScene;
+            scene.SetBackground("black-sky-darkness-night-atmosphere-astronomical-object-1563485-pxhere.com.jpg");
 
             ambientColor = Math2.ToVec3(Color4.Aquamarine);// * 0.25f;
 
@@ -411,7 +415,7 @@ namespace WorldGen
         static void Main(string[] args)
         {
             var program = new Program();
-            GameWindow window = new GameWindow(1200, 800);
+            GameWindow window = new GameWindow(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
             window.SceneCreatedEvent += program.CreateScene;
             window.ImGuiRenderEvent += program.RenderGui;
             window.ImGuiMouseUpEvent += program.ImGuiMouseUp;
