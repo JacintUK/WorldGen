@@ -41,22 +41,21 @@ uniform float zCutoff;
 void main()
 {
 	vec4 vertexPos = vec4(aPosition,1.0);
-	gl_Position = projection * (modelView * vertexPos);
 	vTexCoords = aTexCoords;
 
 	vec3 posW = (model * vertexPos).xyz;
 	vec3 posC = (modelView * vertexPos).xyz;
+	gl_Position = projection * vec4(posC,1.0);
+
 	vec3 eyeDirC = vec3(0,0,0)-posC;
 	vec3 lightPosC = (view * vec4(lightPosition, 1)).xyz;
 	float distance = vec3(lightPosition-aPosition).length;
 	distanceSq = distance * distance;
 
-	//lightDirection = normalize((view*vec4(lightPosC + eyeDirC, 1)).xyz);
 	vec3 lightDirection = normalize(lightPosC+eyeDirC);
 	mat4 viewIT = view;
 
 	vec3 normalC = normalize( mvIT*aNormal );
-	//vec3 normalC = normalize( (modelView * vec4(aNormal,1)).xyz );
 
 	vec3 E = normalize(eyeDirC);
 	vec3 R = reflect(-lightDirection, normalC);
@@ -70,9 +69,10 @@ void main()
 
 	intensity = clamp( dot( normalC, lightDirection ), 0.15, 1 );
 	vColor = aColor;
-	if(posW.z < zCutoff)
-	{
-	  vColor.a = 0;// *= 0.5;
-	}
+
+	//if(dot(N, E) < zCutoff)
+	//{
+	// vColor.a = 0;
+	//}
 	vAmbientColor = ambientColor;
 }

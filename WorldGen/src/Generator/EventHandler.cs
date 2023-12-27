@@ -6,6 +6,8 @@ using OpenTK.Mathematics;
 
 using OTKMouseButton = OpenTK.Windowing.GraphicsLibraryFramework.MouseButton;
 using OpenTK.Windowing.Common;
+using System.Runtime.CompilerServices;
+using OpenTK.Graphics.OpenGL;
 
 namespace WorldGen
 {
@@ -13,19 +15,17 @@ namespace WorldGen
     {
         List<MouseButton> pressedButtons = new List<MouseButton>();
         public List<KeyHandler> keyHandlers = new List<KeyHandler>();
-        World world;
         Scene scene;
         float longitude = 0.0f;
         float attitude = 0.0f;
         public bool Grabbed { get; private set; } = false;
 
-        public EventHandler(World world, Scene scene)
+        public EventHandler(Scene scene)
         {
-            this.world = world;
             this.scene = scene;
-            pressedButtons.Add(new MouseButton(OTKMouseButton.Left, UpdateIco));
+            pressedButtons.Add(new MouseButton(OTKMouseButton.Left, UpdateCameraPos));
             pressedButtons.Add(new MouseButton(OTKMouseButton.Middle, UpdateFOV));
-            pressedButtons.Add(new MouseButton(OTKMouseButton.Right, UpdateCameraPos));
+            pressedButtons.Add(new MouseButton(OTKMouseButton.Right, UpdateCameraPosZ));
         }
 
         public void OnKeyDown(KeyboardKeyEventArgs e)
@@ -94,38 +94,30 @@ namespace WorldGen
         bool UpdateCameraPos(MouseButton button)
         {
             bool handled = false;
+            const float sensitivity = 0.25f;
             if (button.IsDown)
             {
-                // drag up and down to change camera Z.
-                scene.camera.ChangeZoom(button.YDelta);
+                scene.Yaw += button.XDelta * sensitivity;
+                scene.Pitch += button.YDelta * sensitivity;
+                scene.UpdateCameraPos();
                 handled = true;
             }
             return handled;
         }
 
-        bool UpdateIco(MouseButton button)
+        bool UpdateCameraPosZ(MouseButton button)
         {
+            bool handled = false;
             if (button.IsDown)
             {
-                // TODO: Update to move the camera around the world, rather than moving the world...
-                // Rotate around Y axis
-                longitude += button.XDelta / 4.0f;
-                longitude %= 360;
-
-                attitude += button.YDelta / 2.0f;
-                attitude = Math.Max(Math.Min(90, attitude), -90);
-
-                Quaternion equatorRot = Quaternion.FromAxisAngle(Vector3.UnitY, (float)Math.PI * longitude / 180.0f);
-                Quaternion polarAxisRot = Quaternion.FromAxisAngle(Vector3.UnitX, (float)Math.PI * attitude / 180.0f);
-                Quaternion rotation = equatorRot;// * polarAxisRot;
-
-                var rootNode = scene.GetRootNode();
-                rootNode.Rotation = rotation;
-                rootNode.Update();
-
-                return true;
+                // drag up and down to change camera Z.
+                scene.camera.DistanceFromObject += button.YDelta*0.05f;
+                scene.UpdateCameraPos();
+                handled = true;
             }
-            return false;
+            return handled;
         }
+
+
     }
 }

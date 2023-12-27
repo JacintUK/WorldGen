@@ -750,8 +750,10 @@ namespace WorldGen
                     {
                         tangent.Normalize();
                         Vector3 w = Vector3.Cross(tangent, pos);
-                        tangent *= side;
                         w.Normalize();
+                        Vector3 n = pos;
+                        n.Normalize();
+                        tangent *= side;
                         w *= side;
 
                         // Construct 4 verts around this position:
@@ -765,21 +767,25 @@ namespace WorldGen
                         vertex.SetPosition(A);
                         vertex.SetTextureCoordinates(new Vector2(1, 1));
                         vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertex.SetNormal(n);
                         vertices.Add(vertex);
                         vertex = new Vertex3DColorUV();
                         vertex.SetPosition(B);
                         vertex.SetTextureCoordinates(new Vector2(0, 1));
                         vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertex.SetNormal(n);
                         vertices.Add(vertex);
                         vertex = new Vertex3DColorUV();
                         vertex.SetPosition(C);
                         vertex.SetTextureCoordinates(new Vector2(0, 0));
                         vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertex.SetNormal(n);
                         vertices.Add(vertex);
                         vertex = new Vertex3DColorUV();
                         vertex.SetPosition(D);
                         vertex.SetTextureCoordinates(new Vector2(1, 0));
                         vertex.SetColor(new Vector4(1, 1, 1, 1));
+                        vertex.SetNormal(n);
                         vertices.Add(vertex);
                         indices.Add((uint)index);
                         indices.Add((uint)index + 2);

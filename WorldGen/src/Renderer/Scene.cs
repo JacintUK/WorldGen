@@ -16,6 +16,9 @@ namespace WorldGen
         public Camera camera { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
+        public float Yaw { get; set; } = 90.0f;
+        public float Pitch { get; set; } = 0.0f;
+
         private Renderer background;
 
         public event EventHandler<EventArgs> SceneUpdatedEvent;
@@ -28,10 +31,14 @@ namespace WorldGen
         {
             camera = new Camera
             {
-                Position = new Vector3(0.0f, 0.0f, 3.0f),
                 Width = width,
-                Height = height
+                Height = height,
+                DistanceFromObject = 5,
+                Projection = Camera.ProjectionType.Perspective,
+                Mode = Camera.ModeType.Target,
+                TargetPosition = new Vector3(0.0f, 0.0f, 0.0f)
             };
+            UpdateCameraPos();
             Width = (int)width;
             Height = (int)height;
         }
@@ -55,6 +62,20 @@ namespace WorldGen
             return nodes[0];
         }
 
+        public void UpdateCameraPos()
+        {
+            Pitch = Math.Clamp(Pitch, -89.0f, 89.0f);
+            var yawRad = Math.PI * Yaw / 180.0;
+            var pitchRad = Math.PI * Pitch / 180.0;
+
+            var x = camera.DistanceFromObject * (float)Math.Cos(yawRad) * (float)Math.Cos(pitchRad);
+            var y = camera.DistanceFromObject * (float)Math.Sin(pitchRad);
+            var z = camera.DistanceFromObject * (float)Math.Sin(yawRad) * (float)Math.Cos(pitchRad);
+            camera.Position = new Vector3(x, y, z);
+            camera.Update();
+        }
+
+
         public void Update(float width, float height)
         {
             camera.Width = width;
@@ -75,7 +96,7 @@ namespace WorldGen
         public void Render()
         {
             Matrix4 view = camera.View;
-            Matrix4 projection = camera.Projection;
+            Matrix4 projection = camera.ProjectionMatrix;
 
             background?.Draw(Matrix4.Identity, view, projection);
             foreach (var node in nodes)

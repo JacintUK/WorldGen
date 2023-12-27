@@ -19,6 +19,7 @@
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat3 mvIT;
 uniform float zCutoff;
 in vec3 aPosition;
 in vec3 aTangent;
@@ -28,12 +29,16 @@ void main()
 {
 	gl_PointSize = clamp(length(aTangent), 0, 20);
 
-	vec4 world = model * vec4(aPosition, 1.0);
-	gl_Position = projection * view * world;
+	vec4 posC = view * model * vec4(aPosition, 1.0);
 	
-	vColor=vec4(1,1,1,1);
-	if(world.z < zCutoff)
+	vec3 N = normalize(mvIT * normalize(aPosition));
+	vec3 E = normalize(vec3(0,0,0)-posC.xyz);
+
+	gl_Position = projection * posC;
+	
+	vColor=aColor;
+	if(dot(N, E) < zCutoff)
 	{
-	  vColor.a = 0;// *= 0.5;
+	  vColor.a = 0;
 	}
 }

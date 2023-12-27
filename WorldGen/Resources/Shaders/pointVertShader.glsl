@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-uniform vec4 color;
+uniform float zCutoff;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat3 mvIT;
 uniform float pointSize;
-uniform float zCutoff;
+uniform vec4 color;
 
 in vec3 aPosition;
 out vec4 vColor;
@@ -30,13 +31,17 @@ void main()
 {
 	gl_PointSize = pointSize;
 
-	vec4 world = model * vec4(aPosition, 1.0);
-	gl_Position = projection * view * world;
+	vec4 posC = view * model * vec4(aPosition, 1.0);
 	
-	vec4 newColor=color;
-	if( world.z < zCutoff )
+	vec3 N = normalize(mvIT * normalize(aPosition));
+	vec3 E = normalize(vec3(0,0,0)-posC.xyz);
+
+	gl_Position = projection * posC;
+	
+	vColor = color;
+	if(dot(N, E) < zCutoff)
 	{
-	  newColor.a = 0;
+	  vColor.a = 0.0;
 	}
-	vColor=newColor;
 }
+

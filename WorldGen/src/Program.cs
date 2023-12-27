@@ -64,11 +64,13 @@ namespace WorldGen
 
             scene = e.scene;
             scene.SceneUpdatedEvent += UpdateScene;
+
+            // TODO: Change to a skybox!
             scene.SetBackground("black-sky-darkness-night-atmosphere-astronomical-object-1563485-pxhere.com.jpg");
 
             ambientColor = Math2.ToVec3(Color4.Aquamarine);// * 0.25f;
 
-            eventHandler = new EventHandler(world, scene);
+            eventHandler = new EventHandler(scene);
             var window = sender as GameWindow;
             if( window != null )
             {
@@ -121,6 +123,9 @@ namespace WorldGen
             worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(1, 0.2f, 0.7f, 1)));
             worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("pointSize", 3f));
             worldVertsDebugRenderer.renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
+            worldVertsDebugRenderer.renderer.DepthTestFlag = false;
+            worldVertsDebugRenderer.renderer.CullFaceFlag = false;
+            worldVertsDebugRenderer.renderer.BlendingFlag = true;
             worldVertsDebugRenderer.renderer.Visible = false;
             node.Add(worldVertsDebugRenderer.renderer);
 
@@ -140,8 +145,6 @@ namespace WorldGen
 
             var spinGeom = world.plates.GenerateSpinDriftDebugGeom(true);
             worldPlateSpinDebugRenderer = new GeometryRenderer<Vertex3DColorUV>(spinGeom, texShader2);
-            worldPlateSpinDebugRenderer.renderer.DepthTestFlag = false;
-            worldPlateSpinDebugRenderer.renderer.CullFaceFlag = false;
             worldPlateSpinDebugRenderer.renderer.BlendingFlag = true;
             worldPlateSpinDebugRenderer.renderer.AddTexture(arrowTexture);
             worldPlateSpinDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
@@ -150,8 +153,7 @@ namespace WorldGen
 
             var driftGeom = world.plates.GenerateSpinDriftDebugGeom(false);
             worldPlateDriftDebugRenderer = new GeometryRenderer<Vertex3DColorUV>(driftGeom, texShader2);
-            worldPlateDriftDebugRenderer.renderer.DepthTestFlag = false;
-            worldPlateDriftDebugRenderer.renderer.CullFaceFlag = false;
+
             worldPlateDriftDebugRenderer.renderer.BlendingFlag = true;
             worldPlateDriftDebugRenderer.renderer.AddTexture(arrowTexture);
             worldPlateDriftDebugRenderer.renderer.AddUniform(new UniformProperty("color", new Vector4(.75f, 0.75f, 0.0f, 1.0f)));
@@ -371,24 +373,14 @@ namespace WorldGen
                     scene.Update();
                 }
             }
-            if (ImGui.CollapsingHeader("World Node"))
-            {
-                Vector3 nodePos = scene.GetRootNode().Position;
-                float zPos = nodePos.Z;
-                if (ImGui.SliderFloat("Z", ref zPos, -10.0f, 10.0f))                {
-                    nodePos.Z = zPos;
-                    zCutoff = zPos;// - 0.2f;
-                    SetDebugRendererZcutoff();
-                    scene.GetRootNode().Position = nodePos;
-                    scene.Update();
-                }
-            }
+
 
             ImGui.End();
         }
 
         private void SetDebugRendererZcutoff()
         {
+            worldVertsDebugRenderer.renderer.SetUniform("zCutoff", zCutoff);
             worldCentroidDebugRenderer.renderer.SetUniform("zCutoff", zCutoff);
             worldPlateDriftDebugRenderer.renderer.SetUniform("zCutoff", zCutoff);
             worldPlateSpinDebugRenderer.renderer.SetUniform("zCutoff", zCutoff);

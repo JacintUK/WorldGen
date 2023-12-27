@@ -1,4 +1,4 @@
-﻿#version 130
+﻿#version 140
 
 /*
  * Copyright 2018 David Ian Steele
@@ -15,27 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
-uniform float zCutoff;
+ 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat3 mvIT;
 uniform float pointSize;
+uniform float zCutoff;
+
 in vec3 aPosition;
 in vec4 aColor;
 out vec4 vColor;
 
 void main()
 {
-	gl_PointSize = pointSize;
+    gl_PointSize = pointSize;
 
-	vec4 world = model * vec4(aPosition, 1.0);
-	gl_Position = projection * view * world;
-	
-	vColor=aColor;
-	if(world.z < zCutoff)
-	{
-	  vColor.a = 0;
-	}
+    vec4 pos = model * vec4(aPosition, 1.0);
+    vec4 posC = view * pos;
+    gl_Position = projection * posC;
+    vec3 eyeDirC = normalize(vec3(0,0,0) - posC.xyz);	
+
+    vec3 normal = normalize(aPosition);
+    vec3 normalC = mvIT * normal;
+
+    vColor=aColor;
+    if(dot(normalC, eyeDirC) < zCutoff)
+    {
+        vColor.a = 0;
+    }
 }

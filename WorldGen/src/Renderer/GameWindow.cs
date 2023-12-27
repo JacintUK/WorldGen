@@ -102,6 +102,7 @@ namespace WorldGen
             imGuiController = new ImGuiController(new Vector2i(ClientSize.X, ClientSize.Y));
             imGuiController.Initialize();
             scene = new Scene(ClientSize.X, ClientSize.Y);
+            OnUpdateFrame(new FrameEventArgs());
             RaiseSceneCreatedEvent(scene);
         }
         
