@@ -75,9 +75,13 @@ namespace WorldGen
             public List<Int64> borderIndices = new();
             public Stress stress = new();
             public float elevation = 0;
+            public ElevationCalculation calculation = ElevationCalculation.DORMANT;
         }
         Dictionary<int, BorderCorner> borderCorners;
 
+        /// <summary>
+        /// borders map to edges between tiles in the 
+        /// </summary>
         private readonly Dictionary<Int64, Border> borders;
         Random rand;
         readonly IGeometry geometry;
@@ -96,9 +100,9 @@ namespace WorldGen
         /// </summary>
         public void GrowPlates()
         {
-            for (int i = 0; i < GetPlates().Length; ++i)
+            for (int i = 0; i < plates.Length; ++i)
             {
-                GetPlates()[i].Grow(1);
+                plates[i].Grow(1);
             }
         }
 
@@ -124,7 +128,7 @@ namespace WorldGen
                 VertexToPlates[i] = -1;
             borders.Clear();
 
-            for (int plateIndex = 0; plateIndex < GetPlates().Length; ++plateIndex)
+            for (int plateIndex = 0; plateIndex < plates.Length; ++plateIndex)
             {
                 int plate = -1;
                 do
@@ -146,7 +150,7 @@ namespace WorldGen
                         traits.PivotRotation = (rand.Next(200) - 100) * (float)Math.PI / 6000.0f;
                         traits.Elevation = 0.0f;
 
-                        GetPlates()[plateIndex] = new Plate(VertexToPlates, geometry, traits, plateIndex, vertexIndex, ref rand);
+                        plates[plateIndex] = new Plate(VertexToPlates, geometry, traits, plateIndex, vertexIndex, ref rand);
                         break;
                     }
                 } while (plate != -1);
@@ -159,12 +163,12 @@ namespace WorldGen
         /// <exception cref="Exception">Remove this check.</exception>
         private void GrowAllPlates()
         {
-            int total = GetPlates().Length;
+            int total = plates.Length;
             while (total < geometry.Mesh.Length)
             {
-                for (int i = 0; i < GetPlates().Length; ++i)
+                for (int i = 0; i < plates.Length; ++i)
                 {
-                    total += GetPlates()[i].Grow(1); // todo: Consider interleaving growth loops.
+                    total += plates[i].Grow(1); // todo: Consider interleaving growth loops.
                 }
             }
 
@@ -196,12 +200,12 @@ namespace WorldGen
                     if (!centroid.PlateDistances.TryGetValue(plateIndex, out plateDistance))
                     {
                         // Great circle distance to plate center:
-                        Vector3 center = GetPlates()[plateIndex].Traits.Center;
+                        Vector3 center = plates[plateIndex].Traits.Center;
                         // Both centroid.pos and plate center are unit length; so dot product = cos theta.
                         // unit sphere, so great cicle distance is theta
                         float distance = (float)Math.Acos(Vector3.Dot(center, centroid.position));
                         centroid.PlateDistances.Add(plateIndex, distance);
-                        GetPlates()[plateIndex].Corners.Add(centroidIndex);
+                        plates[plateIndex].Corners.Add(centroidIndex);
                     }
                 }
                 ++centroidIndex;
@@ -209,9 +213,9 @@ namespace WorldGen
 
             // Sort corners in plates by distance from center of plate.
             {
-                for (int plateIndex = 0; plateIndex < GetPlates().Length; ++plateIndex)
+                for (int plateIndex = 0; plateIndex < plates.Length; ++plateIndex)
                 {
-                    GetPlates()[plateIndex].Corners.Sort(delegate (int a, int b)
+                    plates[plateIndex].Corners.Sort(delegate (int a, int b)
                     {
                         float diff = geometry.Topology.Centroids[a].PlateDistances[plateIndex] -
                                         geometry.Topology.Centroids[b].PlateDistances[plateIndex];
@@ -231,7 +235,7 @@ namespace WorldGen
         private void GenerateInitialPlateElevations()
         {
             // Determine elevations of plates
-            for (int i = 0; i < GetPlates().Length; ++i)
+            for (int i = 0; i < plates.Length; ++i)
             {
                 // Earth: crust is 5-70km thick, radius of planet is 6,371km, i.e. 0.1% -> 1.0%
                 // deepest ocean is ~8km; tallest mountain is ~9km; i.e. +/- 10km
@@ -241,14 +245,14 @@ namespace WorldGen
                 {
                     // Oceanic plates range from -8km to -3km
                     float height = rand.Next(100) / 200.0f;
-                    GetPlates()[i].Traits.Elevation = height - 0.8f;
-                    GetPlates()[i].Traits.Thickness = 0.5f + height;
+                    plates[i].Traits.Elevation = height - 0.8f;
+                    plates[i].Traits.Thickness = 0.5f + height;
                 }
                 else
                 {
                     // Continental plates range from 1km to 5km above sea level; from 20-70km thick
-                    GetPlates()[i].Traits.Elevation = rand.Next(400) / 1000.0f + 0.1f;
-                    GetPlates()[i].Traits.Thickness = 2.0f + (GetPlates()[i].Traits.Elevation - 0.1f) * 12.5f;
+                    plates[i].Traits.Elevation = rand.Next(400) / 1000.0f + 0.1f;
+                    plates[i].Traits.Thickness = 2.0f + (plates[i].Traits.Elevation - 0.1f) * 12.5f;
                 }
             }
         }
@@ -265,29 +269,31 @@ namespace WorldGen
 
             // Recalculate border tiles for each plate
             int totalBorderTiles = 0;
-            for (int plateIdx = 0; plateIdx < GetPlates().Length; ++plateIdx)
+            for (int plateIdx = 0; plateIdx < plates.Length; ++plateIdx)
             {
-                GetPlates()[plateIdx].CalculateBorderTiles(recolor);
-                totalBorderTiles += GetPlates()[plateIdx].BorderTiles.Count;
+                plates[plateIdx].CalculateBorderTiles(recolor);
+                totalBorderTiles += plates[plateIdx].BorderTiles.Count;
             }
 
             // For each plate, check each border tile's neighbours
             //   If a neighbour belongs to a different plate, create a border edge.
-            for (int plateIdx = 0; plateIdx < GetPlates().Length; ++plateIdx)
+            for (int plateIdx = 0; plateIdx < plates.Length; ++plateIdx)
             {
-                List<int> borderTiles = GetPlates()[plateIdx].BorderTiles;
+                List<int> borderTiles = plates[plateIdx].BorderTiles;
                 for (int borderTile = 0; borderTile < borderTiles.Count; ++borderTile)
                 {
+                    // borderTile is a Vertex index in the world mesh.
                     var outerNeighbours = geometry.Topology.VertexNeighbours.GetNeighbours(borderTiles[borderTile]);
                     for (int neighbourIdx = 0; neighbourIdx < outerNeighbours.Count; ++neighbourIdx)
                     {
+                        // neighbour vertexIdx is the vertex index in this world mesh of this tile's neighbour.
                         int neighbourVertexIdx = outerNeighbours.Neighbours[neighbourIdx];
                         int neighbourPlateIdx = VertexToPlates[neighbourVertexIdx];
                         if (neighbourPlateIdx != plateIdx)
                         {
                             // It's not in the plate, so must be a bordering plate.
                             // Index by key from verts, stores plate ids, corners
-                            Int64 borderKey = Geometry.Topology.CreateBorderKey((uint)neighbourVertexIdx, (uint)borderTiles[borderTile]);
+                            Int64 borderKey = Geometry.Topology.CreateEdgeKey((uint)neighbourVertexIdx, (uint)borderTiles[borderTile]);
 
                             if (!borders.ContainsKey(borderKey))
                             {
@@ -346,7 +352,7 @@ namespace WorldGen
                         Vector3 movement;
                         if (!plateMovement.TryGetValue(plateIndex, out movement))
                         {
-                            Plate plate = GetPlates()[plateIndex];
+                            Plate plate = plates[plateIndex];
                             movement = plate.CalculateSpin(pos) + plate.CalculateDrift(pos);
                             plateMovement[plateIndex] = movement;
                         }
@@ -391,12 +397,15 @@ namespace WorldGen
         static Stress calculateStress(Vector3 movement0, Vector3 movement1, Vector3 boundaryVector, Vector3 boundaryNormal)
         {
             var relativeMovement = movement0 - movement1;
+            // "pressure" is the stress normal to the tiles. In theory, negative pressure means they are moving apart, +ve means colliding
             var pressureVector = Math2.ProjectOnVector(relativeMovement, boundaryNormal);
             var pressure = pressureVector.Length;
             if (Vector3.Dot(pressureVector, boundaryNormal) > 0) pressure = -pressure;
+            // Shear is the stress along the boundary between the tiles.
             var shear = Math2.ProjectOnVector(relativeMovement, boundaryVector).Length;
-            return new Stress(2.0f / (1.0f + (float)Math.Exp(-pressure / 30.0f)) - 1.0f,
-                                2.0f / (1.0f + (float)Math.Exp(-shear / 30.0f)) - 1.0f);
+
+            // Values are in the range +- 0.001 - 0.05 - change up to +- 0.02 - 1.0
+            return new Stress(20.0f * pressure, 20.0f * shear);
         }
 
         enum ElevationCalculation
@@ -426,15 +435,15 @@ namespace WorldGen
                 if (borderIndices.Count == 3)
                 {
                     // At 3 plate boundaries, just take some maxima / averages:
-                    Plate plate0 = GetPlates()[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[0]]];
-                    Plate plate1 = GetPlates()[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[1]]];
-                    Plate plate2 = GetPlates()[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[2]]];
+                    Plate plate0 = plates[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[0]]];
+                    Plate plate1 = plates[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[1]]];
+                    Plate plate2 = plates[VertexToPlates[geometry.Topology.Centroids[borderCornerKey].Faces[2]]];
                     Stress stress = borderCorners[borderCornerKey].stress;
                     if (stress.pressure > 0.3)
                     {
-                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.pressure;
+                        borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.pressure/3;
                     }
-                    else if (stress.pressure < -0.3)
+                    else if (stress.pressure < -0.01)
                     {
                         borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, Math.Max(plate1.Traits.Elevation, plate2.Traits.Elevation)) + stress.pressure / 4;
                     }
@@ -453,12 +462,12 @@ namespace WorldGen
                     Border border1 = borders[borderIndices[1]];
                     int plateIndex0 = border0.plate0;
                     int plateIndex1 = border1.plate0 == plateIndex0 ? border1.plate1 : border0.plate1;
-                    Plate plate0 = GetPlates()[plateIndex0];
-                    Plate plate1 = GetPlates()[plateIndex1];
+                    Plate plate0 = plates[plateIndex0];
+                    Plate plate1 = plates[plateIndex1];
 
                     ElevationCalculation elevationCalculation = ElevationCalculation.DORMANT;
                     Stress stress = borderCorners[borderCornerKey].stress;
-                    if (stress.pressure > 0.3)
+                    if (stress.pressure > 0.2)
                     {
                         borderCorners[borderCornerKey].elevation = Math.Max(plate0.Traits.Elevation, plate1.Traits.Elevation) + stress.pressure;
 
@@ -494,7 +503,8 @@ namespace WorldGen
                         borderCorners[borderCornerKey].elevation = (plate0.Traits.Elevation + plate1.Traits.Elevation) / 2.0f;
                         elevationCalculation = ElevationCalculation.DORMANT;
                     }
-
+                    borderCorners[borderCornerKey].calculation = elevationCalculation;
+                    /*
                     // Queue up:
                     //   next corner: Inner corner: the corner that isn't the opposite corner of border0 and border1
                     //     (i.e. remove the opposite corners from Centroid neighbours, and it's the remaining one).
@@ -516,7 +526,7 @@ namespace WorldGen
                             ElevationCalculation = elevationCalculation
                         }
                     };
-                    elevationElements.Add(e);
+                    elevationElements.Add(e);*/
                 }
             }
         }
@@ -699,8 +709,8 @@ namespace WorldGen
                     geometry.AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid1, ref centroid2, edgeOrderIsAnticlockwise);
                     geometry.AddTriangle(ref vertices, ref newIndices, ref v2g1prime, ref centroid2, ref v2g2prime, edgeOrderIsAnticlockwise);
 
-                    float p1 = Math2.Clamp(Math.Abs(borderCorners[border.c1Index].stress.pressure) * 1000.0f, 0, 1.0f);
-                    float p2 = Math2.Clamp(Math.Abs(borderCorners[border.c2Index].stress.pressure) * 1000.0f, 0, 1.0f);
+                    float p1 = Math2.Clamp(Math.Abs(borderCorners[border.c1Index].stress.pressure), 0, 1.0f);
+                    float p2 = Math2.Clamp(Math.Abs(borderCorners[border.c2Index].stress.pressure), 0, 1.0f);
                     float hue1 = borderCorners[border.c1Index].stress.pressure > 0 ? 0 : 0.5f;
                     float hue2 = borderCorners[border.c2Index].stress.pressure > 0 ? 0 : 0.5f;
                     Vector3 rgb1 = Math2.HSV2RGB(new Vector3(hue1, p1, 1.0f - p1));
@@ -733,7 +743,7 @@ namespace WorldGen
             List<uint> indices = new List<uint>();
             const float epsilon = 1e-8f;
             float sqrt2by2 = (float)Math.Sqrt(2.0) * 0.5f;
-            foreach (var plate in GetPlates())
+            foreach (var plate in plates)
             {
                 foreach (int tileIndex in plate.Tiles)
                 {
@@ -805,13 +815,13 @@ namespace WorldGen
         {
             List<Vertex3DColor> verts = new List<Vertex3DColor>();
             List<uint> indices = new List<uint>();
-            for( int plateIndex=0; plateIndex < GetPlates().Length; ++plateIndex)
+            for( int plateIndex=0; plateIndex < plates.Length; ++plateIndex)
             {
-                Vector3 center = GetPlates()[plateIndex].Traits.Center;
+                Vector3 center = plates[plateIndex].Traits.Center;
                 int cornerIndex = 0;
-                foreach( int corner in GetPlates()[plateIndex].Corners )
+                foreach( int corner in plates[plateIndex].Corners )
                 {
-                    float hue = (float)cornerIndex / (float)GetPlates()[plateIndex].Corners.Count;
+                    float hue = (float)cornerIndex / (float)plates[plateIndex].Corners.Count;
                     Vector3 color3 = Math2.HSV2RGB(new Vector3(hue, 0.7f, 0.5f));
                     Vector4 color = new Vector4(color3.X, color3.Y, color3.Z, 1.0f);
                     Centroid centroid = geometry.Topology.Centroids[corner];

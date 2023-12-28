@@ -21,20 +21,56 @@ using OpenTK.Mathematics;
 namespace WorldGen
 {
     public struct Edge { public int triangle1; public int triangle2; }
+
     internal interface ITopology
     {
+        /// <summary>
+        /// Edges stores the edges of triangles in the primary mesh. 
+        /// </summary>
         Dictionary<Int64, Edge> Edges { get; }
-        int[] TrianglesPerVertex { get; set; }
+
+        /// <summary>
+        /// Centroids is an array of centroids of the triangles in the primary mesh.
+        /// These are the vertices in the dual mesh.
+        /// We also refer to them as "corners" of the tiles in the primary mesh.
+        /// </summary>
         List<Centroid> Centroids { get; }
+
+        /// <summary>
+        /// VertexNeighbours stores adjacent vertices in the primary mesh
+        /// </summary>
         VertexNeighbours VertexNeighbours { get; }
+        int[] TrianglesPerVertex { get; set; }
 
         void Regenerate();
         void GenerateEdges();
         Vector3 CalculateCentroid(int triangle);
+
+        /// <summary>
+        /// Get the centroid indices of the shared edge between the given faces.
+        /// Note, the first corner index can be in either face.
+        /// The centroid index is equivalent to a vertex index in the dual mesh
+        /// </summary>
+        /// <param name="v1Index">VertexIndex in the primary mesh of the first face</param>
+        /// <param name="v2Index">VertexIndex in the primary mesh of the second face</param>
+        /// <param name="c1Index">Index of one corner triangle</param>
+        /// <param name="c2Index">Index of the other corner triangle</param>
         void GetCorners(int v1Index, int v2Index, out int c1Index, out int c2Index);
     }
 
     // Topology of a (triangular face) geometry
+    // A geometry comprises a primary Mesh of vertices connected by edges forming triangles.
+    // Each triangle has a centroid. The centroid is used to compute the dual mesh.
+    // (Both vertices and centroids are used for generating a rendering geometry)
+    // 
+    // Triangle edges are stored in the edge cache. EdgeCache keys are computed from the vertex indexes.
+    // Each vertex in the primary mesh has N neighbouring vertices which comprise all triangles that
+    // the vertex is in.
+    //
+    // In usage, we may use both primary mesh and dual mesh terms - vertices and faces/tiles - to mean
+    // the same thing. Very confusing. Must fix!
+    // Similarly, we use the dual mesh term "Corner" to mean the corners between faces; i.e. the centroids,
+    // so as not to confuse it with vertex, which is the face index.
     partial class Geometry
     {
         public class Topology : ITopology
@@ -43,11 +79,23 @@ namespace WorldGen
             private VertexNeighbours vertexNeighbours;
             private List<Centroid> centroids; // indexed by triangle.
 
-            public VertexNeighbours VertexNeighbours { get { GenerateTopology(); return vertexNeighbours; } } // Face neighbours
+            /// <summary>
+            /// Edges stores the edges of triangles in the primary mesh. 
+            /// </summary>
+            public Dictionary<Int64, Edge> Edges { get { GenerateTopology(); return edgeCache; } }
 
+            /// <summary>
+            /// Centroids is an array of centroids of the triangles in the primary mesh.
+            /// These are the vertices in the dual mesh.
+            /// We also refer to them as "corners" of the tiles in the primary mesh.
+            /// </summary>
             public List<Centroid> Centroids { get { GenerateTopology(); return centroids; } }
 
-            public Dictionary<Int64, Edge> Edges { get { GenerateTopology(); return edgeCache; } }
+            /// <summary>
+            /// VertexNeighbours stores adjacent vertices in the primary mesh
+            /// </summary>
+            public VertexNeighbours VertexNeighbours { get { GenerateTopology(); return vertexNeighbours; } } // Face neighbours
+
 
             public int[] TrianglesPerVertex { get; set; }
 
@@ -123,14 +171,6 @@ namespace WorldGen
                 }
             }
 
-            public static Int64 CreateEdgeKey(uint a, uint b)
-            {
-                Int64 min = a < b ? a : b;
-                Int64 max = a >= b ? a : b;
-                Int64 key = min << 32 | max;
-                return key;
-            }
-
             public void GenerateNeighbours()
             {
                 vertexNeighbours = new VertexNeighbours(geometry.NumVertices);
@@ -188,12 +228,12 @@ namespace WorldGen
             }
 
             /// <summary>
-            /// Key is generated from the vertex index of adjacent tiles
+            /// Key is generated from the vertex index in primary mesh of adjacent tiles
             /// </summary>
             /// <param name="a">vertex index of first tile</param>
             /// <param name="b">vertex index of second tile</param>
             /// <returns></returns>
-            public static Int64 CreateBorderKey(uint a, uint b)
+            public static Int64 CreateEdgeKey(uint a, uint b)
             {
                 Int64 min = a < b ? a : b;
                 Int64 max = a >= b ? a : b;
