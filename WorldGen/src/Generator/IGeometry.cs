@@ -58,6 +58,7 @@ namespace WorldGen
 
         Mesh<Vertex3D> GenerateCentroidPointMesh();
         Geometry<AltVertex> GenerateDual<AltVertex>(IColorProvider colorProvider) where AltVertex : struct, IVertex;
+        public IGeometry GenerateTile(uint vertexIndex);
 
         /// <summary>
         /// Add the triangle specified by the 3 points to the given vertex and index lists.

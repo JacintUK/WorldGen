@@ -16,16 +16,44 @@
 
 
 using OpenTK;
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using System;
+using System.Data.Common;
+using System.Diagnostics;
+using System.Dynamic;
+using System.Runtime.InteropServices;
 
 namespace WorldGen
 {
-    class GeometryRenderer<TVertex> where TVertex : struct, IVertex
+    public class TouchedEventArgs : EventArgs { public uint VertexIndex { get; set; } }
+    public delegate void TouchedEvent(object sender, TouchedEventArgs e);
+
+    abstract class IGeometryRenderer
+    {
+        public Renderer Renderer { get; set; }
+        public bool Sensitive { get; set; } = false;
+        public abstract bool HitTest(Vector3 origin, Vector3 direction);
+
+        public abstract IGeometry GetGeometry();
+
+        public event TouchedEvent touchedEvent;
+        public virtual void RaiseTouchEvent(uint vertexIndex)
+        {
+            TouchedEventArgs e = new()
+            {
+                VertexIndex = vertexIndex
+            };
+            touchedEvent?.Invoke(this, e);
+        }
+   }
+
+    class GeometryRenderer<TVertex> : IGeometryRenderer where TVertex : struct, IVertex
     {
         public Geometry<TVertex> geometry;
-        public Renderer renderer;
         private VertexBuffer<TVertex> vbo;
         private IndexBuffer ibo;
+        public uint HitVertexIndex { get; private set; } = 0;
 
         public static GeometryRenderer<Vertex> NewQuad(Shader shader)
         {
@@ -51,21 +79,124 @@ namespace WorldGen
         {
             this.geometry = geometry;
             vbo = new VertexBuffer<TVertex>((geometry.Mesh as Mesh<TVertex>).vertices);
-            if(geometry.Indices != null)
+            if (geometry.Indices != null)
                 ibo = new IndexBuffer((geometry.Indices as Indices).IndexArray);
-            renderer = new Renderer(vbo, ibo, shader);
-            renderer.PrimitiveType = geometry.PrimitiveType;
+            Renderer = new Renderer(vbo, ibo, shader);
+            Renderer.PrimitiveType = geometry.PrimitiveType;
+        }
+
+        public GeometryRenderer(Renderer renderer)
+        {
+            this.geometry = null;
+            Renderer = renderer;
+            this.vbo = (VertexBuffer<TVertex>)renderer.vbo;
+            this.ibo = renderer.ibo;
+        }
+
+        public void ChangeGeometry(Geometry<TVertex> geometry)
+        {
+            this.geometry = geometry;
+            Update();
         }
 
         public void Update()
         {
-            geometry.Upload(vbo, ibo);
+            geometry?.Upload(vbo, ibo);
         }
 
         public void Update(Geometry<TVertex> geometry)
         {
             this.geometry = geometry;
             Update();
+        }
+
+        struct S { public uint primary; public Vector3 vec; public S(uint p, Vector3 v) { primary = p; vec = v; } };
+        public override bool HitTest(Vector3 origin, Vector3 direction)
+        {
+            if (Sensitive)
+            {
+                var hits = new S[2];
+                int hitIndex = 0;
+
+                for (int i = 0; i<geometry.NumIndices / 3; ++i)
+                {
+                    var v0 = geometry.Mesh.GetPosition((int)geometry.Indices[i * 3]);
+                    var v1 = geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 1]);
+                    var v2 = geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 2]);
+
+                    // Intersect test triangle and ray
+                    if (RayTriangleIntersection.RayTriangleIntersect(origin, direction, v0, v1, v2) != null)
+                    {
+                        if (hitIndex< 2)
+                        {
+                            hits[hitIndex++] = new S((uint)geometry.Mesh.GetPrimary((int)geometry.Indices[i*3]), v0);
+                            if (hitIndex == 2) break; // Can stop looking after 2 hits
+                        }
+                    }
+                }
+                if(hitIndex > 0)
+                {
+                    Vector3 a = hits[0].vec - origin;
+                    Vector3 b = hits[1].vec - origin;
+                    HitVertexIndex = hits[0].primary;
+                    if (a.LengthSquared > b.LengthSquared)
+                    {
+                        HitVertexIndex = hits[1].primary;
+                    }
+                    if (HitVertexIndex > geometry.NumVertices)
+                    {
+                        HitVertexIndex = 0;
+                    }
+                    RaiseTouchEvent(HitVertexIndex);
+                    return true; // Stop further handlers responding
+                }
+            }
+            return false;
+        }
+
+        public override Geometry<TVertex> GetGeometry()
+        {
+            return this.geometry;
+        }
+
+        public class RayTriangleIntersection
+        {
+            public static Vector3? RayTriangleIntersect(Vector3 rayOrigin, Vector3 rayDirection, Vector3 vertex0, Vector3 vertex1, Vector3 vertex2)
+            {
+                const float epsilon = 0.000001f; // A small value to avoid division by zero
+
+                Vector3 edge1 = vertex1 - vertex0;
+                Vector3 edge2 = vertex2 - vertex0;
+
+                Vector3 h = Vector3.Cross(rayDirection, edge2);
+                float a = Vector3.Dot(edge1, h);
+
+                if (Math.Abs(a) < epsilon)
+                    return null; // Ray and triangle are parallel
+
+                float f = 1.0f / a;
+                Vector3 s = rayOrigin - vertex0;
+                float u = f * Vector3.Dot(s, h);
+
+                if (u < 0.0f || u > 1.0f)
+                    return null; // Intersection point is outside triangle
+
+                Vector3 q = Vector3.Cross(s, edge1);
+                float v = f * Vector3.Dot(rayDirection, q);
+
+                if (v < 0.0f || u + v > 1.0f)
+                    return null; // Intersection point is outside triangle
+
+                float t = f * Vector3.Dot(edge2, q);
+
+                if (t > epsilon)
+                {
+                    Vector3 intersectionPoint = rayOrigin + rayDirection * t;
+                    return intersectionPoint; // Intersection point found
+                }
+
+                return null; // No intersection
+            }
         }
     }
 }

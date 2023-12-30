@@ -79,5 +79,34 @@ namespace WorldGen
             fieldOfView = Math.Clamp(fieldOfView, 0.1f, (float)Math.PI - 0.1f);
             Update();
         }
+
+        internal void BuildPickingRay(Vector2i screenCoords, ref Vector3 rayOrigin, ref Vector3 rayDirection)
+        {
+            rayOrigin = position;
+            float normalizedX = 2.0f*screenCoords.X / Width-1.0f; // -1 -> 1
+            float normalizedY = 2.0f*screenCoords.Y / Height-1.0f; 
+
+            // Convert to a point on the near plane (Z=-1)
+            Vector4 rayClip = new Vector4(normalizedX, normalizedY, 0.0f, 1.0f);
+            Matrix4 invP = Matrix4.Invert(ProjectionMatrix);
+
+            // Unproject the ray
+            Vector4 rayEye = invP * rayClip;
+            rayEye.Z = -1;
+            rayEye.W = 0.0f;
+            Matrix4 invV = Matrix4.Invert(View);
+
+            var rayWorld = invV * rayEye;
+            //Matrix4 pv = ProjectionMatrix * View;
+            //Matrix4 inversePV = Matrix4.Invert(pv);
+            //var rayWorld = inversePV * rayClip;
+            if (rayWorld.W != 0)
+            {
+                rayWorld.Xyz /= rayWorld.W;
+            }
+
+            rayDirection = rayWorld.Xyz;
+            rayDirection.Normalize();
+        }
     }
 }

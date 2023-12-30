@@ -26,5 +26,7 @@ namespace WorldGen
         Vector4 GetColor(int index);
         void SetPosition(int index, ref Vector3 position);
         Vector3 GetPosition(int index);
+
+        float GetPrimary(int index);
     }
 }

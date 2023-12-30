@@ -74,7 +74,30 @@ namespace WorldGen
             camera.Position = new Vector3(x, y, z);
             camera.Update();
         }
+        
+        /// <summary>
+        /// Select a tile on the world.
+        /// </summary>
+        /// <param name="screenCoords">coordinates of the mouse in the window</param>
+        public void HitTest(Vector2i screenCoords)
+        {
+            Vector3 rayOrigin = new Vector3();
+            Vector3 rayDirection = new Vector3();
+            camera.BuildPickingRay(screenCoords, ref rayOrigin, ref rayDirection);
 
+            foreach( var node in nodes)
+            {
+                foreach(var render in node.Renderers)
+                {
+                    if (render.HitTest(rayOrigin, rayDirection))
+                    {
+                        // Event handler invoked in callee.
+                        return; // don't do any more hit testing
+                    }
+                }
+            }
+
+        }
 
         public void Update(float width, float height)
         {

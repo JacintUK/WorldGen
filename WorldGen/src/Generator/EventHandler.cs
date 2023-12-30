@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using OpenTK.Input;
-using OpenTK;
 using OpenTK.Mathematics;
 
 using OTKMouseButton = OpenTK.Windowing.GraphicsLibraryFramework.MouseButton;
 using OpenTK.Windowing.Common;
-using System.Runtime.CompilerServices;
-using OpenTK.Graphics.OpenGL;
 
 namespace WorldGen
 {
@@ -16,16 +12,18 @@ namespace WorldGen
         List<MouseButton> pressedButtons = new List<MouseButton>();
         public List<KeyHandler> keyHandlers = new List<KeyHandler>();
         Scene scene;
-        float longitude = 0.0f;
-        float attitude = 0.0f;
-        public bool Grabbed { get; private set; } = false;
+        GameWindow gameWindow;
 
-        public EventHandler(Scene scene)
+        public bool Grabbed { get; private set; } = false;
+        public List<MouseButton> Buttons { get { return pressedButtons; } }
+
+        public EventHandler(GameWindow window, Scene scene)
         {
             this.scene = scene;
-            pressedButtons.Add(new MouseButton(OTKMouseButton.Left, UpdateCameraPos));
-            pressedButtons.Add(new MouseButton(OTKMouseButton.Middle, UpdateFOV));
-            pressedButtons.Add(new MouseButton(OTKMouseButton.Right, UpdateCameraPosZ));
+            gameWindow = window;
+            pressedButtons.Add(new MouseButton(OTKMouseButton.Left, HitTest, UpdateCameraPos));
+            pressedButtons.Add(new MouseButton(OTKMouseButton.Middle, null, UpdateFOV));
+            pressedButtons.Add(new MouseButton(OTKMouseButton.Right, null, UpdateCameraPosZ));
         }
 
         public void OnKeyDown(KeyboardKeyEventArgs e)
@@ -49,7 +47,7 @@ namespace WorldGen
         {
             foreach (var button in pressedButtons)
             {
-                button.Down(e.Button);
+                button.Down(e, gameWindow.MouseState);
             }
             Grabbed = true;
         }
@@ -58,7 +56,7 @@ namespace WorldGen
         {
             foreach (var button in pressedButtons)
             {
-                button.Up(e.Button);
+                button.Up(e, gameWindow.MouseState);
             }
 
             bool x = false;
@@ -74,44 +72,47 @@ namespace WorldGen
         {
             foreach (var button in pressedButtons)
             {
-                button.Update(new Vector2i((int)e.X, (int)e.Y));
+                button.Update(e);
             }
             return true;
         }
 
-        bool UpdateFOV(MouseButton button)
+        bool UpdateFOV(MouseButton.ButtonEventArgs e)
         {
             bool handled = false;
-            if (button.IsDown)
+            if (e.button.IsDown)
             {
                 // drag up and down to change zoom level.
-                scene.camera.ChangeFieldOfView(button.YDelta);
+                scene.camera.ChangeFieldOfView(e.button.YDelta);
                 handled = true;
             }
             return handled;
         }
 
-        bool UpdateCameraPos(MouseButton button)
+        bool HitTest(MouseButton.ButtonEventArgs e)
         {
-            bool handled = false;
+            scene.HitTest(e.button.Point);
+            return true;
+        }
+
+
+        bool UpdateCameraPos(MouseButton.ButtonEventArgs e)
+        {
             const float sensitivity = 0.25f;
-            if (button.IsDown)
-            {
-                scene.Yaw += button.XDelta * sensitivity;
-                scene.Pitch += button.YDelta * sensitivity;
-                scene.UpdateCameraPos();
-                handled = true;
-            }
-            return handled;
+
+            scene.Yaw += e.button.XDelta * sensitivity;
+            scene.Pitch += e.button.YDelta * sensitivity;
+            scene.UpdateCameraPos();
+            return true;
         }
 
-        bool UpdateCameraPosZ(MouseButton button)
+        bool UpdateCameraPosZ(MouseButton.ButtonEventArgs e)
         {
             bool handled = false;
-            if (button.IsDown)
+            if (e.button.IsDown)
             {
                 // drag up and down to change camera Z.
-                scene.camera.DistanceFromObject += button.YDelta*0.05f;
+                scene.camera.DistanceFromObject += e.button.YDelta*0.05f;
                 scene.UpdateCameraPos();
                 handled = true;
             }

@@ -70,6 +70,7 @@ namespace WorldGen
         public WorldColorE WorldColor { get; set; } = World.WorldColorE.Height;
         public int NumPlates { get; set; } = 20;
         public int NumSubDivisions { get; set; } = 4;
+        public int NumDistortions { get; set; } = 6;
 
         public World()
         {
@@ -79,7 +80,8 @@ namespace WorldGen
         public void Initialize()
         {
             InitializeSphere(NumSubDivisions); // Generate sphere with unit radius.
-            Distort();
+            Distort(NumDistortions);
+            geometry.Topology.Regenerate(true); 
             CreatePlates(NumPlates);
         }
 
@@ -91,14 +93,14 @@ namespace WorldGen
             meshColorProvider = new MeshColorProvider(geometry.Mesh);
         }
 
-        public void Distort()
+        public void Distort(int distortions)
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < distortions; i++)
             {
                 geometry.TweakTriangles(tweakRatio, rand);
                 geometry.RelaxTriangles(0.5f);
             }
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < distortions; i++)
             {
                 geometry.RelaxTriangles(0.5f);
             }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
 namespace WorldGen
@@ -42,7 +43,7 @@ namespace WorldGen
         VertexNeighbours VertexNeighbours { get; }
         int[] TrianglesPerVertex { get; set; }
 
-        void Regenerate();
+        void Regenerate(bool now);
         void GenerateEdges();
         Vector3 CalculateCentroid(int triangle);
 
@@ -110,9 +111,13 @@ namespace WorldGen
                 vertexNeighbours = null;
             }
 
-            public void Regenerate()
+            public void Regenerate(bool now)
             {
                 regenerateTopology = true;
+                if (now)
+                {
+                    GenerateTopology();
+                }
             }
 
             public void GenerateTopology()

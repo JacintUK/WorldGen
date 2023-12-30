@@ -145,7 +145,7 @@ namespace WorldGen
                 indices = new Indices(newIndices.ToArray());
             }
             subDivideEdgeCache.Clear();
-            return numVerts;
+            return mesh.vertices.Count();
         }
 
         private uint GenerateVertex(ref List<TVertex> verts, int a, int b)
@@ -283,7 +283,7 @@ namespace WorldGen
                 }
             }
 
-            Topology.Regenerate();
+            Topology.Regenerate(false);
         }
 
         // Alternative algorithm
@@ -393,7 +393,7 @@ namespace WorldGen
                 totalShift += delta.Length;
             }
 
-            Topology.Regenerate();
+            Topology.Regenerate(false);
             return totalShift;
         }
 
@@ -413,7 +413,6 @@ namespace WorldGen
             }
             int numIndices = indices.Length;
 
-            TVertex[] centroidVerts = new TVertex[numIndices / 3];
             TVertex centroidVertex = new TVertex();
 
             for (int i = 0; i < numIndices; i += 3)
@@ -498,7 +497,6 @@ namespace WorldGen
             for (int i = 0; i < mesh.vertices.Length; ++i)
             {
                 Vector3 pos = MeshAttr.GetPosition(ref mesh.vertices[i]);
-                Vector3 delta = pos;
                 pos = Math2.Lerp(pos, shiftPositions[i], (float)(1.0f - Math.Sqrt(rotationSuppressions[i])));
                 pos.Normalize();
                 shiftPositions[i] = pos;
@@ -513,7 +511,7 @@ namespace WorldGen
                 totalShift += delta.Length;
             }
 
-            Topology.Regenerate();
+            Topology.Regenerate(false);
 
             return totalShift;
         }
@@ -570,8 +568,8 @@ namespace WorldGen
             {
                 newVerts.Add(new AltVertex());
             }
-
             List<uint> newIndices = new List<uint>();
+
             foreach (var iter in Topology.Edges)
             {
                 Int64 key = iter.Key;
@@ -619,6 +617,42 @@ namespace WorldGen
             return newGeom;
         }
 
+        public IGeometry GenerateTile(uint vertexIndex)
+        {
+            List<TVertex> newVerts = new List<TVertex>();
+            List<uint> newIndices = new List<uint>();
+            Vector4 tileColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+
+            var neighbours = Topology.VertexNeighbours.GetNeighbours((int)vertexIndex);
+            foreach(int nIndex in neighbours)
+            {
+                var edgeKey = Geometry.Topology.CreateEdgeKey(vertexIndex, (uint)nIndex);
+                Edge edge = Topology.Edges[edgeKey];
+
+                Vector3 centroid1 = Topology.Centroids[edge.triangle1].position;
+                Vector3 centroid2 = Topology.Centroids[edge.triangle2].position;
+
+                // Find which triangle has V in it.
+                int triangleIndex = edge.triangle1;
+                for (int i = 0; i < 3; ++i)
+                {
+                    if (indices[edge.triangle2 * 3 + i] == vertexIndex)
+                    {
+                        triangleIndex = edge.triangle2;
+                    }
+                }
+                // Copy the triangle, moving it out very slightly.
+                TVertex v0 = mesh.vertices[indices[triangleIndex * 3]];
+                TVertex v1 = mesh.vertices[indices[triangleIndex * 3+1]];
+                TVertex v2 = mesh.vertices[indices[triangleIndex * 3+2]];
+                AddTriangle3(ref newVerts, ref newIndices, ref v0, ref v1, ref v2, ref tileColor);
+            }
+
+            var newMesh = new Mesh<TVertex>(newVerts.ToArray());
+            var newGeom = new Geometry<TVertex>(newMesh, newIndices.ToArray());
+            return newGeom;
+        }
+
         /// <summary>
         /// Adds a triangle with vertex format Position, Normal and UV, calculating the normal from the origin, and 
         /// using a defined UV of top center, bottom left, bottom right.
@@ -645,9 +679,9 @@ namespace WorldGen
                 MeshAttr.SetNormal(ref triVerts[i], ref v1N);
             }
 
-            Vector2 uv0 = new Vector2(0.5f, 1);
-            Vector2 uv1 = new Vector2(0, 0);
-            Vector2 uv2 = new Vector2(1, 0);
+            Vector2 uv0 = new(0.5f, 1);
+            Vector2 uv1 = new(0, 0);
+            Vector2 uv2 = new(1, 0);
 
             MeshAttr.SetUV(ref triVerts[0], ref uv0);
             MeshAttr.SetUV(ref triVerts[1], ref uv1);
@@ -713,6 +747,10 @@ namespace WorldGen
             MeshAttr.SetColor(ref triVerts[1], ref color);
             MeshAttr.SetColor(ref triVerts[2], ref color);
 
+            MeshAttr.SetPrimary(ref triVerts[0], (float)v1index);
+            MeshAttr.SetPrimary(ref triVerts[1], (float)v1index);
+            MeshAttr.SetPrimary(ref triVerts[2], (float)v1index);
+
             newVerts[v1index] = triVerts[0];
             int index = newVerts.Count;
             newVerts.Add(triVerts[1]);
@@ -722,6 +760,43 @@ namespace WorldGen
             newIndices.Add((uint)index++);
             newIndices.Add((uint)index++);
         }
+
+        /// <summary>
+        /// Adds a clone of the triangle described by the vertices in the original mesh, but updating the vertex color.
+        /// </summary>
+        /// <param name="newVerts"></param>
+        /// <param name="newIndices"></param>
+        /// <param name="v0"></param>
+        /// <param name="v1"></param>
+        /// <param name="v2"></param>
+        /// <param name="color"></param>
+        public void AddTriangle3(ref List<TVertex> newVerts, ref List<uint> newIndices, ref TVertex v0, ref TVertex v1, ref TVertex v2, ref Vector4 color)
+        {
+            TVertex[] triVerts = new TVertex[3];
+            triVerts[0] = v0;
+            triVerts[1] = v1;
+            triVerts[2] = v2;
+
+            // try and stop z fighting!
+            Vector3 v0Pos = MeshAttr.GetPosition(ref v0) * 1.001f;
+            Vector3 v1Pos = MeshAttr.GetPosition(ref v1) * 1.001f;
+            Vector3 v2Pos = MeshAttr.GetPosition(ref v2) * 1.001f;
+            MeshAttr.SetPosition(ref triVerts[0], ref v0Pos);
+            MeshAttr.SetPosition(ref triVerts[1], ref v1Pos);
+            MeshAttr.SetPosition(ref triVerts[2], ref v2Pos);
+            MeshAttr.SetColor(ref triVerts[0], ref color);
+            MeshAttr.SetColor(ref triVerts[1], ref color);
+            MeshAttr.SetColor(ref triVerts[2], ref color);
+
+            int index = newVerts.Count;
+            for (int i = 0; i < 3; i++)
+                newVerts.Add(triVerts[i]);
+
+            newIndices.Add((uint)index);
+            newIndices.Add((uint)index + 1);
+            newIndices.Add((uint)index + 2);
+        }
+
 
         private int GetTriOffset(int triangle, uint corner)
         {

@@ -31,26 +31,24 @@ namespace WorldGen
         private IndexBuffer indexBuffer;
         private Shader shader;
         private Texture texture;
-        
-        public bool DepthTestFlag { set; get; }
-        public CullFaceMode CullFaceMode { set; get; }
-        public bool CullFaceFlag { set; get; }
-        public bool BlendingFlag { set; get; }
+
+        public bool DepthTestFlag { set; get; } = true;
+        public CullFaceMode CullFaceMode { set; get; } = CullFaceMode.Back;
+        public bool CullFaceFlag { set; get; } = true;
+        public bool BlendingFlag { set; get; } = false;
         public PrimitiveType PrimitiveType { get; set; } = PrimitiveType.Triangles;
         public bool Visible { get; set; } = true;
+        public IVertexBuffer vbo { get { return vertexBuffer; } }
+        public IndexBuffer ibo { get { return indexBuffer; } }
 
         private List<UniformProperty> uniforms;
         
         public Renderer(IVertexBuffer vertexBuffer, IndexBuffer indexBuffer, Shader shader)
         {
-            this.DepthTestFlag = true;
-            this.CullFaceMode = CullFaceMode.Back;
-            this.CullFaceFlag = true;
-            this.BlendingFlag = false;
             this.shader = shader;
             this.vertexBuffer = vertexBuffer;
             this.indexBuffer = indexBuffer; // Can be null
-            this.uniforms = new List<UniformProperty>();
+            uniforms = new List<UniformProperty>();
         }
 
         public void AddIndexBuffer(IndexBuffer indexBuffer)

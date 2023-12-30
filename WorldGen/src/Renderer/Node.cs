@@ -25,7 +25,7 @@ namespace WorldGen
     /// </summary>
     class Node
     {
-        private List<Renderer> renderers = new List<Renderer>();
+        private List<IGeometryRenderer> renderers = new();
 
         public Vector3 Position { get; set; }
         public Quaternion Rotation { get; set; }
@@ -45,18 +45,18 @@ namespace WorldGen
             Matrix4 rotationMatrix = Matrix4.CreateFromQuaternion(Rotation);
             Model = rotationMatrix * tr;
         }
-        public List<Renderer> Renderers { get; }
+        public List<IGeometryRenderer> Renderers { get { return renderers; } }
 
-        public void Add(Renderer renderer)
+        public void Add(IGeometryRenderer renderer) 
         {
             renderers.Add(renderer);
         }
 
-        public void Draw(ref Matrix4 view,  ref Matrix4 projection)
+        public void Draw(ref Matrix4 view, ref Matrix4 projection)
         {
             foreach (var renderer in renderers)
             {
-                renderer.Draw(Model, view, projection);
+                renderer.Renderer.Draw(Model, view, projection);
             }
         }
     }

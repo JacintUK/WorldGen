@@ -60,6 +60,11 @@ namespace WorldGen
         {
             return MeshAttr.GetNormal(ref vertices[index]);
         }
+
+        public float GetPrimary(int index)
+        {
+            return MeshAttr.GetPrimary(ref vertices[index]);
+        }
     }
 
     internal class MeshAttr
@@ -135,5 +140,24 @@ namespace WorldGen
             return Vector4.Zero;
         }
 
+        public static void SetPrimary<TVertex2>(ref TVertex2 vertex, float primary) where TVertex2 : struct, IVertex
+        {
+            IPrimary ip = vertex as IPrimary;
+            if (ip != null)
+            {
+                ip.SetPrimary(primary);
+                vertex = (TVertex2)ip;
+            }
+        }
+
+        public static float GetPrimary<TVertex2>(ref TVertex2 vertex) where TVertex2: struct, IVertex
+        {
+            IPrimary ip = vertex as IPrimary;
+            if (ip != null)
+            {
+                return ip.GetPrimary();
+            }
+            return 0;
+        }
     }
 }

@@ -14,23 +14,27 @@
  * limitations under the License.
  */
 
+using System;
 using System.Collections.Generic;
 using OpenTK.Mathematics;
 
 namespace WorldGen
 {
-    struct Vertex3DColorUV : IVertex, INormalVertex, IPositionVertex, ITextureCoordinateVertex, IColorVertex
+    struct Vertex3DColorUV : IVertex, INormalVertex, IPositionVertex, ITextureCoordinateVertex, IColorVertex, IPrimary
     {
         public Vector3 position;
         public Vector3 normal;
         public Vector2 uv;
         public Vector4 color;
+        public float primary;
 
         private static VertexFormat format = new VertexFormat(new List<Attribute> {
                 new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
                 new Attribute() { Name = "aNormal", Type = Attribute.AType.VECTOR3},
                 new Attribute() { Name = "aTexCoords", Type = Attribute.AType.VECTOR2},
-                new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4} });
+                new Attribute() { Name = "aColor", Type = Attribute.AType.VECTOR4},
+                new Attribute() { Name = "aPrimary", Type = Attribute.AType.FLOAT}
+        });
 
         public VertexFormat GetVertexFormat()
         {
@@ -43,19 +47,21 @@ namespace WorldGen
             set { this.color = (Vector4)value; }
         }
 
-        public Vertex3DColorUV(Vector3 position, Vector3 normal, Vector2 uv, Vector4 color)
+        public Vertex3DColorUV(Vector3 position, Vector3 normal, Vector2 uv, Vector4 color, float primary)
         {
             this.position = position;
             this.normal = normal;
             this.uv = uv;
             this.color = color;
+            this.primary = primary;
         }
-        public Vertex3DColorUV(Vector3 position, Vector3 normal, Vector2 uv, Color4 color)
+        public Vertex3DColorUV(Vector3 position, Vector3 normal, Vector2 uv, Color4 color, float primary)
         {
             this.position = position;
             this.normal = normal;
             this.uv = uv;
-            this.color = new Vector4(color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f); 
+            this.color = new Vector4(color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f);
+            this.primary = primary;
         }
         public Vector3 GetPosition()
         {
@@ -88,6 +94,14 @@ namespace WorldGen
         public Vector2 GetTextureCoordinates()
         {
             return this.uv;
+        }
+        public float GetPrimary()
+        {
+            return primary;
+        }
+        public void SetPrimary(float value)
+        {
+            primary = value;
         }
     }
 }

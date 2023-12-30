@@ -16,62 +16,89 @@
 
 using OpenTK;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Common.Input;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using System;
+using System.Net;
 
 namespace WorldGen
 {
     class MouseButton
     {
-        Vector2i oldPoint;
+        Vector2i point;
+        Vector2i downPoint;
         OpenTK.Windowing.GraphicsLibraryFramework.MouseButton button;
         bool buttonDown = false;
         bool buttonDownTrigger = false;
-        int xDelta;
-        int yDelta;
-        public delegate bool UpdateDelegate(MouseButton button);
-        UpdateDelegate handler;
-        public int XDelta { get { return xDelta; } }
-        public int YDelta { get { return yDelta; } }
+        public class ButtonEventArgs : EventArgs { public MouseButton button { get; set; } };
+
+        public delegate bool TapEvent(ButtonEventArgs button);
+        public delegate bool UpdateEvent(ButtonEventArgs button);
+        public event TapEvent tapEvent;
+        public event UpdateEvent updateEvent;
+
+        public float XDelta { get; private set; }
+        public float YDelta { get; private set; }
+        public Vector2i Point { get { return point; } }
         public bool IsDown { get { return buttonDown; } }
 
-        public MouseButton(OpenTK.Windowing.GraphicsLibraryFramework.MouseButton button, UpdateDelegate handler)
+        public MouseButton(OpenTK.Windowing.GraphicsLibraryFramework.MouseButton button, TapEvent downDelegate, UpdateEvent updateDelegate)
         {
             this.button = button;
-            this.handler = handler;
+            if (downDelegate != null)
+            {
+                tapEvent += downDelegate;
+            }
+            if (updateDelegate != null)
+            {
+                updateEvent += updateDelegate;
+            }
         }
 
-        public void Down(OpenTK.Windowing.GraphicsLibraryFramework.MouseButton button)
+        public void Down(MouseButtonEventArgs e, MouseState state)
         {
-            if (button == this.button)
+            if (e.Button == button)
             {
                 if (!buttonDown)
                     buttonDownTrigger = true;
+                XDelta = 0;
+                YDelta = 0;
+
+                downPoint = new Vector2i((int)state.Position.X, (int)state.Position.Y);
                 buttonDown = true;
-            }
+             }
         }
 
-        public void Up(OpenTK.Windowing.GraphicsLibraryFramework.MouseButton button)
+        public void Up(MouseButtonEventArgs e, MouseState state)
         {
-            if (button == this.button)
+            if (e.Button == button)
             {
                 buttonDown = false;
                 buttonDownTrigger = false;
+                var currentPoint = new Vector2i((int)state.Position.X, (int)state.Position.Y);
+
+                if (currentPoint == downPoint)
+                {
+                    point = currentPoint;
+                    tapEvent?.Invoke(new ButtonEventArgs() { button = this });
+                }
             }
         }
 
-        public bool Update(Vector2i mousePos)
+        public bool Update(MouseMoveEventArgs e)
         {
             bool handled = false;
             if (buttonDown)
             {
                 if (buttonDownTrigger)
                 {
-                    oldPoint = mousePos;
                     buttonDownTrigger = false;
                 }
-                xDelta = mousePos.X - oldPoint.X;
-                yDelta = mousePos.Y - oldPoint.Y;
-                oldPoint = mousePos;
-                handled = handler(this);
+                XDelta = e.DeltaX;
+                YDelta = e.DeltaY;
+                point = (Vector2i)e.Position;
+                updateEvent?.Invoke(new ButtonEventArgs() { button = this });
             }
             return handled;
         }

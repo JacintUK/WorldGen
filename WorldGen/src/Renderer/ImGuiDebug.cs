@@ -101,22 +101,9 @@ namespace WorldGen
             var node = new Node { Position = new Vector3(0, 0, -3) };
             node.Update();
 
-            Vertex2DColorUV[] quad = new Vertex2DColorUV[4]
-            {
-                // Texture coords - top is 0, bottom is 1
-                new Vertex2DColorUV(new Vector2(-0.5f, -0.5f), new Vector2(0,1), Vertex2DColorUV.WHITE),
-                new Vertex2DColorUV(new Vector2( 0.5f, -0.5f), new Vector2(1,1), Vertex2DColorUV.WHITE),
-                new Vertex2DColorUV(new Vector2(-0.5f,  0.5f), new Vector2(0,0), Vertex2DColorUV.WHITE),
-                new Vertex2DColorUV(new Vector2( 0.5f,  0.5f), new Vector2(1,0), Vertex2DColorUV.WHITE),
-            };
-
-            uint[] indices = new uint[6] { 0, 1, 2, 2, 1, 3 };
-            var indexBuffer = new IndexBuffer(indices);
-
-            var vertexBuffer = new VertexBuffer<Vertex2DColorUV>(quad);
-            var renderer = new Renderer(vertexBuffer, indexBuffer, shader);
-            renderer.AddTexture(texture);
-            renderer.BlendingFlag = true;
+            var renderer = GeometryRenderer<Vertex2DColorUV>.NewQuad(shader);
+            renderer.Renderer.AddTexture(texture);
+            renderer.Renderer.BlendingFlag = true;
             node.Add(renderer);
             scene.Add(node);
         }
@@ -217,8 +204,10 @@ namespace WorldGen
             renderer.AddTexture(texture);
             renderer.BlendingFlag = true;
             renderer.CullFaceFlag = false;
-            node.Add(renderer);
+            var geometryRenderer = new GeometryRenderer<Vertex2DColorUV>(renderer);
+            node.Add(geometryRenderer);
             scene.Add(node);
         }
+        
     }
 }
