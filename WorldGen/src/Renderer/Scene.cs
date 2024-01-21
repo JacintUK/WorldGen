@@ -27,6 +27,9 @@ namespace WorldGen
             SceneUpdatedEvent?.Invoke(this, new EventArgs());
         }
 
+        private Vector3 _rayDirection=new Vector3();
+        public Vector3 RayDirection { get { return _rayDirection; } }
+
         public Scene(float width, float height)
         {
             camera = new Camera
@@ -82,21 +85,19 @@ namespace WorldGen
         public void HitTest(Vector2i screenCoords)
         {
             Vector3 rayOrigin = new Vector3();
-            Vector3 rayDirection = new Vector3();
-            camera.BuildPickingRay(screenCoords, ref rayOrigin, ref rayDirection);
+            camera.BuildPickingRay(screenCoords, ref rayOrigin, ref _rayDirection);
 
             foreach( var node in nodes)
             {
                 foreach(var render in node.Renderers)
                 {
-                    if (render.HitTest(rayOrigin, rayDirection))
+                    if (render.HitTest(rayOrigin, _rayDirection))
                     {
                         // Event handler invoked in callee.
                         return; // don't do any more hit testing
                     }
                 }
             }
-
         }
 
         public void Update(float width, float height)

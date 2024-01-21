@@ -425,14 +425,12 @@ namespace WorldGen
                     worldRenderer.Renderer.SetUniform("ambientColor", new Vector3(ambientDebugColor.X, ambientDebugColor.Y, ambientDebugColor.Z));
                 }
             }
-            if (false)
+            if (true)
             {
-
-
                 const ImGuiTableFlags flags = ImGuiTableFlags.SizingStretchSame | ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersOuter |
                     ImGuiTableFlags.BordersV;
                 ImGui.BeginTable("Table1", 4, flags);
-                //ImGui.TableNextRow();
+                ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Camera world pos");
                 ImGui.TableSetColumnIndex(1);
@@ -453,6 +451,24 @@ namespace WorldGen
                 ImGui.TableNextColumn();
                 string scrY = $"Y: {eventHandler.Buttons[0].Point.Y}";
                 ImGui.Text(scrY);
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("HitVertexIndex:");
+                ImGui.TableNextColumn();
+                string hvi = $"{worldRenderer.HitVertexIndex}";
+                ImGui.Text(hvi);
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("Hit RayDirection:");
+                ImGui.TableNextColumn();
+                string hrdx = $"{scene.RayDirection.X:F3}";
+                ImGui.Text(hrdx);
+                ImGui.TableNextColumn();
+                string hrdy = $"{scene.RayDirection.Y:F3}";
+                ImGui.Text(hrdy);
+                ImGui.TableNextColumn();
+                string hrdz = $"{scene.RayDirection.Z:F3}";
+                ImGui.Text(hrdz);
                 ImGui.EndTable();
             }
             if(ImGui.Button("Demo"))

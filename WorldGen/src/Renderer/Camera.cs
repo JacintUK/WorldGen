@@ -80,33 +80,32 @@ namespace WorldGen
             Update();
         }
 
+        internal Vector4 Unproject(Vector4 ray, ref Matrix4 inverseViewProjection)
+        {
+            // Warning: var newRay = ray * inverseViewProjection does not do what you think it should!
+            ray *= inverseViewProjection;
+            if (ray.W != 0)
+            {
+                ray.Xyz /= ray.W;
+            }
+            return ray;
+        }
+
         internal void BuildPickingRay(Vector2i screenCoords, ref Vector3 rayOrigin, ref Vector3 rayDirection)
         {
-            rayOrigin = position;
-            float normalizedX = 2.0f*screenCoords.X / Width-1.0f; // -1 -> 1
-            float normalizedY = 2.0f*screenCoords.Y / Height-1.0f; 
+            float normalizedX = 2.0f * screenCoords.X / Width - 1.0f; // -1 -> 1
+            float normalizedY = 1.0f - 2.0f * screenCoords.Y / Height;
 
             // Convert to a point on the near plane (Z=-1)
-            Vector4 rayClip = new Vector4(normalizedX, normalizedY, 0.0f, 1.0f);
-            Matrix4 invP = Matrix4.Invert(ProjectionMatrix);
+            Vector4 near = new Vector4(normalizedX, normalizedY, -1.0f, 1.0f);
 
-            // Unproject the ray
-            Vector4 rayEye = invP * rayClip;
-            rayEye.Z = -1;
-            rayEye.W = 0.0f;
-            Matrix4 invV = Matrix4.Invert(View);
+            Matrix4 pv = View * ProjectionMatrix;
+            Matrix4 inversePV = Matrix4.Invert(pv);
+            var nearW = Unproject(near, ref inversePV).Xyz;
 
-            var rayWorld = invV * rayEye;
-            //Matrix4 pv = ProjectionMatrix * View;
-            //Matrix4 inversePV = Matrix4.Invert(pv);
-            //var rayWorld = inversePV * rayClip;
-            if (rayWorld.W != 0)
-            {
-                rayWorld.Xyz /= rayWorld.W;
-            }
-
-            rayDirection = rayWorld.Xyz;
+            rayDirection = nearW-Position;
             rayDirection.Normalize();
+            rayOrigin = Position;
         }
     }
 }
