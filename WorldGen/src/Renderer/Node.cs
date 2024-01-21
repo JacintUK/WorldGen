@@ -30,7 +30,7 @@ namespace WorldGen
         public Vector3 Position { get; set; }
         public Quaternion Rotation { get; set; }
         public Vector3 Scale { get; set; }
-        public Matrix4 Model { get; private set; }
+        public Matrix4 Model { get; private set; } // TODO Make passing this performant.
         
         public Node()
         {

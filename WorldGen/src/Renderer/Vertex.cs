@@ -19,11 +19,11 @@ using System.Collections.Generic;
 
 namespace WorldGen
 {
-    struct Vertex : IVertex
+    struct Vertex : IVertex, IPositionVertex, ITextureCoordinateVertex, IColorVertex
     {
         public Vector3 position;
         public Vector2 texCoords;
-        public Color4 color;
+        public Vector4 color;
 
         private static VertexFormat format = new VertexFormat(new List<Attribute> {
                 new Attribute() { Name = "aPosition", Type = Attribute.AType.VECTOR3},
@@ -35,7 +35,7 @@ namespace WorldGen
             return format;
         }
 
-        public Color4 Color 
+        public Vector4 Color 
         {
             get { return this.color; }
             set { this.color = value; }
@@ -45,13 +45,33 @@ namespace WorldGen
         {
             this.position = position;
             this.texCoords = texCoords;
-            this.color = new Color4(color.X, color.Y, color.Z, color.W);
+            this.color = color;
         }
-        public Vertex(Vector3 position, Vector2 texCoords, Color4 color)
+
+        public Vector3 GetPosition()
+        {
+            return this.position;
+        }
+        public void SetPosition(Vector3 position)
         {
             this.position = position;
+        }
+ 
+        public void SetTextureCoordinates(Vector2 texCoords)
+        {
             this.texCoords = texCoords;
+        }
+        public void SetColor(Vector4 color)
+        {
             this.color = color;
+        }
+        public Vector4 GetColor()
+        {
+            return color;
+        }
+        public Vector2 GetTextureCoordinates()
+        {
+            return this.texCoords;
         }
     }
 }

@@ -624,6 +624,7 @@ namespace WorldGen
             Vector4 tileColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
             var neighbours = Topology.VertexNeighbours.GetNeighbours((int)vertexIndex);
+            int vIndex = 1;
             foreach(int nIndex in neighbours)
             {
                 var edgeKey = Geometry.Topology.CreateEdgeKey(vertexIndex, (uint)nIndex);
@@ -645,7 +646,8 @@ namespace WorldGen
                 TVertex v0 = mesh.vertices[indices[triangleIndex * 3]];
                 TVertex v1 = mesh.vertices[indices[triangleIndex * 3+1]];
                 TVertex v2 = mesh.vertices[indices[triangleIndex * 3+2]];
-                AddTriangle3(ref newVerts, ref newIndices, ref v0, ref v1, ref v2, ref tileColor);
+                AddTriangle3(ref newVerts, ref newIndices, vIndex, ref v0, ref v1, ref v2, ref tileColor);
+                ++vIndex;
             }
 
             var newMesh = new Mesh<TVertex>(newVerts.ToArray());
@@ -770,7 +772,7 @@ namespace WorldGen
         /// <param name="v1"></param>
         /// <param name="v2"></param>
         /// <param name="color"></param>
-        public void AddTriangle3(ref List<TVertex> newVerts, ref List<uint> newIndices, ref TVertex v0, ref TVertex v1, ref TVertex v2, ref Vector4 color)
+        public void AddTriangle3(ref List<TVertex> newVerts, ref List<uint> newIndices, int vIndex, ref TVertex v0, ref TVertex v1, ref TVertex v2, ref Vector4 color)
         {
             TVertex[] triVerts = new TVertex[3];
             triVerts[0] = v0;
@@ -787,6 +789,9 @@ namespace WorldGen
             MeshAttr.SetColor(ref triVerts[0], ref color);
             MeshAttr.SetColor(ref triVerts[1], ref color);
             MeshAttr.SetColor(ref triVerts[2], ref color);
+            MeshAttr.SetPrimary(ref triVerts[0], (float)vIndex);
+            MeshAttr.SetPrimary(ref triVerts[1], (float)vIndex);
+            MeshAttr.SetPrimary(ref triVerts[2], (float)vIndex);
 
             int index = newVerts.Count;
             for (int i = 0; i < 3; i++)

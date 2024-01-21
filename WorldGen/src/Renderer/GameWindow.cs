@@ -156,12 +156,14 @@ namespace WorldGen
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
         {
             base.OnKeyDown(e);
-            if (e.Key == Keys.Escape)
-            {
-                base.Close();
-            }
             if (!ImGui.GetIO().WantCaptureKeyboard)
+            {
+                if (e.Key == Keys.Escape)
+                {
+                    base.Close();
+                }
                 EventHandler.OnKeyDown(e);
+            }
         }
 
         protected override void OnKeyUp(KeyboardKeyEventArgs e)

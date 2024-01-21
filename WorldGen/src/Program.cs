@@ -20,8 +20,6 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
-using System.Reflection;
-using System.Xml.Linq;
 
 namespace WorldGen
 {
@@ -42,7 +40,6 @@ namespace WorldGen
         GeometryRenderer<Vertex3DColor> equatorRenderer;
         GeometryRenderer<Vertex3DColor> meridianRenderer;
        
-
         Node worldNode;
        
         Vector3 lightPosition = new Vector3(-2, 2, 2);
@@ -50,13 +47,13 @@ namespace WorldGen
         System.Numerics.Vector3 centroidDebugColor = new System.Numerics.Vector3(0.5f, 0.5f, 0.5f);
         System.Numerics.Vector3 ambientDebugColor = new System.Numerics.Vector3(0.5f, 0.5f, 0.5f);
 
-        static float INITIAL_NODE_Z = 0.0f;//-3.0f;
-        static float RENDERER_Z_CUTOFF = INITIAL_NODE_Z + 0.1f;
+        static float RENDERER_Z_CUTOFF = 0.1f;
 
         float zCutoff = RENDERER_Z_CUTOFF; 
         float centroidAlpha = 1.0f;
 
         int colorMap;
+        uint debugVertexIndex = 0;
 
         static int DEFAULT_WINDOW_WIDTH = 1200;
         static int DEFAULT_WINDOW_HEIGHT = 800;
@@ -89,8 +86,11 @@ namespace WorldGen
                 window.EventHandler.keyHandlers.Add(new KeyHandler(Keys.C, Recolor));
                 window.EventHandler.keyHandlers.Add(new KeyHandler(Keys.I, InitPlates));
                 window.EventHandler.keyHandlers.Add(new KeyHandler(Keys.P, GrowPlates));
+                window.EventHandler.keyHandlers.Add(new KeyHandler(Keys.Q, RotateNodeA));
+                window.EventHandler.keyHandlers.Add(new KeyHandler(Keys.E, RotateNodeC));
             }
             Shader quadShader = new Shader(GameWindow.SHADER_PATH + "quadVertShader.glsl", GameWindow.SHADER_PATH + "4ChannelFragShader.glsl");
+            Shader quadShader2 = new Shader(GameWindow.SHADER_PATH + "quadVertShader.glsl", GameWindow.SHADER_PATH + "pointFragshader.glsl");
             Shader shader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorUVShader.glsl", GameWindow.SHADER_PATH + "shadedFragShader.glsl");
             Shader pointShader = new Shader(GameWindow.SHADER_PATH + "pointVertShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
             Shader lineShader = new Shader(GameWindow.SHADER_PATH + "pointColorVertShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
@@ -101,8 +101,8 @@ namespace WorldGen
 
             worldNode = new Node
             {
-                Position = new Vector3(0, 0, INITIAL_NODE_Z),
-                Rotation = new Quaternion(Vector3.UnitY, 0.0f),
+                Position = new Vector3(0, 0, 0),
+                Rotation = new Quaternion(0.0f, 0.0f, 0.0f), // Euler angles            
                 Scale = new Vector3(1.0f, 1.0f, 1.0f)
             };
             worldNode.Update();
@@ -179,8 +179,30 @@ namespace WorldGen
             meridianRenderer = new GeometryRenderer<Vertex3DColor>(meridianGeom, lineShader);
             meridianRenderer.Renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             worldNode.Add(meridianRenderer);
+
+            tileRenderer = new GeometryRenderer<Vertex3DColorUV>(worldRenderer.GetGeometry().GenerateTile(debugVertexIndex) as Geometry<Vertex3DColorUV>, borderShader);
+            tileRenderer.Renderer.CullFaceFlag = false;
+            tileRenderer.Sensitive = true;
+            tileRenderer.touchedEvent += DebugTileTouchedEventHandler;
+            worldNode.Add(tileRenderer);
         }
 
+        void CreateDebugRenderer()
+        {
+            worldRenderer.Renderer.Visible = false;
+            borderRenderer.Renderer.Visible = false;
+            tileRenderer.Sensitive = false;
+            Texture img = new Texture("SomeTexture.jpg");
+            Shader texShader2 = new Shader(GameWindow.SHADER_PATH + "Vert3DColorUVShader.glsl", GameWindow.SHADER_PATH + "texFragShader.glsl");
+            var debugRenderer = GeometryRenderer<Vertex3DColorUV>.NewQuad(texShader2);
+            debugRenderer.Sensitive = true;
+            debugRenderer.Renderer.AddTexture(img);
+            debugRenderer.Renderer.AddUniform(new UniformProperty("color", new Vector4(1, 1f, 1f, 1)));
+            debugRenderer.touchedEvent += DebugTileTouchedEventHandler;
+            debugRenderer.Renderer.CullFaceFlag = true;
+            debugRenderer.Renderer.CullFaceMode = CullFaceMode.Back;
+            worldNode.Add(debugRenderer);
+        }
         void TileTouchedEventHandler(object sender, TouchedEventArgs e)
         {
             if (tileRenderer != null)
@@ -194,6 +216,12 @@ namespace WorldGen
                 tileRenderer.Renderer.CullFaceFlag = false;
                 worldNode.Add(tileRenderer);
             }
+        }
+        uint tileDebugVertexIndex = 0;
+        void DebugTileTouchedEventHandler(object sender, TouchedEventArgs e)
+        {
+            tileDebugVertexIndex = e.VertexIndex;
+            lastFrameCount = frameCount;
         }
 
         void BorderTouchedEventHandler(object sender, TouchedEventArgs e)
@@ -289,6 +317,16 @@ namespace WorldGen
                 scene.Update();
             }
         }
+        private void RotateNodeC(bool down)
+        {
+            worldNode.Rotation = worldNode.Rotation * new Quaternion(0, 0.01f, 0);
+            worldNode.Update();
+        }
+        private void RotateNodeA(bool down)
+        {
+            worldNode.Rotation = worldNode.Rotation * new Quaternion(0, -0.01f, 0);
+            worldNode.Update();
+        }
 
         private bool worldRender = true;
         private bool debugRenderBorder = true;
@@ -302,8 +340,11 @@ namespace WorldGen
         private int numPlates=5;
         private int numDistortions=6;
         private bool showDemo = false;
+        private long frameCount = 0;
+        private long lastFrameCount = 0;
         void RenderGui(object sender, EventArgs e)
         {
+            frameCount++;
             // Do IMGui layout here.
             ImGui.Begin("Debug World");
 
@@ -429,19 +470,61 @@ namespace WorldGen
             {
                 const ImGuiTableFlags flags = ImGuiTableFlags.SizingStretchSame | ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersOuter |
                     ImGuiTableFlags.BordersV;
-                ImGui.BeginTable("Table1", 4, flags);
+                ImGui.BeginTable("Table1", 5, flags);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("World node pos");
+                ImGui.TableSetColumnIndex(1);
+                string xPos = $"X: {worldNode.Position.X:F2}";
+                ImGui.Text(xPos);
+                ImGui.TableSetColumnIndex(2);
+                string yPos = $"Y: {worldNode.Position.Y:F2}";
+                ImGui.Text(yPos);
+                ImGui.TableSetColumnIndex(3);
+                string zPos = $"Z: {worldNode.Position.Z:F2}";
+                ImGui.Text(zPos);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("World node Rot");
+                ImGui.TableSetColumnIndex(1);
+                string xAng = $"XAxis: {worldNode.Rotation.ToEulerAngles().X}";
+                string yAng = $"YAxis: {worldNode.Rotation.ToEulerAngles().Y}";
+                string zAng = $"ZAxis: {worldNode.Rotation.ToEulerAngles().Z}";
+                ImGui.Text(xAng);
+                ImGui.TableNextColumn();
+                ImGui.Text(yAng);
+                ImGui.TableNextColumn();
+                ImGui.Text(zAng);
+
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Camera world pos");
                 ImGui.TableSetColumnIndex(1);
-                string xPos = $"X: {scene.camera.Position.X:F2}";
+                xPos = $"X: {scene.camera.Position.X:F2}";
                 ImGui.Text(xPos);
                 ImGui.TableSetColumnIndex(2);
-                string yPos = $"Y: {scene.camera.Position.Y:F2}";
+                yPos = $"Y: {scene.camera.Position.Y:F2}";
                 ImGui.Text(yPos);
                 ImGui.TableSetColumnIndex(3);
-                string zPos = $"Z: {scene.camera.Position.Z:F2}";
+                zPos = $"Z: {scene.camera.Position.Z:F2}";
                 ImGui.Text(zPos);
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("Camera");
+                ImGui.TableSetColumnIndex(1);
+                string yaw = $"Yaw: {scene.Yaw:F2}";
+                ImGui.Text(yaw);
+                ImGui.TableSetColumnIndex(2);
+                string pitch = $"Pitch: {scene.Pitch:F2}";
+                ImGui.Text(pitch);
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("FOV:");
+                ImGui.TableNextColumn();
+                string fov = $"{scene.camera.fieldOfView:F2}";
+                ImGui.Text(fov);
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Touch point:");
@@ -469,6 +552,25 @@ namespace WorldGen
                 ImGui.TableNextColumn();
                 string hrdz = $"{scene.RayDirection.Z:F3}";
                 ImGui.Text(hrdz);
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("Enter tile index");
+                ImGui.TableNextColumn();
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Text("Debug vertexIndex");
+                ImGui.TableNextColumn();
+                string dvi = $"{tileDebugVertexIndex}";
+                if (frameCount - lastFrameCount < 120)
+                {
+                    ImGui.Text(dvi);
+                }
+                else
+                {
+                    ImGui.Text("-1");
+                }
+                ImGui.TableNextColumn();
+                ImGui.Text(scene.HitTestFailed ? "F" : "T");
                 ImGui.EndTable();
             }
             if(ImGui.Button("Demo"))

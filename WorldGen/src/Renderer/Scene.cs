@@ -27,6 +27,8 @@ namespace WorldGen
             SceneUpdatedEvent?.Invoke(this, new EventArgs());
         }
 
+        public bool HitTestFailed { get; set; }
+
         private Vector3 _rayDirection=new Vector3();
         public Vector3 RayDirection { get { return _rayDirection; } }
 
@@ -91,13 +93,15 @@ namespace WorldGen
             {
                 foreach(var render in node.Renderers)
                 {
-                    if (render.HitTest(rayOrigin, _rayDirection))
+                    if (render.HitTest(node.Model, rayOrigin, _rayDirection))
                     {
                         // Event handler invoked in callee.
+                        HitTestFailed = false;
                         return; // don't do any more hit testing
                     }
                 }
             }
+            HitTestFailed = true;
         }
 
         public void Update(float width, float height)

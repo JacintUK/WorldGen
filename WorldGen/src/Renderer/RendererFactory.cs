@@ -32,9 +32,9 @@ namespace WorldGen
         {
             Vertex[] verts = new Vertex[3]
             {
-                new Vertex(new Vector3(-1.0f, 0.0f, 0.0f), new Vector2(0,0), Color4.Red),
-                new Vertex(new Vector3(-1.0f, -1.0f, 0.0f), new Vector2(0,1), Color4.Blue),
-                new Vertex(new Vector3( 0.0f, -1.0f, 0.0f), new Vector2(1,1), Color4.Purple),
+                new Vertex(new Vector3(-1.0f, 0.0f, 0.0f), new Vector2(0,0), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
+                new Vertex(new Vector3(-1.0f, -1.0f, 0.0f), new Vector2(0,1), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
+                new Vertex(new Vector3( 0.0f, -1.0f, 0.0f), new Vector2(1,1), new Vector4(1.0f, 0.0f, 1.0f, 1.0f)),
             };
             var vertexBuffer = new VertexBuffer<Vertex>(verts);
             Renderer renderer = new Renderer(vertexBuffer, null, shader);
@@ -51,10 +51,10 @@ namespace WorldGen
             Vertex[] quad = new Vertex[4]
             {
                 // Texture coords - top is 0, bottom is 1
-                new Vertex(new Vector3(-0.5f, -0.5f, 0.0f), new Vector2(0,1), Color4.White),
-                new Vertex(new Vector3( 0.5f, -0.5f, 0.0f), new Vector2(1,1), Color4.White),
-                new Vertex(new Vector3(-0.5f,  0.5f, 0.0f), new Vector2(0,0), Color4.White),
-                new Vertex(new Vector3( 0.5f,  0.5f, 0.0f), new Vector2(1,0), Color4.White),
+                new Vertex(new Vector3(-0.5f, -0.5f, 0.0f), new Vector2(0,1), new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
+                new Vertex(new Vector3( 0.5f, -0.5f, 0.0f), new Vector2(1,1), new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
+                new Vertex(new Vector3(-0.5f,  0.5f, 0.0f), new Vector2(0,0), new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
+                new Vertex(new Vector3( 0.5f,  0.5f, 0.0f), new Vector2(1,0), new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
             };
             uint[] indices = new uint[6]
             {

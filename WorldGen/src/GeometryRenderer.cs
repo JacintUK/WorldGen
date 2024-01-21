@@ -33,7 +33,7 @@ namespace WorldGen
     {
         public Renderer Renderer { get; set; }
         public bool Sensitive { get; set; } = false;
-        public abstract bool HitTest(Vector3 origin, Vector3 direction);
+        public abstract bool HitTest(Matrix4 model, Vector3 origin, Vector3 direction);
 
         public abstract IGeometry GetGeometry();
 
@@ -60,10 +60,10 @@ namespace WorldGen
             Vertex[] quad = new Vertex[4]
             {
                 // Texture coords - top is 0, bottom is 1
-                new Vertex(new Vector3(-0.5f, -0.5f, 0.0f), new Vector2(0,1), Color4.White),
-                new Vertex(new Vector3( 0.5f, -0.5f, 0.0f), new Vector2(1,1), Color4.White),
-                new Vertex(new Vector3(-0.5f,  0.5f, 0.0f), new Vector2(0,0), Color4.White),
-                new Vertex(new Vector3( 0.5f,  0.5f, 0.0f), new Vector2(1,0), Color4.White),
+                new Vertex(new Vector3(-0.5f, -0.5f, 0.0f), new Vector2(0,1), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
+                new Vertex(new Vector3( 0.5f, -0.5f, 0.0f), new Vector2(1,1), new Vector4(1.0f, 0.0f, 1.0f, 1.0f)),
+                new Vertex(new Vector3(-0.5f,  0.5f, 0.0f), new Vector2(0,0), new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
+                new Vertex(new Vector3( 0.5f,  0.5f, 0.0f), new Vector2(1,0), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
             };
             uint[] indices = new uint[6]
             {
@@ -111,25 +111,30 @@ namespace WorldGen
         }
 
         struct S { public uint primary; public Vector3 vec; public S(uint p, Vector3 v) { primary = p; vec = v; } };
-        public override bool HitTest(Vector3 origin, Vector3 direction)
+            
+        public override bool HitTest(Matrix4 model, Vector3 origin, Vector3 direction)
         {
-            if (Sensitive)
+            if (Sensitive && Renderer.Visible)
             {
                 var hits = new S[2];
                 int hitIndex = 0;
 
                 for (int i = 0; i<geometry.NumIndices / 3; ++i)
                 {
-                    var v0 = geometry.Mesh.GetPosition((int)geometry.Indices[i * 3]);
-                    var v1 = geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 1]);
-                    var v2 = geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 2]);
+                    Vector4 v0 = new Vector4(geometry.Mesh.GetPosition((int)geometry.Indices[i * 3]), 1);
+                    Vector4 v1 = new Vector4(geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 1]), 1);
+                    Vector4 v2 = new Vector4(geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 2]), 1);
 
+                    // Hit test in world space.
+                    v0 *= model;
+                    v1 *= model;
+                    v2 *= model;
                     // Intersect test triangle and ray
-                    if (RayTriangleIntersection.RayTriangleIntersect(origin, direction, v0, v1, v2) != null)
+                    if (RayTriangleIntersection.RayTriangleIntersect(origin, direction, v0.Xyz, v1.Xyz, v2.Xyz) != null)
                     {
                         if (hitIndex< 2)
                         {
-                            hits[hitIndex++] = new S((uint)geometry.Mesh.GetPrimary((int)geometry.Indices[i*3]), v0);
+                            hits[hitIndex++] = new S((uint)geometry.Mesh.GetPrimary((int)geometry.Indices[i * 3]), v0.Xyz);
                             if (hitIndex == 2) break; // Can stop looking after 2 hits
                         }
                     }
@@ -139,7 +144,7 @@ namespace WorldGen
                     Vector3 a = hits[0].vec - origin;
                     Vector3 b = hits[1].vec - origin;
                     HitVertexIndex = hits[0].primary;
-                    if (a.LengthSquared > b.LengthSquared)
+                    if (hitIndex > 1 && a.LengthSquared > b.LengthSquared)
                     {
                         HitVertexIndex = hits[1].primary;
                     }
