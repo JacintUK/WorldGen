@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
+using System.Reflection;
 
 namespace WorldGen
 {
@@ -91,9 +92,17 @@ namespace WorldGen
 
             foreach( var node in nodes)
             {
-                foreach(var render in node.Renderers)
+                Matrix4 iModel = node.Model;
+                iModel.Invert();
+                Vector4 localOrigin = new Vector4(rayOrigin, 1.0f);
+                localOrigin *= iModel;
+                Vector4 localDirection = new Vector4(_rayDirection, 0.0f);
+                localDirection *= iModel;
+                localDirection.Normalize();
+
+                foreach (var render in node.Renderers)
                 {
-                    if (render.HitTest(node.Model, rayOrigin, _rayDirection))
+                    if (render.HitTest(localOrigin.Xyz, localDirection.Xyz))
                     {
                         // Event handler invoked in callee.
                         HitTestFailed = false;

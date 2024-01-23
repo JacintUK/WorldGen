@@ -33,7 +33,7 @@ namespace WorldGen
     {
         public Renderer Renderer { get; set; }
         public bool Sensitive { get; set; } = false;
-        public abstract bool HitTest(Matrix4 model, Vector3 origin, Vector3 direction);
+        public abstract bool HitTest(Vector3 origin, Vector3 direction);
 
         public abstract IGeometry GetGeometry();
 
@@ -112,12 +112,14 @@ namespace WorldGen
 
         struct S { public uint primary; public Vector3 vec; public S(uint p, Vector3 v) { primary = p; vec = v; } };
             
-        public override bool HitTest(Matrix4 model, Vector3 origin, Vector3 direction)
+        public override bool HitTest(Vector3 localOrigin, Vector3 localDirection)
         {
             if (Sensitive && Renderer.Visible)
             {
                 var hits = new S[2];
                 int hitIndex = 0;
+
+                // TODO: Add octree to local mesh for fastest lookup!
 
                 for (int i = 0; i<geometry.NumIndices / 3; ++i)
                 {
@@ -125,12 +127,8 @@ namespace WorldGen
                     Vector4 v1 = new Vector4(geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 1]), 1);
                     Vector4 v2 = new Vector4(geometry.Mesh.GetPosition((int)geometry.Indices[i * 3 + 2]), 1);
 
-                    // Hit test in world space.
-                    v0 *= model;
-                    v1 *= model;
-                    v2 *= model;
                     // Intersect test triangle and ray
-                    if (RayTriangleIntersection.RayTriangleIntersect(origin, direction, v0.Xyz, v1.Xyz, v2.Xyz) != null)
+                    if (RayTriangleIntersection.RayTriangleIntersect(localOrigin, localDirection, v0.Xyz, v1.Xyz, v2.Xyz) != null)
                     {
                         if (hitIndex< 2)
                         {
@@ -141,8 +139,8 @@ namespace WorldGen
                 }
                 if(hitIndex > 0)
                 {
-                    Vector3 a = hits[0].vec - origin;
-                    Vector3 b = hits[1].vec - origin;
+                    Vector3 a = hits[0].vec - localOrigin;
+                    Vector3 b = hits[1].vec - localOrigin;
                     HitVertexIndex = hits[0].primary;
                     if (hitIndex > 1 && a.LengthSquared > b.LengthSquared)
                     {
