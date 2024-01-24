@@ -31,7 +31,7 @@ namespace WorldGen
         IGeometry worldRenderGeometry;
         IGeometry borderGeometry;
         GeometryRenderer<Vertex3DColorUV> worldRenderer;
-        GeometryRenderer<Vertex3DColorUV> tileRenderer; // Used for tile selection.
+        GeometryRenderer<Vertex3DColor> tileRenderer; // Used for tile selection.
         GeometryRenderer<Vertex3D> worldCentroidDebugRenderer;
         GeometryRenderer<Vertex3DColor> worldVertsDebugRenderer;
         GeometryRenderer<Vertex3DColorUV> worldPlateSpinDebugRenderer;
@@ -116,6 +116,7 @@ namespace WorldGen
             worldRenderer.Renderer.AddTexture(cellTexture);
             worldRenderer.Renderer.CullFaceFlag = true;
             worldRenderer.Sensitive = true;
+            worldRenderer.Name = "WorldRenderer";
             worldRenderer.touchedEvent += TileTouchedEventHandler;
             worldNode.Add(worldRenderer);
 
@@ -180,9 +181,10 @@ namespace WorldGen
             meridianRenderer.Renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             worldNode.Add(meridianRenderer);
 
-            tileRenderer = new GeometryRenderer<Vertex3DColorUV>(worldRenderer.GetGeometry().GenerateTile(debugVertexIndex) as Geometry<Vertex3DColorUV>, borderShader);
+            tileRenderer = new GeometryRenderer<Vertex3DColor>(world.geometry.GenerateTile(debugVertexIndex) as Geometry<Vertex3DColor>, borderShader);
             tileRenderer.Renderer.CullFaceFlag = false;
             tileRenderer.Sensitive = true;
+            tileRenderer.Name = "TileSelection";
             tileRenderer.touchedEvent += DebugTileTouchedEventHandler;
             worldNode.Add(tileRenderer);
         }
@@ -207,12 +209,12 @@ namespace WorldGen
         {
             if (tileRenderer != null)
             {
-                tileRenderer.ChangeGeometry(worldRenderer.GetGeometry().GenerateTile(e.VertexIndex) as Geometry<Vertex3DColorUV>);
+                tileRenderer.ChangeGeometry(world.geometry.GenerateTile(e.VertexIndex) as Geometry<Vertex3DColor>);
             }
             else
             {
                 Shader shader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorUVShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
-                tileRenderer = new GeometryRenderer<Vertex3DColorUV>(worldRenderer.GetGeometry().GenerateTile(e.VertexIndex) as Geometry<Vertex3DColorUV>, shader);
+                tileRenderer = new GeometryRenderer<Vertex3DColor>(worldRenderer.GetGeometry().GenerateTile(e.VertexIndex) as Geometry<Vertex3DColor>, shader);
                 tileRenderer.Renderer.CullFaceFlag = false;
                 worldNode.Add(tileRenderer);
             }

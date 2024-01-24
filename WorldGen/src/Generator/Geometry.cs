@@ -643,10 +643,8 @@ namespace WorldGen
                     }
                 }
                 // Copy the triangle, moving it out very slightly.
-                TVertex v0 = mesh.vertices[indices[triangleIndex * 3]];
-                TVertex v1 = mesh.vertices[indices[triangleIndex * 3+1]];
-                TVertex v2 = mesh.vertices[indices[triangleIndex * 3+2]];
-                AddTriangle3(ref newVerts, ref newIndices, vIndex, ref v0, ref v1, ref v2, ref tileColor);
+                TVertex v0 = mesh.vertices[vertexIndex];
+                AddTriangle3(ref newVerts, ref newIndices, ref v0, ref centroid1, ref centroid2, ref tileColor);
                 ++vIndex;
             }
 
@@ -772,26 +770,22 @@ namespace WorldGen
         /// <param name="v1"></param>
         /// <param name="v2"></param>
         /// <param name="color"></param>
-        public void AddTriangle3(ref List<TVertex> newVerts, ref List<uint> newIndices, int vIndex, ref TVertex v0, ref TVertex v1, ref TVertex v2, ref Vector4 color)
+        public void AddTriangle3(ref List<TVertex> newVerts, ref List<uint> newIndices, ref TVertex v0, ref Vector3 v1, ref Vector3 v2, ref Vector4 color)
         {
             TVertex[] triVerts = new TVertex[3];
+            triVerts.Initialize();
             triVerts[0] = v0;
-            triVerts[1] = v1;
-            triVerts[2] = v2;
 
             // try and stop z fighting!
             Vector3 v0Pos = MeshAttr.GetPosition(ref v0) * 1.001f;
-            Vector3 v1Pos = MeshAttr.GetPosition(ref v1) * 1.001f;
-            Vector3 v2Pos = MeshAttr.GetPosition(ref v2) * 1.001f;
+            Vector3 v1Pos = v1 * 1.001f;
+            Vector3 v2Pos = v2 * 1.001f;
             MeshAttr.SetPosition(ref triVerts[0], ref v0Pos);
             MeshAttr.SetPosition(ref triVerts[1], ref v1Pos);
             MeshAttr.SetPosition(ref triVerts[2], ref v2Pos);
             MeshAttr.SetColor(ref triVerts[0], ref color);
             MeshAttr.SetColor(ref triVerts[1], ref color);
             MeshAttr.SetColor(ref triVerts[2], ref color);
-            MeshAttr.SetPrimary(ref triVerts[0], (float)vIndex);
-            MeshAttr.SetPrimary(ref triVerts[1], (float)vIndex);
-            MeshAttr.SetPrimary(ref triVerts[2], (float)vIndex);
 
             int index = newVerts.Count;
             for (int i = 0; i < 3; i++)

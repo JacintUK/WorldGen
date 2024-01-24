@@ -33,6 +33,7 @@ namespace WorldGen
     {
         public Renderer Renderer { get; set; }
         public bool Sensitive { get; set; } = false;
+        public string Name { get; set; }
         public abstract bool HitTest(Vector3 origin, Vector3 direction);
 
         public abstract IGeometry GetGeometry();
