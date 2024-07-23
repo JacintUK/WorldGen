@@ -24,6 +24,9 @@ namespace WorldGen
 {
     class Plates
     {
+        /// <summary>
+        /// Translation table to lookup plate index from Geometry vertexIndex.
+        /// </summary>
         public int[] VertexToPlates { get; private set; }
 
         private readonly Plate[] plates;
@@ -31,6 +34,10 @@ namespace WorldGen
         public Plate[] GetPlates()
         {
             return plates;
+        }
+        public Plate GetPlate(int plateIndex)
+        {
+            return plates[plateIndex];
         }
 
         public struct Border
@@ -59,7 +66,7 @@ namespace WorldGen
             }
         }
 
-        struct Stress
+        public struct Stress
         {
             public float pressure;
             public float shear;
@@ -70,7 +77,7 @@ namespace WorldGen
             }
         }
 
-        class BorderCorner
+        public class BorderCorner
         {
             public List<Int64> borderIndices = new();
             public Stress stress = new();
@@ -80,11 +87,12 @@ namespace WorldGen
         Dictionary<int, BorderCorner> borderCorners;
 
         /// <summary>
-        /// borders map to edges between tiles in the 
+        /// borders map to edges between tiles 
         /// </summary>
         private readonly Dictionary<Int64, Border> borders;
+
         Random rand;
-        readonly IGeometry geometry;
+        public readonly IGeometry geometry;
 
         public Plates(ref Random rand, int numPlates, IGeometry geometry)
         {
@@ -280,10 +288,10 @@ namespace WorldGen
             for (int plateIdx = 0; plateIdx < plates.Length; ++plateIdx)
             {
                 List<int> borderTiles = plates[plateIdx].BorderTiles;
-                for (int borderTile = 0; borderTile < borderTiles.Count; ++borderTile)
+                foreach(var borderTile in borderTiles)
                 {
                     // borderTile is a Vertex index in the world mesh.
-                    var outerNeighbours = geometry.Topology.VertexNeighbours.GetNeighbours(borderTiles[borderTile]);
+                    var outerNeighbours = geometry.Topology.VertexNeighbours.GetNeighbours(borderTile);
                     for (int neighbourIdx = 0; neighbourIdx < outerNeighbours.Count; ++neighbourIdx)
                     {
                         // neighbour vertexIdx is the vertex index in this world mesh of this tile's neighbour.
@@ -293,13 +301,13 @@ namespace WorldGen
                         {
                             // It's not in the plate, so must be a bordering plate.
                             // Index by key from verts, stores plate ids, corners
-                            Int64 borderKey = Geometry.Topology.CreateEdgeKey((uint)neighbourVertexIdx, (uint)borderTiles[borderTile]);
+                            Int64 borderKey = Geometry.Topology.CreateEdgeKey((uint)neighbourVertexIdx, (uint)borderTile);
 
                             if (!borders.ContainsKey(borderKey))
                             {
                                 int c1Index;
                                 int c2Index;
-                                geometry.Topology.GetCorners(borderTiles[borderTile], neighbourVertexIdx, out c1Index, out c2Index);
+                                geometry.Topology.GetCorners(borderTile, neighbourVertexIdx, out c1Index, out c2Index);
                                 borders.Add(borderKey, new Border(plateIdx, neighbourPlateIdx, c1Index, c2Index));
                                 AddBorderCorner(c1Index, borderKey);
                                 AddBorderCorner(c2Index, borderKey);
@@ -408,7 +416,7 @@ namespace WorldGen
             return new Stress(20.0f * pressure, 20.0f * shear);
         }
 
-        enum ElevationCalculation
+        public enum ElevationCalculation
         {
             COLLIDING,
             SUBDUCTING,
@@ -651,7 +659,38 @@ namespace WorldGen
         }
 
 
-
+        #region Debug methods
+        public List<BorderCorner> GetBorderCorners(int vertex)
+        {
+            var plateIdx = VertexToPlates[vertex];
+            var plate = plates[VertexToPlates[vertex]];
+            List<BorderCorner> theBorders = new();
+            try
+            {
+                int borderTileIndex = plate.BorderTiles.Find(tile => tile == vertex);
+                if(borderTileIndex == 0 && plate.BorderTiles[0] != vertex)
+                {
+                    return theBorders;
+                }
+                var outerNeighbours = geometry.Topology.VertexNeighbours.GetNeighbours((int)borderTileIndex);
+                for (int neighbourIdx = 0; neighbourIdx < outerNeighbours.Count; ++neighbourIdx)
+                {
+                    // neighbour vertexIdx is the vertex index in this world mesh of this tile's neighbour.
+                    int neighbourVertexIdx = outerNeighbours.Neighbours[neighbourIdx];
+                    int neighbourPlateIdx = VertexToPlates[neighbourVertexIdx];
+                    if (neighbourPlateIdx != plateIdx)
+                    {
+                        var key = Geometry.Topology.CreateEdgeKey((uint)neighbourVertexIdx, (uint)borderTileIndex);
+                        var border = borders[key];
+                        theBorders.Add(borderCorners[border.c1Index]);
+                        theBorders.Add(borderCorners[border.c2Index]);
+                    }
+                }
+            }
+            catch { }
+            return theBorders;
+        }
+        #endregion
         #region Debug renderers
         public Geometry<AltVertex> GenerateBorderGeometry<AltVertex>()
             where AltVertex : struct, IVertex
