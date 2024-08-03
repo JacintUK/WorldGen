@@ -1,4 +1,4 @@
-﻿#version 430
+﻿#version 130
 
 /*
  * Copyright 2019 David Ian Steele
@@ -24,7 +24,7 @@ uniform sampler2D sTexture;
 void main()
 {
 	vec4 color = vec4(vColor.xyz, vColor.a);
-	vec4 alpha = texture(sTexture, vTexCoords);
+	vec4 alpha = texture2D(sTexture, vTexCoords);
 	vec4 oc = vColor*alpha.a;
 	outputColor = oc; 
 }

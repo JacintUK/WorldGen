@@ -68,6 +68,7 @@ namespace WorldGen
         private bool debugVertex = false;
         private bool debugEquator = true;
         private bool debugMeridian = true;
+        private float debugShading = 1.0f;
         private int numSubdivisions = 4;
         private int numPlates = 5;
         private int numDistortions = 6;
@@ -113,8 +114,8 @@ namespace WorldGen
             Shader pointShader = new Shader(GameWindow.SHADER_PATH + "pointVertShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
             Shader lineShader = new Shader(GameWindow.SHADER_PATH + "pointColorVertShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
             Shader texShader2 = new Shader(GameWindow.SHADER_PATH + "Vert3DColorUVShader.glsl", GameWindow.SHADER_PATH + "texFragShader.glsl");
-            //Shader borderShader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
-            Shader borderShader = new Shader(GameWindow.SHADER_PATH + "TestVert.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
+            Shader borderShader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
+            //Shader borderShader = new Shader(GameWindow.SHADER_PATH + "TestVert.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
             Texture cellTexture = new Texture("Edge.png");
             Texture arrowTexture = new Texture("Arrow.png");
             Shader testShader = new Shader(GameWindow.SHADER_PATH + "TestVert.glsl", GameWindow.SHADER_PATH + "TestFrag.glsl");
@@ -130,9 +131,10 @@ namespace WorldGen
 
             worldRenderGeometry = world.RegenerateMesh();
 
-            worldRenderer = new GeometryRenderer<Vertex3DColorUV>(worldRenderGeometry as Geometry<Vertex3DColorUV>, testShader);
+            worldRenderer = new GeometryRenderer<Vertex3DColorUV>(worldRenderGeometry as Geometry<Vertex3DColorUV>, shader);
             worldRenderer.Renderer.AddUniform(new UniformProperty("lightPosition", lightPosition));
             worldRenderer.Renderer.AddUniform(new UniformProperty("ambientColor", ambientColor));
+            worldRenderer.Renderer.AddUniform(new UniformProperty("shading", debugShading));
             worldRenderer.Renderer.AddTexture(cellTexture);
             worldRenderer.Renderer.CullFaceFlag = true;
             worldRenderer.Sensitive = true;
@@ -145,6 +147,7 @@ namespace WorldGen
             borderRenderer.Renderer.DepthTestFlag = true;
             borderRenderer.Renderer.CullFaceFlag = true;
             borderRenderer.Renderer.CullFaceMode = CullFaceMode.Back;
+            borderRenderer.Renderer.AddUniform(new UniformProperty("shading", debugShading));
             borderRenderer.Sensitive = true;
             borderRenderer.touchedEvent += BorderTouchedEventHandler;
             borderRenderer.Renderer.Visible = debugRenderBorder;
@@ -181,6 +184,7 @@ namespace WorldGen
             worldPlateSpinDebugRenderer.Renderer.AddTexture(arrowTexture);
             worldPlateSpinDebugRenderer.Renderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
             worldPlateSpinDebugRenderer.Renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
+            worldPlateSpinDebugRenderer.Renderer.AddUniform(new UniformProperty("shading", debugShading));
             worldPlateSpinDebugRenderer.Renderer.Visible = debugRenderSpin;
             worldNode.Add(worldPlateSpinDebugRenderer);
 
@@ -190,6 +194,7 @@ namespace WorldGen
             worldPlateDriftDebugRenderer.Renderer.AddTexture(arrowTexture);
             worldPlateDriftDebugRenderer.Renderer.AddUniform(new UniformProperty("color", new Vector4(.75f, 0.75f, 0.0f, 1.0f)));
             worldPlateDriftDebugRenderer.Renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
+            worldPlateDriftDebugRenderer.Renderer.AddUniform(new UniformProperty("shading", debugShading));
             worldPlateDriftDebugRenderer.Renderer.Visible = debugRenderDrift;
             worldNode.Add(worldPlateDriftDebugRenderer);
             
@@ -602,6 +607,20 @@ namespace WorldGen
 
         private void TerrainColorMaps()
         {
+            bool shading = debugShading > 0;
+            if(ImGui.Checkbox("Shading", ref shading))
+            {
+                if(shading)
+                {
+                    debugShading = 1.0f;
+                }
+                else
+                {
+                    debugShading = 0.0f;
+                }
+                SetDebugShading();
+                scene.Update();
+            }
             if (ImGui.CollapsingHeader("Color Map"))
             {
                 if (ImGui.RadioButton("Terrain", ref colorMap, (int)World.WorldColorE.Height))
@@ -740,6 +759,14 @@ namespace WorldGen
             worldPlateSpinDebugRenderer.Renderer.SetUniform("zCutoff", zCutoff);
             meridianRenderer.Renderer.SetUniform("zCutoff", zCutoff);
             equatorRenderer.Renderer.SetUniform("zCutoff", zCutoff);
+        }
+
+        private void SetDebugShading()
+        {
+            worldRenderer.Renderer.SetUniform("shading", debugShading);
+            borderRenderer.Renderer.SetUniform("shading", debugShading);
+            worldPlateDriftDebugRenderer.Renderer.SetUniform("shading", debugShading);
+            worldPlateSpinDebugRenderer.Renderer.SetUniform("shading", debugShading);
         }
 
         void ImGuiMouseUp(object sender, OpenTK.Windowing.Common.MouseButtonEventArgs e)

@@ -1,4 +1,4 @@
-﻿#version 430
+﻿#version 130
 
 /*
  * Copyright 2018 David Ian Steele
@@ -28,13 +28,18 @@ in float power;
 in float specular;
 in vec2 vTexCoords;
 uniform sampler2D sTexture;
+uniform float shading;
 out vec4 outputColor;
 
 void main()
 {
-	vec3 texColor = vColor.rgb * (vec3(0.1, 0.1, 0.1) + texture(sTexture,vTexCoords).xyz);
-	vec3 litColor =  vAmbientColor + 
-		texColor * intensity *power/distanceSq +
-		vec3(1,1,1) * specular * power / distanceSq;
+	vec3 texColor = vColor.rgb * texture2D(sTexture,vTexCoords).xyz;
+	vec3 litColor = texColor;
+	if(shading>0.5)
+	{
+		litColor =  vAmbientColor + 
+			texColor * intensity *power/distanceSq +
+			vec3(1,1,1) * specular * power / distanceSq;
+	}
 	outputColor = vec4( litColor, vColor.a );
 }

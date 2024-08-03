@@ -1,4 +1,4 @@
-﻿#version 430
+﻿#version 130
 
 /*
  * Copyright 2018 David Ian Steele
