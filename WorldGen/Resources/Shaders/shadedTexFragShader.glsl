@@ -1,4 +1,4 @@
-﻿#version 130
+﻿#version 430
 
 /*
  * Copyright 2018 David Ian Steele
@@ -32,8 +32,7 @@ out vec4 outputColor;
 
 void main()
 {
-	vec3 texColor = vColor.rgb * texture2D(sTexture,vTexCoords).xyz;
-	
+	vec3 texColor = vColor.rgb * (vec3(0.1, 0.1, 0.1) + texture(sTexture,vTexCoords).xyz);
 	vec3 litColor =  vAmbientColor + 
 		texColor * intensity *power/distanceSq +
 		vec3(1,1,1) * specular * power / distanceSq;

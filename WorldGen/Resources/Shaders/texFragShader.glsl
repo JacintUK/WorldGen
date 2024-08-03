@@ -1,4 +1,4 @@
-﻿#version 130
+﻿#version 430
 
 /*
  * Copyright 2018 David Ian Steele
@@ -25,6 +25,5 @@ uniform vec4 color;
 void main()
 {
 	// DO stuff with textures!
-	outputColor = color * vColor * texture2D(sTexture,vTexCoords);
-	//outputColor = vec4(1.0,0.0,1.0,1.0);
+	outputColor = color * vColor * (vec4(0.1,0.1,0.1,0.1)+texture(sTexture,vTexCoords));
 }

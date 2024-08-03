@@ -54,9 +54,11 @@ namespace WorldGen
 
         public GameWindow(int w, int h)
             : base(new GameWindowSettings { UpdateFrequency=60, RenderFrequency=60, IsMultiThreaded=false },
-                   new NativeWindowSettings { Title = "WorldGen", Size = new Vector2i(w, h), API= ContextAPI.OpenGL, Flags = ContextFlags.ForwardCompatible })
+                   new NativeWindowSettings { Title = "WorldGen", Size = new Vector2i(w, h), API= ContextAPI.OpenGL, APIVersion=new Version(4, 6), Flags = ContextFlags.ForwardCompatible })
         {
-            Console.WriteLine("gl version: " + GL.GetString(StringName.Version));
+            Console.WriteLine("Vendor:       " + GL.GetString(StringName.Vendor));
+            Console.WriteLine("GL version:   " + GL.GetString(StringName.Version));
+            Console.WriteLine("GLSL version: " + GL.GetString(StringName.ShadingLanguageVersion));
         }
 
         public unsafe void Start()

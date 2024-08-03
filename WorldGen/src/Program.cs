@@ -17,8 +17,10 @@
 
 using ImGuiNET;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Compute.OpenCL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Platform.Windows;
 using System;
 using System.Collections.Generic;
 using System.Drawing.Imaging;
@@ -75,7 +77,6 @@ namespace WorldGen
 
         private EventHandler eventHandler;
 
-
         void CreateScene(object sender, GameWindow.SceneCreatedEventArgs e)
         {
             world = new World();
@@ -108,13 +109,15 @@ namespace WorldGen
             }
             Shader quadShader = new Shader(GameWindow.SHADER_PATH + "quadVertShader.glsl", GameWindow.SHADER_PATH + "4ChannelFragShader.glsl");
             Shader quadShader2 = new Shader(GameWindow.SHADER_PATH + "quadVertShader.glsl", GameWindow.SHADER_PATH + "pointFragshader.glsl");
-            Shader shader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorUVShader.glsl", GameWindow.SHADER_PATH + "shadedFragShader.glsl");
+            Shader shader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorUVShader.glsl", GameWindow.SHADER_PATH + "shadedTexFragShader.glsl");
             Shader pointShader = new Shader(GameWindow.SHADER_PATH + "pointVertShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
             Shader lineShader = new Shader(GameWindow.SHADER_PATH + "pointColorVertShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
             Shader texShader2 = new Shader(GameWindow.SHADER_PATH + "Vert3DColorUVShader.glsl", GameWindow.SHADER_PATH + "texFragShader.glsl");
-            Shader borderShader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
+            //Shader borderShader = new Shader(GameWindow.SHADER_PATH + "Vert3DColorShader.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
+            Shader borderShader = new Shader(GameWindow.SHADER_PATH + "TestVert.glsl", GameWindow.SHADER_PATH + "pointFragShader.glsl");
             Texture cellTexture = new Texture("Edge.png");
             Texture arrowTexture = new Texture("Arrow.png");
+            Shader testShader = new Shader(GameWindow.SHADER_PATH + "TestVert.glsl", GameWindow.SHADER_PATH + "TestFrag.glsl");
 
             worldNode = new Node
             {
@@ -127,7 +130,7 @@ namespace WorldGen
 
             worldRenderGeometry = world.RegenerateMesh();
 
-            worldRenderer = new GeometryRenderer<Vertex3DColorUV>(worldRenderGeometry as Geometry<Vertex3DColorUV>, shader);
+            worldRenderer = new GeometryRenderer<Vertex3DColorUV>(worldRenderGeometry as Geometry<Vertex3DColorUV>, testShader);
             worldRenderer.Renderer.AddUniform(new UniformProperty("lightPosition", lightPosition));
             worldRenderer.Renderer.AddUniform(new UniformProperty("ambientColor", ambientColor));
             worldRenderer.Renderer.AddTexture(cellTexture);
@@ -171,8 +174,9 @@ namespace WorldGen
             worldCentroidDebugRenderer.Renderer.Visible = debugCentroid;
             worldNode.Add(worldCentroidDebugRenderer);
 
+            var spinDriftShader = testShader;
             var spinGeom = world.plates.GenerateSpinDriftDebugGeom(true);
-            worldPlateSpinDebugRenderer = new GeometryRenderer<Vertex3DColorUV>(spinGeom, texShader2);
+            worldPlateSpinDebugRenderer = new GeometryRenderer<Vertex3DColorUV>(spinGeom, spinDriftShader);
             worldPlateSpinDebugRenderer.Renderer.BlendingFlag = true;
             worldPlateSpinDebugRenderer.Renderer.AddTexture(arrowTexture);
             worldPlateSpinDebugRenderer.Renderer.AddUniform(new UniformProperty("color", new Vector4(1, 1, 1, 1.0f)));
@@ -181,14 +185,14 @@ namespace WorldGen
             worldNode.Add(worldPlateSpinDebugRenderer);
 
             var driftGeom = world.plates.GenerateSpinDriftDebugGeom(false);
-            worldPlateDriftDebugRenderer = new GeometryRenderer<Vertex3DColorUV>(driftGeom, texShader2);
+            worldPlateDriftDebugRenderer = new GeometryRenderer<Vertex3DColorUV>(driftGeom, spinDriftShader);
             worldPlateDriftDebugRenderer.Renderer.BlendingFlag = true;
             worldPlateDriftDebugRenderer.Renderer.AddTexture(arrowTexture);
             worldPlateDriftDebugRenderer.Renderer.AddUniform(new UniformProperty("color", new Vector4(.75f, 0.75f, 0.0f, 1.0f)));
             worldPlateDriftDebugRenderer.Renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
             worldPlateDriftDebugRenderer.Renderer.Visible = debugRenderDrift;
             worldNode.Add(worldPlateDriftDebugRenderer);
-
+            
             var equatorGeom = GeometryFactory.GenerateCircle(Vector3.Zero, Vector3.UnitY, 1.005f, new Vector4(1.0f, 0, 0, 1.0f));
             equatorRenderer = new GeometryRenderer<Vertex3DColor>(equatorGeom, lineShader);
             equatorRenderer.Renderer.AddUniform(new UniformProperty("zCutoff", RENDERER_Z_CUTOFF));
@@ -264,7 +268,7 @@ namespace WorldGen
                 PrimitiveType = PrimitiveType.Points
             };
             worldCentroidDebugRenderer.Update(centroidGeom);
-
+            
             var spinGeom = world.plates.GenerateSpinDriftDebugGeom(true);
             worldPlateSpinDebugRenderer.Update(spinGeom);
 
@@ -757,6 +761,7 @@ namespace WorldGen
         static void Main(string[] args)
         {
             var program = new Program();
+
             GameWindow window = new GameWindow(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
             window.SceneCreatedEvent += program.CreateScene;
             window.ImGuiRenderEvent += program.RenderGui;

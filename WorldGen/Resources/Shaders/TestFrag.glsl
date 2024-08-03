@@ -1,5 +1,7 @@
-﻿/*
- * Copyright 2018 David Ian Steele
+﻿#version 430
+
+/*
+ * Copyright 2019 David Ian Steele
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +16,26 @@
  * limitations under the License.
  */
 
-using OpenTK.Mathematics;
+// TEST FRAG
+in vec4 vColor;
+in vec2 vTexCoords;
+in float intensity;
+in float distanceSq;
+in float specular;
 
-namespace WorldGen
+in vec3  vAmbientColor;
+
+out vec4 outputColor;
+uniform sampler2D sTexture;
+
+void main()
 {
-    internal interface IColorVertex
-    {
-        void SetColor(Vector4 color);
-        Vector4 GetColor();
-    }
+	vec4 texColor = vColor * texture(sTexture,vTexCoords);
+
+	vec3 litColor =  vAmbientColor + 
+		texColor.rgb * intensity/distanceSq +
+		specular / distanceSq;
+
+	outputColor = vec4(texColor.rgb + vAmbientColor, texColor.a);
+	//outputColor = vec4(litColor, texColor.a) + vec4(vAmbientColor, 1.0);
 }
