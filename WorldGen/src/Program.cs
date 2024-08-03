@@ -761,6 +761,7 @@ namespace WorldGen
         static void Main(string[] args)
         {
             var program = new Program();
+            WorldGenerator.Compute.Computer.Initialize();
 
             GameWindow window = new GameWindow(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
             window.SceneCreatedEvent += program.CreateScene;
