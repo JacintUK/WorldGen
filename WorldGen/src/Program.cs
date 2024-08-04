@@ -373,7 +373,7 @@ namespace WorldGen
             DebugRenderers();
             TerrainColorMaps();
             GeneralDebugData();
-
+            ShadingDebug();
 
             if (ImGui.Button("Demo"))
             {
@@ -465,21 +465,15 @@ namespace WorldGen
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Height");
                 ImGui.TableNextColumn();
-                // Calculate/retrieve tile height!!!
+                ImGui.Text($"{plate.Traits.Elevation}");
 
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-                ImGui.Text("Spin");
-                ImGuiVector3TableCols(spin);
+                ImGuiInsertVector3Row("Spin", spin);
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Spin Magn");
                 ImGui.TableNextColumn();
                 ImGui.Text($"{spin.Length}");
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-                ImGui.Text("Drift");
-                ImGuiVector3TableCols(drift);
+                ImGuiInsertVector3Row("Drift", drift);
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Drift Magn");
@@ -508,6 +502,22 @@ namespace WorldGen
                     ImGui.Text($"{borderCorners[i].stress.shear}");
                     ImGui.TableNextColumn();
                     ImGui.Text($"{borderCorners[i + 1].stress.shear}");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(0);
+                    ImGui.Text($"Border[{i / 2}].calc");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{borderCorners[i].calculation}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{borderCorners[i+1].calculation}");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(0);
+                    ImGui.Text(".elevation");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{borderCorners[i].elevation}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{borderCorners[i + 1].elevation}");
                 }
                 ImGui.EndTable();
             }
@@ -538,6 +548,15 @@ namespace WorldGen
                 ImGui.EndTable();
             }
         }
+
+        private void ImGuiInsertVector3Row(String name, Vector3 v)
+        {
+            ImGui.TableNextRow();
+            ImGui.TableSetColumnIndex(0);
+            ImGui.Text(name);
+            ImGuiVector3TableCols(v);
+        }
+
         private void ImGuiVector3TableCols(Vector3 v)
         {
             ImGui.TableNextColumn();
@@ -607,20 +626,6 @@ namespace WorldGen
 
         private void TerrainColorMaps()
         {
-            bool shading = debugShading > 0;
-            if(ImGui.Checkbox("Shading", ref shading))
-            {
-                if(shading)
-                {
-                    debugShading = 1.0f;
-                }
-                else
-                {
-                    debugShading = 0.0f;
-                }
-                SetDebugShading();
-                scene.Update();
-            }
             if (ImGui.CollapsingHeader("Color Map"))
             {
                 if (ImGui.RadioButton("Terrain", ref colorMap, (int)World.WorldColorE.Height))
@@ -637,6 +642,24 @@ namespace WorldGen
                 {
                     worldRenderer.Renderer.SetUniform("ambientColor", new Vector3(ambientDebugColor.X, ambientDebugColor.Y, ambientDebugColor.Z));
                 }
+            }
+        }
+
+        private void ShadingDebug()
+        {
+            bool shading = debugShading > 0;
+            if (ImGui.Checkbox("Shading", ref shading))
+            {
+                if (shading)
+                {
+                    debugShading = 1.0f;
+                }
+                else
+                {
+                    debugShading = 0.0f;
+                }
+                SetDebugShading();
+                scene.Update();
             }
         }
 

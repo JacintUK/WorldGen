@@ -47,9 +47,43 @@ namespace WorldGen
         {
             Vector4 K = new Vector4(1.0f, 2.0f / 3.0f, 1.0f / 3.0f, 3.0f);
             Vector3 p = Abs(Fract(Fill(hsv.X) + K.Xyz) * 6.0f - Fill(K.W));
-            return hsv.Z * Mix(Fill(K.X), Vector3.Clamp(p - Fill(K.X), Fill(0.0f), Fill(1.0f)), hsv.Y);
+            Vector3 rgb =  hsv.Z * Mix(Fill(K.X), Vector3.Clamp(p - Fill(K.X), Fill(0.0f), Fill(1.0f)), hsv.Y);
+            return rgb;
         }
 
+        public static Vector3 RGB2HSV(Vector3 rgb)
+        {
+            float max = Math.Max(rgb.X, Math.Max(rgb.Y, rgb.Z));
+            float min = Math.Min(rgb.X, Math.Min(rgb.Y, rgb.Z));
+            float delta = max - min;
+
+            float h = 0.0f;
+            float s = (max == 0) ? 0.0f : delta / max;
+            float v = max;
+
+            if (delta != 0)
+            {
+                if (max == rgb.X)
+                {
+                    h = 60 * (((rgb.Y - rgb.Z) / delta) % 6);
+                }
+                else if (max == rgb.Y)
+                {
+                    h = 60 * (((rgb.Z - rgb.X) / delta) + 2);
+                }
+                else if (max == rgb.Z)
+                {
+                    h = 60 * (((rgb.X - rgb.Y) / delta) + 4);
+                }
+            }
+
+            if (h < 0)
+            {
+                h += 360;
+            }
+            Vector3 hsv = new Vector3(h/360.0f, s, v);
+            return hsv;
+        }
         public static Vector3 Mix(Vector3 a, Vector3 b, float t)
         {
             Vector3 c = a + t * (b - a);

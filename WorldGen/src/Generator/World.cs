@@ -40,9 +40,19 @@ namespace WorldGen
         {
             plates = p;
         }
+
+ 
         public Vector4 GetColor(int index)
         {
-            return (Vector4)(plates.GetPlates()[plates.VertexToPlates[index]].Traits.Elevation > 0 ? Color4.ForestGreen : Color4.Blue);
+            Vector4 baseColor = (Vector4)(plates.GetPlates()[plates.VertexToPlates[index]].Traits.Elevation > 0 ? Color4.ForestGreen : Color4.Blue);
+
+            // Want some variation in sat/light
+            Vector3 hsv = Math2.RGB2HSV(baseColor.Xyz);
+            Random rand = new Random(index%17);
+    
+            hsv.Y += 0.01f * (rand.Next(40) - 20);
+            hsv.Z += 0.01f * (rand.Next(40) - 20);
+            return new Vector4(Math2.HSV2RGB(hsv), 1.0f);
         }
     }
 
