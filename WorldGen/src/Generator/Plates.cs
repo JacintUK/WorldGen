@@ -321,6 +321,16 @@ namespace WorldGen
             {
                 throw new Exception();
             }
+
+            // @todo migrate "inset tile" to neighbour plate.
+            // Foreach plate, foreach border tile, 
+            //   Check if the border tile has < half edges in common with plate neighbours.
+            //   if it does, it's a candidate for migrating to another plate. 
+            //   Determine which plate it should move to.
+            // For all candidate tiles 
+            //   Move candidate tile to new plate.
+            // For all candidate tiles
+            //   Fixup borders of each and all neighbouring plates
         }
 
         private void AddBorderCorner(int cornerIndex, Int64 borderKey)
